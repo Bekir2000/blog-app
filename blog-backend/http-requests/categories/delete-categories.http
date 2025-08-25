@@ -1,0 +1,3 @@
+###
+DELETE http://localhost:8080/api/v1/categories/b22e9110-991e-4f62-91ef-ab1f4dd47639
+###
