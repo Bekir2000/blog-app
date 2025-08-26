@@ -1,0 +1,14 @@
+POST localhost:8080/api/v1/posts
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "PUBLISHED",
+  "content": "This is the content of my first post. It must be at least 10 characters long.",
+  "categoryId": "4e7041fe-cd07-43cd-a6b0-62e24be9002d",
+  "tagIds": [
+    "9c6ee46f-853d-485a-9f04-e45381a3caf2",
+    "5ea35b8f-f54d-4ee6-9173-b9f194d2de6d"
+  ],
+  "status": "PUBLISHED"
+}
