@@ -1,4 +1,4 @@
 ###
 GET localhost:8080/api/v1/auth/me
-Authorization: Bearer {{token}}
+Authorization: Bearer {{access_token}}
 ###

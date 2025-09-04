@@ -33,6 +33,8 @@ public class BlogUserDetails implements UserDetails {
         return user.getEmail();
     }
 
+    public UUID getUserId() {return  user.getId();}
+
     @Override
     public boolean isAccountNonExpired() {
         return true;

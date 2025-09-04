@@ -4,7 +4,9 @@ import org.example.blogbackend.model.entities.User;
 import org.example.blogbackend.repository.UserRepository;
 import org.example.blogbackend.security.BlogUserDetailsService;
 import org.example.blogbackend.security.JwtAuthenticationFilter;
-import org.example.blogbackend.service.AuthenticationService;
+import org.example.blogbackend.security.jwt.JwtUtil;
+import org.example.blogbackend.service.UserService;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -25,11 +27,12 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 @Configuration
+@EnableConfigurationProperties({RefreshCookieProperties.class, JwtProperties.class})
 public class SecurityConfig {
 
     @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter(AuthenticationService authenticationService) {
-        return new JwtAuthenticationFilter(authenticationService);
+    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtUtil jwtUtil, UserService userService) {
+        return new JwtAuthenticationFilter(jwtUtil, userService);
     }
 
     @Bean
