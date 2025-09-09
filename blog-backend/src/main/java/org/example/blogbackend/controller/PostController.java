@@ -51,7 +51,7 @@ public class PostController {
     @GetMapping(path = "/drafts")
     public ResponseEntity<List<PostResponse>> getDrafts(@RequestAttribute UUID userId) {
 
-        User loggedInUser = userService.getUserById(userId);
+        User loggedInUser = userService.getById(userId);
         List<Post> draftPosts = postService.getDraftPosts(loggedInUser);
         List<PostResponse> postResponses = draftPosts.stream().map(postMapper::toDto).toList();
 
@@ -63,7 +63,7 @@ public class PostController {
             @Valid @RequestBody CreatePostRequest createPostRequest,
             @RequestAttribute UUID userId) {
 
-        User loggedInUser = userService.getUserById(userId);
+        User loggedInUser = userService.getById(userId);
         Post createdPost = postService.createPost(loggedInUser, createPostRequest);
         PostResponse createdPostResponse = postMapper.toDto(createdPost);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdPostResponse);
