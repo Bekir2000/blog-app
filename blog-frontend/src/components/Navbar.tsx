@@ -4,6 +4,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bell, Menu, Search, SquarePenIcon } from "lucide-react";
 import Link from "next/link";
+import { InfoTooltip } from "./InfoToolTip";
 
 export default function Navbar() {
   return (
@@ -11,7 +12,9 @@ export default function Navbar() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
         {/* Left: Menu + Logo */}
         <div className="flex items-center gap-4">
-          <Menu className="w-6 h-6 cursor-pointer" />
+          <InfoTooltip message="Menu">
+            <Menu className="w-6 h-6 cursor-pointer" />
+          </InfoTooltip>
           <Link href="/" className="text-2xl font-serif font-bold">
             Blogium
           </Link>
@@ -34,11 +37,15 @@ export default function Navbar() {
           <button className="flex items-center gap-1 text-gray-700 hover:text-black">
             <SquarePenIcon className="w-4 h-4" /> Write
           </button>
-          <Bell className="w-5 h-5 text-gray-600 cursor-pointer" />
-          <Avatar className="cursor-pointer">
-            <AvatarImage src="/avatar.jpg" alt="User Avatar" />
-            <AvatarFallback>U</AvatarFallback>
-          </Avatar>
+          <InfoTooltip message="Notifications">
+            <Bell className="w-5 h-5 text-gray-600 cursor-pointer" />
+          </InfoTooltip>
+          <InfoTooltip message="Account">
+            <Avatar className="cursor-pointer">
+              <AvatarImage src="/avatar.jpg" alt="User Avatar" />
+              <AvatarFallback>U</AvatarFallback>
+            </Avatar>
+          </InfoTooltip>
         </div>
       </div>
     </header>

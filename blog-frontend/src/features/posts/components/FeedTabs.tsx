@@ -1,3 +1,4 @@
+import { InfoTooltip } from "@/components/InfoToolTip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { mockposts } from "@/data/posts";
 import { PostsGrid } from "@/features/posts/components/PostGrid";
@@ -7,9 +8,13 @@ export function FeedTabs() {
     <Tabs defaultValue="foryou" className="w-full">
       {/* thin baseline like the original */}
       <TabsList>
-        <TabsTrigger value="foryou">For you</TabsTrigger>
+        <InfoTooltip message="Recommended stories based on your reading history">
+          <TabsTrigger value="foryou">For you</TabsTrigger>
+        </InfoTooltip>
 
-        <TabsTrigger value="featured">Featured</TabsTrigger>
+        <InfoTooltip message="Featured stories from publication you follow">
+          <TabsTrigger value="featured">Featured</TabsTrigger>
+        </InfoTooltip>
       </TabsList>
 
       <TabsContent value="foryou" className="pt-4">
