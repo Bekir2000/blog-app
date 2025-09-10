@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export function RightSidebar() {
+export default function RightSidebar() {
   const topics = [
     "Self Improvement",
     "Cryptocurrency",
@@ -51,7 +51,7 @@ export function RightSidebar() {
   ];
 
   return (
-    <aside className="w-80 ">
+    <aside className="max-w-140">
       {/* Recommended Topics */}
       <Card>
         <CardHeader>

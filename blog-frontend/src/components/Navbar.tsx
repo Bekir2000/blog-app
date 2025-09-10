@@ -2,18 +2,19 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, Menu, Search, SquarePenIcon } from "lucide-react";
+import { Bell, Search, SquarePenIcon } from "lucide-react";
 import Link from "next/link";
-import { InfoTooltip } from "./InfoToolTip";
+import { InfoTooltip } from "./InfoTooltip";
+import { SidebarTrigger } from "./ui/sidebar";
 
 export default function Navbar() {
   return (
-    <header className="w-full border-b border-gray-200 bg-white">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
+    <nav className="w-full border-b border-gray-200 bg-white">
+      <div className="flex items-center justify-between px-6 py-3">
         {/* Left: Menu + Logo */}
         <div className="flex items-center gap-4">
           <InfoTooltip message="Menu">
-            <Menu className="w-6 h-6 cursor-pointer" />
+            <SidebarTrigger />
           </InfoTooltip>
           <Link href="/" className="text-2xl font-serif font-bold">
             Blogium
@@ -48,6 +49,6 @@ export default function Navbar() {
           </InfoTooltip>
         </div>
       </div>
-    </header>
+    </nav>
   );
 }

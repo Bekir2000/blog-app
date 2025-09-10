@@ -1,4 +1,6 @@
+import { MenuSidebar } from "@/components/MenuSidebar";
 import Navbar from "@/components/Navbar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Roboto } from "next/font/google";
 import "./globals.css";
@@ -34,8 +36,15 @@ export default function RootLayout({
       <body
         className={`${roboto.variable} ${geistSans.variable} ${geistMono.variable} min-h-screen bg-white text-black`}
       >
-        <Navbar />
-        <div className="max-w-7xl mx-auto flex gap-8 px-4 py-6">{children}</div>
+        <SidebarProvider>
+          <MenuSidebar />
+          <SidebarInset>
+            <header>
+              <Navbar />
+            </header>
+            <div>{children}</div>
+          </SidebarInset>
+        </SidebarProvider>
       </body>
     </html>
   );
