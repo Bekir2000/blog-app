@@ -51,7 +51,7 @@ export default function RightSidebar() {
   ];
 
   return (
-    <aside className="max-w-140">
+    <aside className="w-sm mr-5">
       {/* Recommended Topics */}
       <Card>
         <CardHeader>

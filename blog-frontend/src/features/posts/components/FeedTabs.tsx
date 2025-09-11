@@ -5,7 +5,7 @@ import { PostsGrid } from "@/features/posts/components/PostGrid";
 
 export function FeedTabs() {
   return (
-    <Tabs defaultValue="foryou" className="w-5xl">
+    <Tabs defaultValue="foryou" className="mx-auto w-3xl">
       {/* thin baseline like the original */}
       <TabsList>
         <InfoTooltip message="Recommended stories based on your reading history">

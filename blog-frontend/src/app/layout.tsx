@@ -36,7 +36,7 @@ export default function RootLayout({
       <body
         className={`${roboto.variable} ${geistSans.variable} ${geistMono.variable} min-h-screen bg-white text-black`}
       >
-        <SidebarProvider>
+        <SidebarProvider defaultOpen={false}>
           <MenuSidebar />
           <SidebarInset>
             <header>

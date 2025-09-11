@@ -20,7 +20,7 @@ import Image from "next/image";
 
 export function PostCard({ post }: { post: Post }) {
   return (
-    <Card className="w-full max-w-3xl shadow-md">
+    <Card className="max-w-3xl min-w-10 shadow-md">
       {/* Header: title, description, author, image */}
       <CardHeader>
         <div className="text-sm flex flex-row items-center gap-2 mb-2">
