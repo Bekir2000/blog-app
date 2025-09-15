@@ -35,7 +35,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest loginRequest, HttpServletResponse res) {
-        AuthService.TokenPair pair = authService.login(loginRequest);
+        AuthService.TokenPair pair = authService.login(loginRequest.email(), loginRequest.password());
         return respondWithTokens(res, pair);
     }
 
@@ -71,7 +71,7 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> me(@AuthenticationPrincipal BlogUserDetails principal) {
-        User user = principal.getUser();
+        User user = principal.authenticatedUser();
         return ResponseEntity.ok(userMapper.toDto(user));
     }
 

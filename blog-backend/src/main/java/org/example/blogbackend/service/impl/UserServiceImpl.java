@@ -23,14 +23,14 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public User register(RegisterRequest req) {
-        if (userRepository.existsByEmail(req.getEmail())) {
+        if (userRepository.existsByEmail(req.email())) {
             throw new IllegalArgumentException("Email already exists");
         }
         User user = User.builder()
-                .email(req.getEmail())
-                .name(req.getName())
-                .profileImageUrl(req.getProfileImageUrl())
-                .password(passwordEncoder.encode(req.getPassword()))
+                .email(req.email())
+                .name(req.name())
+                .profileImageUrl(req.profileImageUrl())
+                .password(passwordEncoder.encode(req.password()))
                 .build();
 
         return userRepository.save(user);

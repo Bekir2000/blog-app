@@ -1,6 +1,6 @@
 package org.example.blogbackend.mapper;
 
-import org.example.blogbackend.model.dto.requests.CreateCategoryRequestDTO;
+import org.example.blogbackend.model.dto.requests.CreateCategoryRequest;
 import org.example.blogbackend.model.dto.responses.CategoryResponse;
 import org.example.blogbackend.model.entities.Category;
 import org.example.blogbackend.model.entities.Post;
@@ -18,7 +18,7 @@ public interface CategoryMapper {
     @Mapping(target = "postsCount", source = "posts", qualifiedByName = "calculatePostCount")
     CategoryResponse toDto(Category category);
 
-    Category toEntity(CreateCategoryRequestDTO createCategoryRequest);
+    Category toEntity(CreateCategoryRequest createCategoryRequest);
 
     @Named("calculatePostCount")
     default long calculatePostCount(List<Post> posts) {
@@ -26,6 +26,5 @@ public interface CategoryMapper {
         return posts.stream()
                 .filter(post -> PostStatus.PUBLISHED.equals(post.getStatus()))
                 .count();
-
     }
 }

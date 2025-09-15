@@ -3,7 +3,7 @@ package org.example.blogbackend.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.blogbackend.mapper.CategoryMapper;
-import org.example.blogbackend.model.dto.requests.CreateCategoryRequestDTO;
+import org.example.blogbackend.model.dto.requests.CreateCategoryRequest;
 import org.example.blogbackend.model.dto.responses.CategoryResponse;
 import org.example.blogbackend.model.entities.Category;
 import org.example.blogbackend.service.CategoryService;
@@ -33,7 +33,7 @@ public class CategoryController {
 
     @PostMapping
     public ResponseEntity<CategoryResponse> createCategory(
-            @Valid @RequestBody CreateCategoryRequestDTO createCategoryRequest
+            @Valid @RequestBody CreateCategoryRequest createCategoryRequest
     ) {
         Category categoryToCreate = categoryMapper.toEntity(createCategoryRequest);
         Category safedCategory = categoryService.createCategory(categoryToCreate);

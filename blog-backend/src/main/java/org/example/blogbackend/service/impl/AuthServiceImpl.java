@@ -15,7 +15,6 @@ import org.example.blogbackend.service.UserService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +25,6 @@ import java.time.Instant;
 public class AuthServiceImpl implements AuthService {
 
     private final AuthenticationManager authenticationManager;
-    private final UserDetailsService userDetailsService;
     private final UserService userService;
     private final BlacklistedRefreshTokenRepository blacklistedRepo;
     private final JwtUtil jwt;
@@ -37,13 +35,13 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public TokenPair register(RegisterRequest req) {
         userService.register(req);
-        LoginRequest loginReq = new LoginRequest(req.getEmail(), req.getPassword());
-        return login(loginReq);
+        LoginRequest loginReq = new LoginRequest(req.email(), req.password());
+        return login(loginReq.email(), loginReq.password());
     }
 
     @Override
-    public AuthService.TokenPair login(LoginRequest req) {
-        BlogUserDetails u = authenticate(req.getEmail(), req.getPassword());
+    public AuthService.TokenPair login(String email, String password) {
+        BlogUserDetails u = authenticate(email, password);
         JwtParsed access  = jwt.generateAccessToken(u.getUserId());
         JwtParsed refresh = jwt.generateRefreshToken(u.getUserId());
         return new AuthService.TokenPair(access, refresh);

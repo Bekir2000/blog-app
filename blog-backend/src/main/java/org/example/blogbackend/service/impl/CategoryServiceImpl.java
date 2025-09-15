@@ -48,4 +48,9 @@ public class CategoryServiceImpl implements CategoryService {
         return categoryRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Category with id" + id));
     }
+
+    @Override
+    public boolean existsById(UUID id) {
+        return categoryRepository.existsById(id);
+    }
 }

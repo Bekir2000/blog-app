@@ -1,7 +1,5 @@
 package org.example.blogbackend.security;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.example.blogbackend.model.entities.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -12,11 +10,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-@Getter
-@RequiredArgsConstructor
-public class BlogUserDetails implements UserDetails {
-
-    private final User user;
+public record BlogUserDetails(User authenticatedUser) implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -25,15 +19,17 @@ public class BlogUserDetails implements UserDetails {
 
     @Override
     public String getPassword() {
-        return user.getPassword();
+        return authenticatedUser().getPassword();
     }
 
     @Override
     public String getUsername() {
-        return user.getEmail();
+        return authenticatedUser().getEmail();
     }
 
-    public UUID getUserId() {return  user.getId();}
+    public UUID getUserId() {
+        return authenticatedUser().getId();
+    }
 
     @Override
     public boolean isAccountNonExpired() {
@@ -56,6 +52,6 @@ public class BlogUserDetails implements UserDetails {
     }
 
     public UUID getId() {
-        return user.getId();
+        return authenticatedUser().getId();
     }
 }

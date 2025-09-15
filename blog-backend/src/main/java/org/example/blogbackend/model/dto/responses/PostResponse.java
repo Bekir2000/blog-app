@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.example.blogbackend.model.enums.PostStatus;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
 
@@ -22,7 +22,7 @@ public class PostResponse {
     private CategoryResponse category;
     private Set<TagResponse> tags;
     private Integer readingTime;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
     private PostStatus status;
 }

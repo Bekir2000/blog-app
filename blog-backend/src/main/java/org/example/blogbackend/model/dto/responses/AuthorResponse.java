@@ -15,4 +15,5 @@ public class AuthorResponse {
 
     private UUID id;
     private String name;
+    private String profileImageUrl;
 }

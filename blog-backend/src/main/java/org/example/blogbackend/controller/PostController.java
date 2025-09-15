@@ -4,15 +4,15 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.blogbackend.mapper.PostMapper;
 import org.example.blogbackend.model.dto.requests.CreatePostRequest;
-import org.example.blogbackend.model.dto.requests.UpdatePostRequest;
 import org.example.blogbackend.model.dto.responses.PostResponse;
 import org.example.blogbackend.model.entities.Post;
 import org.example.blogbackend.model.entities.User;
+import org.example.blogbackend.security.BlogUserDetails;
 import org.example.blogbackend.service.PostService;
-import org.example.blogbackend.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,8 +24,6 @@ import java.util.UUID;
 public class PostController {
 
     private final PostService postService;
-    private final UserService userService;
-
 
     private final PostMapper postMapper;
 
@@ -36,53 +34,64 @@ public class PostController {
             @RequestParam(required = false) UUID tagId) {
 
         List<Post> posts = postService.getAllPosts(categoryId, tagId);
-        List<PostResponse> postResponses =  posts.stream().map(postMapper::toDto).toList();
-
-        return ResponseEntity.ok(postResponses);
+        List<PostResponse> response = posts.stream().map(postMapper::toDto).toList();
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping(path = "/{id}")
-    public ResponseEntity<PostResponse> getPost(@PathVariable UUID id) {
+    public ResponseEntity<PostResponse> getPostById(@PathVariable UUID id) {
+
         Post post = postService.getPostById(id);
-        PostResponse postResponse = postMapper.toDto(post);
-        return ResponseEntity.ok(postResponse);
+        PostResponse response = postMapper.toDto(post);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping(path = "/drafts")
-    public ResponseEntity<List<PostResponse>> getDrafts(@RequestAttribute UUID userId) {
+    public ResponseEntity<List<PostResponse>> getDrafts(@AuthenticationPrincipal BlogUserDetails blogUserDetails) {
 
-        User loggedInUser = userService.getById(userId);
+        User loggedInUser = blogUserDetails.authenticatedUser();
         List<Post> draftPosts = postService.getDraftPosts(loggedInUser);
-        List<PostResponse> postResponses = draftPosts.stream().map(postMapper::toDto).toList();
+        List<PostResponse> response = draftPosts.stream().map(postMapper::toDto).toList();
 
-        return ResponseEntity.ok(postResponses);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping
     public ResponseEntity<PostResponse> createPost(
-            @Valid @RequestBody CreatePostRequest createPostRequest,
-            @RequestAttribute UUID userId) {
+            @Valid @RequestBody CreatePostRequest postRequest,
+            @AuthenticationPrincipal BlogUserDetails blogUserDetails) {
 
-        User loggedInUser = userService.getById(userId);
-        Post createdPost = postService.createPost(loggedInUser, createPostRequest);
-        PostResponse createdPostResponse = postMapper.toDto(createdPost);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdPostResponse);
+        Post postToCreate = postMapper.toEntity(postRequest);
+
+        User author = blogUserDetails.authenticatedUser();
+        postToCreate.setAuthor(author);
+
+        Post createdPost = postService.createPost(postToCreate);
+        PostResponse response = postMapper.toDto(createdPost);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PutMapping(path = "/{id}")
+    @PutMapping(path = "/{postId}")
     public ResponseEntity<PostResponse> updatePost(
-            @PathVariable UUID id,
-            @Valid @RequestBody UpdatePostRequest updatePostRequest) {
+            @PathVariable UUID postId,
+            @Valid @RequestBody CreatePostRequest updatePostRequest,
+            @AuthenticationPrincipal BlogUserDetails blogUserDetails) {
 
-        Post updatedPost = postService.updatePost(id, updatePostRequest);
-        return ResponseEntity.ok(postMapper.toDto(updatedPost));
+        Post postToUpdate = postMapper.toEntity(updatePostRequest);
+
+        User author = blogUserDetails.authenticatedUser();
+        postToUpdate.setAuthor(author);
+
+        Post updatedPost = postService.updatePost(postId, postToUpdate);
+        PostResponse response = postMapper.toDto(updatedPost);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping(path = "/{id}")
     public ResponseEntity<Void> deletePost(@PathVariable UUID id) {
+
         postService.deletePost(id);
         return ResponseEntity.noContent().build();
     }
-
 
 }

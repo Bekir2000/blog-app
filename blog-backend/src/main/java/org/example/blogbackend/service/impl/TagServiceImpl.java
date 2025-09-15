@@ -25,20 +25,19 @@ public class TagServiceImpl implements TagService {
 
     @Transactional
     @Override
-    public List<Tag> createTags(Set<String> tagNames) {
+    public List<Tag> createTags(Set<Tag> tagsToCreate) {
 
-        List<Tag> existingTags = tagRepository.findByNameIn(tagNames);
+        Set<String> tagNamesToCreate = tagsToCreate.stream()
+                .map(Tag::getName)
+                .collect(Collectors.toSet());
+
+        List<Tag> existingTags = tagRepository.findByNameIn(tagNamesToCreate);
         Set<String> existingTagNames = existingTags.stream()
                 .map(Tag::getName)
                 .collect(Collectors.toSet());
 
-        List<Tag> newTags =  tagNames.stream()
-                .filter(name -> !existingTagNames.contains(name))
-                .map(name -> Tag.builder()
-                        .name(name)
-                        .posts(new HashSet<>())
-                        .build()
-                ).toList();
+        List<Tag> newTags =  tagsToCreate.stream()
+                .filter(t -> !existingTagNames.contains(t.getName())).toList();
 
         List<Tag> savedTags = new ArrayList<>();
         if(!newTags.isEmpty()){
@@ -74,5 +73,10 @@ public class TagServiceImpl implements TagService {
             throw new EntityNotFoundException("Not all tags found with IDs: " + ids);
         }
         return foundTags;
+    }
+
+    @Override
+    public boolean existsById(UUID id) {
+        return tagRepository.existsById(id);
     }
 }

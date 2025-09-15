@@ -1,41 +1,32 @@
 package org.example.blogbackend.model.dto.requests;
 
-
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.example.blogbackend.model.enums.PostStatus;
 
-import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-@Builder
-public class CreatePostRequest {
-
+public record CreatePostRequest(
     @NotBlank(message = "Title is required")
     @Size(min = 3, max = 100, message = "Title must be between {min} and {max} characters")
-    private String title;
+    String title,
 
     @NotBlank(message = "Content is required")
     @Size(min = 10, max = 50000, message = "Content must be between {min} and {max} characters")
-    private String content;
+    String content,
 
-    @NotNull(message = "Category ID is required")
-    private UUID categoryId;
+    @NotBlank(message = "Description is required")
+    String description,
 
-    @Builder.Default
+    @NotNull(message = "Category is required")
+    CreateCategoryRequest category,
+
+    @NotEmpty(message = "Tag names cannot be empty")
     @Size(max = 10, message = "You can only add up to {max} tags")
-    private Set<UUID> tagIds = new HashSet<>();
+    Set<CreateTagRequest> tags,
 
     @NotNull(message = "Post status is required")
-    private PostStatus status;
-
-}
+    PostStatus status
+) {}

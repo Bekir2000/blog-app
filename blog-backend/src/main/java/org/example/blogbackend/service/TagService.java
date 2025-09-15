@@ -9,8 +9,9 @@ import java.util.UUID;
 public interface TagService {
 
     List<Tag> getTags();
-    List<Tag> createTags(Set<String> tagNames);
+    List<Tag> createTags(Set<Tag> tags);
     void deleteTag(UUID id);
     Tag getTagById(UUID id);
     List<Tag> getTagsByIds(Set<UUID> ids);
+    boolean existsById(UUID id);
 }
