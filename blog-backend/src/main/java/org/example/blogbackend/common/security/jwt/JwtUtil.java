@@ -34,25 +34,22 @@ public class JwtUtil {
     public JwtParsed generateAccessToken(UUID userId)  { return generate(userId, JwtTokenType.ACCESS); }
     public JwtParsed generateRefreshToken(UUID userId) { return generate(userId, JwtTokenType.REFRESH); }
 
-    private JwtParsed generate(UUID userId, JwtTokenType type) {
+    public JwtParsed generate(UUID userId, JwtTokenType type) {
         long ttl = ttlMs.get(type);
         Instant now = Instant.now();
         Instant exp = now.plusMillis(ttl);
+        UUID jti = UUID.randomUUID(); // Generate JTI once
 
         String token = Jwts.builder()
-                .id(UUID.randomUUID().toString())            // jti
-                .subject(userId.toString())                             // sub (UUID string)
-                .issuedAt(Date.from(now))                    // iat
-                .expiration(Date.from(exp))                  // exp
-                .claim("typ", type.name().toLowerCase())     // "access" | "refresh"
+                .id(jti.toString())                   // jti
+                .subject(userId.toString())           // sub userId (UUID string)
+                .issuedAt(Date.from(now))             // iat
+                .expiration(Date.from(exp))           // exp
+                .claim("typ", type.name().toLowerCase()) // "access" | "refresh"
                 .signWith(key)
                 .compact();
 
-        // return parsed view so caller immediately has metadata
-        return new JwtParsed(token, type, userId,
-                UUID.fromString(Jwts.parser().verifyWith(key).build()
-                        .parseSignedClaims(token).getPayload().getId()),
-                now, exp);
+        return new JwtParsed(token, type, userId, jti, now, exp);
     }
 
     /* ===================== parse/validate ===================== */

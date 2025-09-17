@@ -1,6 +1,8 @@
 package org.example.blogbackend.common.security;
 
-import org.example.blogbackend.user.model.entity.User;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
@@ -10,7 +12,23 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-public record BlogUserDetails(User authenticatedUser) implements UserDetails {
+@RequiredArgsConstructor
+@Builder
+public class BlogUserDetails implements UserDetails {
+
+    @Getter
+    private final UUID userId;
+    private final String email;
+    private final String password;
+
+
+    public static BlogUserDetails fromDb(UUID id, String email, String password, List<String> roles) {
+        return new BlogUserDetails(id, email, password);
+    }
+
+    public static BlogUserDetails fromJwt(UUID id, String email, List<String> roles) {
+        return new BlogUserDetails(id, email, null);
+    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -19,16 +37,12 @@ public record BlogUserDetails(User authenticatedUser) implements UserDetails {
 
     @Override
     public String getPassword() {
-        return authenticatedUser().getPassword();
+        return password;
     }
 
     @Override
     public String getUsername() {
-        return authenticatedUser().getEmail();
-    }
-
-    public UUID getUserId() {
-        return authenticatedUser().getId();
+        return email;
     }
 
     @Override
@@ -51,7 +65,4 @@ public record BlogUserDetails(User authenticatedUser) implements UserDetails {
         return true;
     }
 
-    public UUID getId() {
-        return authenticatedUser().getId();
-    }
 }

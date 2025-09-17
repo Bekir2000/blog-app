@@ -13,10 +13,13 @@ import org.example.blogbackend.user.model.entity.User;
 import org.example.blogbackend.common.security.BlogUserDetails;
 import org.example.blogbackend.common.security.jwt.JwtParsed;
 import org.example.blogbackend.common.security.jwt.RefreshCookieService;
+import org.example.blogbackend.user.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -25,6 +28,8 @@ public class AuthController {
 
     private final RefreshCookieService refreshCookieService;
     private final AuthService authService;
+
+    private final UserService userService;
     private final UserMapper userMapper;
 
     @PostMapping("/register")
@@ -70,8 +75,8 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<UserResponse> me(@AuthenticationPrincipal BlogUserDetails principal) {
-        User user = principal.authenticatedUser();
+    public ResponseEntity<UserResponse> me(@AuthenticationPrincipal BlogUserDetails userDetails) {
+        User user = userService.getById(userDetails.getUserId());
         return ResponseEntity.ok(userMapper.toDto(user));
     }
 

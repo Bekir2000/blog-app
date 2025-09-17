@@ -15,7 +15,7 @@ public class BlogUserDetailsService implements UserDetailsService {
     public BlogUserDetails loadUserByUsername(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email " + email));
-        return new BlogUserDetails(user);
+        return BlogUserDetails.fromDb(user.getId(), user.getEmail(), user.getPassword(), null);
     }
 
 }

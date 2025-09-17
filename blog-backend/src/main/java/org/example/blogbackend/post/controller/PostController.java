@@ -9,6 +9,7 @@ import org.example.blogbackend.post.model.entity.Post;
 import org.example.blogbackend.user.model.entity.User;
 import org.example.blogbackend.common.security.BlogUserDetails;
 import org.example.blogbackend.post.service.PostService;
+import org.example.blogbackend.user.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -24,6 +25,7 @@ import java.util.UUID;
 public class PostController {
 
     private final PostService postService;
+    private final UserService userService;
 
     private final PostMapper postMapper;
 
@@ -49,7 +51,7 @@ public class PostController {
     @GetMapping(path = "/drafts")
     public ResponseEntity<List<PostResponse>> getDrafts(@AuthenticationPrincipal BlogUserDetails blogUserDetails) {
 
-        User loggedInUser = blogUserDetails.authenticatedUser();
+        User loggedInUser = userService.getById(blogUserDetails.getUserId());
         List<Post> draftPosts = postService.getDraftPosts(loggedInUser);
         List<PostResponse> response = draftPosts.stream().map(postMapper::toDto).toList();
 
@@ -63,7 +65,7 @@ public class PostController {
 
         Post postToCreate = postMapper.toEntity(postRequest);
 
-        User author = blogUserDetails.authenticatedUser();
+        User author = userService.getById(blogUserDetails.getUserId());
         postToCreate.setAuthor(author);
 
         Post createdPost = postService.createPost(postToCreate);
@@ -79,7 +81,7 @@ public class PostController {
 
         Post postToUpdate = postMapper.toEntity(updatePostRequest);
 
-        User author = blogUserDetails.authenticatedUser();
+        User author = userService.getById(blogUserDetails.getUserId());
         postToUpdate.setAuthor(author);
 
         Post updatedPost = postService.updatePost(postId, postToUpdate);
