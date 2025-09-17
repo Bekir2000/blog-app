@@ -1,7 +1,7 @@
 package org.example.blogbackend.scheduler;
 
 import lombok.RequiredArgsConstructor;
-import org.example.blogbackend.repository.BlacklistedRefreshTokenRepository;
+import org.example.blogbackend.auth.repository.BlacklistedRefreshTokenRepository;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
