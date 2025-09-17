@@ -1,0 +1,25 @@
+PUT localhost:8080/api/v1/posts/f0761ca9-e802-4f1b-9b94-2c0a56791ec1
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "title": "First updated published Post",
+  "content": "This is the content of my first post. It must be at least 10 characters long.",
+  "description": "hallo this is long description",
+  "category": {
+    "name": "First Category"
+  },
+  "tags":[
+    {
+    "name": "First Tag"
+    },
+    {
+      "name": " updated Second Tag"
+    },
+    {
+      "name": "updated Tag"
+    }
+  ]
+,
+  "status": "PUBLISHED"
+}

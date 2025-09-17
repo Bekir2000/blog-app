@@ -53,4 +53,16 @@ public class CategoryServiceImpl implements CategoryService {
     public boolean existsById(UUID id) {
         return categoryRepository.existsById(id);
     }
+
+    @Override
+    @Transactional
+    public Category findOrCreateCategory(Category category) {
+        return categoryRepository.findByNameIgnoreCase(category.getName())
+                .orElseGet(() -> {
+                    // Reset ID to ensure creating a new entity
+                    category.setId(null);
+                    return categoryRepository.save(category);
+                });
+    }
+
 }

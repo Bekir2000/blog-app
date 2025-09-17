@@ -13,5 +13,6 @@ public interface CategoryService {
     void deleteCategory(UUID id);
     Category getCategoryById(UUID id);
     boolean existsById(UUID id);
+    Category findOrCreateCategory(Category category);
 
 }

@@ -14,104 +14,102 @@ import org.example.blogbackend.service.TagService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class PostServiceImpl implements PostService {
 
+    private static final int WORDS_PER_MINUTE = 200;
+    private static final String POST_NOT_FOUND_MESSAGE = "Post not found with ID: ";
+
     private final PostRepository postRepository;
     private final CategoryService categoryService;
     private final TagService tagService;
 
-    private static final int WORDS_PER_MINUTE = 200;
-    private static final String POST_NOT_FOUND_MESSAGE = "Post not found with ID: ";
-
     // =====================
-    // Public CRUD Operations
+    // Public Methods
     // =====================
-
-    // --- Read ---
 
     @Override
+    @Transactional(readOnly = true)
     public Post getPostById(UUID id) {
-        return postRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException(POST_NOT_FOUND_MESSAGE + id));
+        return findPostByIdOrThrow(id);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Post> getAllPosts(UUID categoryId, UUID tagId) {
         if (categoryId != null && tagId != null) {
-            return findPostsByCategoryAndTag(categoryId, tagId);
+            return findPublishedPostsByCategoryAndTag(categoryId, tagId);
         }
         if (categoryId != null) {
-            return findPostsByCategory(categoryId);
+            return findPublishedPostsByCategory(categoryId);
         }
         if (tagId != null) {
-            return findPostsByTag(tagId);
+            return findPublishedPostsByTag(tagId);
         }
         return findAllPublishedPosts();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Post> getDraftPosts(User user) {
         return postRepository.findAllByAuthorAndStatus(user, PostStatus.DRAFT);
     }
 
-    // --- Write ---
-
     @Override
     @Transactional
-    public Post createPost(Post postToCreate) {
-        validatePost(postToCreate);
-        calculateAndSetReadingTime(postToCreate);
-        return postRepository.save(postToCreate);
+    public Post createPost(Post post) {
+        validatePost(post);
+        calculateAndSetReadingTime(post);
+        resolveCategory(post);
+        resolveTags(post);
+        return postRepository.save(post);
     }
 
     @Override
     @Transactional
-    public Post updatePost(UUID id, Post postToUpdate) {
-        Post existingPost = getExistingPost(id);
-
-        updatePostFields(existingPost, postToUpdate);
-        updateCategory(existingPost, postToUpdate);
-        updateTags(existingPost, postToUpdate);
-
+    public Post updatePost(UUID id, Post postUpdate) {
+        Post existingPost = findPostByIdOrThrow(id);
+        validatePost(postUpdate);
+        updatePostContent(existingPost, postUpdate);
+        updateCategoryIfChanged(existingPost, postUpdate);
+        updateTagsIfChanged(existingPost, postUpdate);
         return postRepository.save(existingPost);
     }
 
     @Override
     @Transactional
     public void deletePost(UUID id) {
-        Post post = postRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException(POST_NOT_FOUND_MESSAGE + id));
+        Post post = findPostByIdOrThrow(id);
         postRepository.delete(post);
     }
 
     // =====================
-    // Private Query Helpers
+    // Private Helper Methods
     // =====================
 
-    private List<Post> findPostsByCategoryAndTag(UUID categoryId, UUID tagId) {
+    private Post findPostByIdOrThrow(UUID id) {
+        return postRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(POST_NOT_FOUND_MESSAGE + id));
+    }
+
+    private List<Post> findPublishedPostsByCategoryAndTag(UUID categoryId, UUID tagId) {
         Category category = categoryService.getCategoryById(categoryId);
         Tag tag = tagService.getTagById(tagId);
         return postRepository.findAllByStatusAndCategoryAndTagsContaining(
                 PostStatus.PUBLISHED, category, tag);
     }
 
-    private List<Post> findPostsByCategory(UUID categoryId) {
+    private List<Post> findPublishedPostsByCategory(UUID categoryId) {
         Category category = categoryService.getCategoryById(categoryId);
         return postRepository.findAllByStatusAndCategory(PostStatus.PUBLISHED, category);
     }
 
-    private List<Post> findPostsByTag(UUID tagId) {
+    private List<Post> findPublishedPostsByTag(UUID tagId) {
         Tag tag = tagService.getTagById(tagId);
         return postRepository.findAllByStatusAndTagsContaining(PostStatus.PUBLISHED, tag);
     }
@@ -120,96 +118,83 @@ public class PostServiceImpl implements PostService {
         return postRepository.findAllByStatus(PostStatus.PUBLISHED);
     }
 
-    // =====================
-    // Private Validation & Utilities
-    // =====================
-
     private void validatePost(Post post) {
+        if (post.getTitle() == null || post.getTitle().trim().isEmpty()) {
+            throw new IllegalArgumentException("Post title cannot be empty");
+        }
         if (post.getContent() == null || post.getContent().trim().isEmpty()) {
             throw new IllegalArgumentException("Post content cannot be empty");
+        }
+        if (post.getDescription() == null || post.getDescription().trim().isEmpty()) {
+            throw new IllegalArgumentException("Post description cannot be empty");
+        }
+        if (post.getCategory() == null) {
+            throw new IllegalArgumentException("Post category cannot be null");
+        }
+        if (post.getStatus() == null) {
+            throw new IllegalArgumentException("Post status cannot be null");
         }
     }
 
     private void calculateAndSetReadingTime(Post post) {
-        int readingTime = calculateReadingTime(post.getContent());
+        int wordCount = post.getContent().trim().split("\\s+").length;
+        int readingTime = (int) Math.ceil((double) wordCount / WORDS_PER_MINUTE);
         post.setReadingTime(readingTime);
     }
 
-    private Integer calculateReadingTime(String content) {
-        if (content == null || content.isBlank()) {
-            return 0;
-        }
-        int wordCount = content.trim().split("\\s+").length;
-        return (int) Math.ceil((double) wordCount / WORDS_PER_MINUTE);
+    private void resolveCategory(Post post) {
+        Category category = categoryService.findOrCreateCategory(post.getCategory());
+        post.setCategory(category);
     }
 
-    // =====================
-    // Private Update Helpers
-    // =====================
-
-    private Post getExistingPost(UUID id) {
-        return postRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException(POST_NOT_FOUND_MESSAGE + id));
-    }
-
-    private void updatePostFields(Post existingPost, Post postToUpdate) {
-        existingPost.setTitle(postToUpdate.getTitle());
-        existingPost.setContent(postToUpdate.getContent());
-        existingPost.setReadingTime(calculateReadingTime(postToUpdate.getContent()));
-        existingPost.setStatus(postToUpdate.getStatus());
-    }
-
-    private void updateCategory(Post existingPost, Post postToUpdate) {
-        if (shouldUpdateCategory(existingPost, postToUpdate)) {
-            Category newCategory = categoryService.getCategoryById(postToUpdate.getCategory().getId());
-            existingPost.setCategory(newCategory != null ? newCategory : postToUpdate.getCategory());
+    private void resolveTags(Post post) {
+        if (post.getTags() != null && !post.getTags().isEmpty()) {
+            Set<Tag> resolvedTags = tagService.findOrCreateTagsIn(post.getTags());
+            post.setTags(resolvedTags);
         }
     }
 
-    private boolean shouldUpdateCategory(Post existingPost, Post postToUpdate) {
-        if (postToUpdate.getCategory() == null || postToUpdate.getCategory().getId() == null) {
-            return false;
-        }
-        if (existingPost.getCategory() == null) {
-            return true;
-        }
-        UUID newCategoryId = postToUpdate.getCategory().getId();
-        UUID existingCategoryId = existingPost.getCategory().getId();
-        return !existingCategoryId.equals(newCategoryId);
+    private void updatePostContent(Post existingPost, Post updatedPost) {
+        existingPost.setTitle(updatedPost.getTitle());
+        existingPost.setContent(updatedPost.getContent());
+        existingPost.setDescription(updatedPost.getDescription());
+        existingPost.setStatus(updatedPost.getStatus());
+        calculateAndSetReadingTime(existingPost);
     }
 
-    private void updateTags(Post existingPost, Post postToUpdate) {
-        if (hasTagsToUpdate(postToUpdate)) {
-            Set<UUID> tagIdsToUpdate = extractTagIds(postToUpdate);
-            Map<UUID, Tag> tagsInDb = getTagsFromDatabase(tagIdsToUpdate);
+    private void updateCategoryIfChanged(Post existingPost, Post updatedPost) {
+        Category existingCategory = existingPost.getCategory();
+        Category updatedCategory = updatedPost.getCategory();
 
-            Set<Tag> updatedTags = mergeTags(postToUpdate.getTags(), tagsInDb);
-            existingPost.setTags(updatedTags);
+        if (!existingCategory.getName().equals(updatedCategory.getName())) {
+            Category resolvedCategory = categoryService.findOrCreateCategory(updatedCategory);
+            existingPost.setCategory(resolvedCategory);
         }
     }
 
-    private boolean hasTagsToUpdate(Post postToUpdate) {
-        return postToUpdate.getTags() != null && !postToUpdate.getTags().isEmpty();
-    }
+    private void updateTagsIfChanged(Post existingPost, Post updatedPost) {
+        Set<Tag> existingTags = existingPost.getTags();
+        Set<Tag> updatedTags = updatedPost.getTags();
 
-    private Set<UUID> extractTagIds(Post postToUpdate) {
-        return postToUpdate.getTags().stream()
-                .map(Tag::getId)
-                .collect(Collectors.toSet());
-    }
-
-    private Map<UUID, Tag> getTagsFromDatabase(Set<UUID> tagIds) {
-        return tagService.getTagsByIds(tagIds).stream()
-                .collect(Collectors.toMap(Tag::getId, Function.identity()));
-    }
-
-    private Set<Tag> mergeTags(Set<Tag> tagsToUpdate, Map<UUID, Tag> tagsInDb) {
-        Set<Tag> mergedTags = new HashSet<>();
-
-        for (Tag tag : tagsToUpdate) {
-            mergedTags.add(tagsInDb.getOrDefault(tag.getId(), tag));
+        if (updatedTags == null || updatedTags.isEmpty()) {
+            existingPost.setTags(Set.of());
+            return;
         }
 
-        return mergedTags;
+        // Compare tags by name instead of ID (newly created tags won’t have an ID yet)
+        if (!areTagSetsEqual(existingTags, updatedTags)) {
+            Set<Tag> resolvedTags = tagService.findOrCreateTagsIn(updatedTags);
+            existingPost.setTags(resolvedTags);
+        }
+    }
+
+    private boolean areTagSetsEqual(Set<Tag> set1, Set<Tag> set2) {
+        if (set1 == null || set2 == null) return false;
+        if (set1.size() != set2.size()) return false;
+
+        return set1.stream()
+                .map(Tag::getName)
+                .allMatch(name -> set2.stream()
+                        .anyMatch(tag -> tag.getName().equals(name)));
     }
 }

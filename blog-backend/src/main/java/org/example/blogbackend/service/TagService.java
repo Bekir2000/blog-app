@@ -13,5 +13,7 @@ public interface TagService {
     void deleteTag(UUID id);
     Tag getTagById(UUID id);
     List<Tag> getTagsByIds(Set<UUID> ids);
+    List<Tag> findTagsByIds(Set<UUID> ids);
     boolean existsById(UUID id);
+    Set<Tag> findOrCreateTagsIn(Set<Tag> tags);
 }
