@@ -1,7 +1,12 @@
-POST localhost:8080/api/v1/posts/09b42f7d-b7c6-445c-8066-4a669f8d2f76/comments
+POST localhost:8080/api/v1/posts/{{postId}}/comments
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 
 {
   "content": "hallllllllllllllllllllllo"
 }
+
+> {%
+    // Store postId from JSON response
+    client.global.set("commentId", response.body.id);
+%}

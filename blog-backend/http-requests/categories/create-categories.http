@@ -6,3 +6,8 @@ Authorization: Bearer {{access_token}}
 {
   "name": "TestCategory11"
 }
+
+> {%
+    // Store postId from JSON response
+    client.global.set("categoryId", response.body.id);
+%}

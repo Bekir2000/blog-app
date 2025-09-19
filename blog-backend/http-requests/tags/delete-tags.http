@@ -1,4 +1,4 @@
 ###
-DELETE http://localhost:8080/api/v1/tags/028b689b-bb09-4692-82be-890d52ccff25
+DELETE http://localhost:8080/api/v1/tags/a109b17b-1cd4-4049-bf20-6ef4ff65aeb6
 Authorization: Bearer {{access_token}}
 ###

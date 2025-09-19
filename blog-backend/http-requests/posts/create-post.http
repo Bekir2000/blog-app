@@ -18,3 +18,8 @@ Authorization: Bearer {{access_token}}
    ,
   "status": "PUBLISHED"
 }
+
+> {%
+    // Store postId from JSON response
+    client.global.set("postId", response.body.id);
+%}

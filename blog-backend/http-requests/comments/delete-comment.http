@@ -1,3 +1,3 @@
 ###
-DELETE http://localhost:8080/api/v1/posts/ced53156-9d76-44eb-aefb-fba9079c2aee/comments/85675d45-937a-44ea-b6b2-9924887b37dd
+DELETE http://localhost:8080/api/v1/posts/{{postId}}/comments/{{commentId}}
 Authorization: Bearer {{access_token}}
