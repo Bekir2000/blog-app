@@ -1,5 +1,6 @@
 package org.example.blogbackend.tag.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.blogbackend.tag.model.mapper.TagMapper;
 import org.example.blogbackend.tag.model.dto.request.BulkCreateTagsRequest;
@@ -29,8 +30,8 @@ public class TagController {
         return ResponseEntity.ok(tagResponses);
     }
 
-    @PostMapping
-    public ResponseEntity<List<TagResponse>> createTags(@RequestBody BulkCreateTagsRequest bulkCreateTagsRequest) {
+    @PostMapping(path = "/bulk")
+    public ResponseEntity<List<TagResponse>> createTagsBulk(@Valid @RequestBody BulkCreateTagsRequest bulkCreateTagsRequest) {
 
         Set<Tag> tagsToCreate = tagMapper.toTagEntities(bulkCreateTagsRequest);
         List<Tag> savedTags = tagService.createTags(tagsToCreate);
