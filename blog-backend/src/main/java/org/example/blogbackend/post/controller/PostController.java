@@ -2,6 +2,7 @@ package org.example.blogbackend.post.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.example.blogbackend.comment.model.mapper.CommentMapper;
 import org.example.blogbackend.post.model.mapper.PostMapper;
 import org.example.blogbackend.post.model.dto.request.CreatePostRequest;
 import org.example.blogbackend.post.model.dto.response.PostResponse;

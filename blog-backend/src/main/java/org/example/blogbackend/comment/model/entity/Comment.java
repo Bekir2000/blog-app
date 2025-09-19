@@ -1,7 +1,8 @@
-package org.example.blogbackend.post.model.entity;
+package org.example.blogbackend.comment.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.example.blogbackend.post.model.entity.Post;
 import org.example.blogbackend.user.model.entity.User;
 
 import java.util.UUID;
@@ -22,7 +23,7 @@ public class Comment {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
 

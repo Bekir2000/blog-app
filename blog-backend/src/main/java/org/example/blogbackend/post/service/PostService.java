@@ -13,4 +13,5 @@ public interface PostService {
     Post createPost(Post postToCreate);
     Post updatePost(UUID id, Post postToUpdate);
     void deletePost(UUID id);
+    boolean existsPostById(UUID id);
 }

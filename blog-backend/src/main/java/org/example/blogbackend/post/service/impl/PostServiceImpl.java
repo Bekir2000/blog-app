@@ -3,6 +3,7 @@ package org.example.blogbackend.post.service.impl;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.example.blogbackend.category.model.entity.Category;
+import org.example.blogbackend.comment.model.entity.Comment;
 import org.example.blogbackend.post.model.entity.Post;
 import org.example.blogbackend.post.service.PostService;
 import org.example.blogbackend.tag.model.entity.Tag;
@@ -86,6 +87,11 @@ public class PostServiceImpl implements PostService {
     public void deletePost(UUID id) {
         Post post = findPostByIdOrThrow(id);
         postRepository.delete(post);
+    }
+
+    @Override
+    public boolean existsPostById(UUID id) {
+        return postRepository.existsById(id);
     }
 
     // =====================

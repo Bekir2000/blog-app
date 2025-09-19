@@ -2,7 +2,7 @@ package org.example.blogbackend.user.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.example.blogbackend.post.model.entity.Comment;
+import org.example.blogbackend.comment.model.entity.Comment;
 import org.example.blogbackend.post.model.entity.Post;
 
 import java.time.Instant;

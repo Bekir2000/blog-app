@@ -3,6 +3,7 @@ package org.example.blogbackend.post.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.example.blogbackend.category.model.entity.Category;
+import org.example.blogbackend.comment.model.entity.Comment;
 import org.example.blogbackend.tag.model.entity.Tag;
 import org.example.blogbackend.user.model.entity.User;
 import org.example.blogbackend.post.model.PostStatus;
@@ -49,7 +50,7 @@ public class Post {
      * Cascade all operations to comments.
      * Orphan removal ensures comments removed from the set are deleted from DB.
      */
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "post", orphanRemoval = true)
     private Set<Comment> comments = new HashSet<>();
 
     private String imageUrl;
