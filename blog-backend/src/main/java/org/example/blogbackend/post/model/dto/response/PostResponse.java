@@ -21,6 +21,8 @@ public class PostResponse {
     private UUID id;
     private String title;
     private String content;
+    private Integer views;
+    private Integer likes;
     private AuthorResponse author;
     private CategoryResponse category;
     private Set<TagResponse> tags;

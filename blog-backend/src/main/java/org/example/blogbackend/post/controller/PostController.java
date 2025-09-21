@@ -97,4 +97,14 @@ public class PostController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping(path = "/{postId}/like")
+    public ResponseEntity<PostResponse> toggleLike(
+            @PathVariable UUID postId,
+            @AuthenticationPrincipal BlogUserDetails blogUserDetails) {
+
+        User user = userService.getById(blogUserDetails.getUserId());
+        Post post = postService.toggleLike(postId, user);
+        return ResponseEntity.ok(postMapper.toDto(post));
+    }
+
 }

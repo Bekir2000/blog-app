@@ -9,6 +9,8 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.Set;
+import java.util.HashSet;
 
 @Entity
 @Table(name = "users")
@@ -40,11 +42,24 @@ public class User {
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> comments = new ArrayList<>();
 
+    @ManyToMany(mappedBy = "likedBy")
+    private Set<Post> likedPosts = new HashSet<>();
+
     @Column(nullable = false)
     private Instant createdAt;
 
     @PrePersist
     protected void onCreate() {
         this.createdAt = Instant.now();
+    }
+
+    public void likePost(Post post) {
+        likedPosts.add(post);
+        post.getLikedBy().add(this);
+    }
+
+    public void unlikePost(Post post) {
+        likedPosts.remove(post);
+        post.getLikedBy().remove(this);
     }
 }

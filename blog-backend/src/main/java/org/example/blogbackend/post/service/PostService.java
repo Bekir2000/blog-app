@@ -14,4 +14,5 @@ public interface PostService {
     Post updatePost(UUID id, Post postToUpdate);
     void deletePost(UUID id);
     boolean existsPostById(UUID id);
+    Post toggleLike(UUID postId, User user);
 }

@@ -75,6 +75,18 @@ public class Post {
     )
     private Set<Tag> tags = new HashSet<>();
 
+    @ManyToMany
+    @JoinTable(
+            name = "post_likes",
+            joinColumns = @JoinColumn(name = "post_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<User> likedBy = new HashSet<>();
+
+    public int getLikeCount() {
+        return likedBy.size();
+    }
+
     @Column(nullable = false)
     private Instant createdAt;
 

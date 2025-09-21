@@ -1,0 +1,2 @@
+PUT http://localhost:8080/api/v1/posts/{{postId}}/like
+Authorization: Bearer {{access_token}}

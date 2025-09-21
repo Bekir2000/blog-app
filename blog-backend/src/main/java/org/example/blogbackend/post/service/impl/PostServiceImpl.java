@@ -94,6 +94,19 @@ public class PostServiceImpl implements PostService {
         return postRepository.existsById(id);
     }
 
+    @Transactional
+    public Post toggleLike(UUID postId, User user) {
+        Post post = findPostByIdOrThrow(postId);
+        if (post.getLikedBy().contains(user)) {
+            user.unlikePost(post); // keeps both sides in sync
+            post.setLikes(post.getLikes() - 1);
+        } else {
+            user.likePost(post); // keeps both sides in sync
+            post.setLikes(post.getLikes() + 1);
+        }
+        return postRepository.save(post);
+    }
+
     // =====================
     // Private Helper Methods
     // =====================
