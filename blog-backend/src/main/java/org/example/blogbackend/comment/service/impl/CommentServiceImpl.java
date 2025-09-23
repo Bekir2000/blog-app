@@ -52,6 +52,8 @@ public class CommentServiceImpl implements CommentService {
         validateComment(comment);
 
         Post post = postService.getPostById(postId);
+        post.setCommentsCount(post.getCommentsCount() + 1);
+        postService.savePost(post);
         comment.setPost(post);
         return commentRepository.save(comment);
     }
@@ -61,6 +63,10 @@ public class CommentServiceImpl implements CommentService {
     public void deleteComment(UUID postId, UUID commentId) {
         validateId(postId, "Post ID");
         validateId(commentId, "Comment ID");
+
+        Post post = postService.getPostById(postId);
+        post.setCommentsCount(post.getCommentsCount() - 1);
+        postService.savePost(post);
 
         if (!commentRepository.existsByIdAndPostId(commentId, postId)) {
             throw new EntityNotFoundException(String.format(COMMENT_NOT_FOUND, commentId, postId));

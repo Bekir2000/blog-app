@@ -44,6 +44,9 @@ public class Post {
     private int likes;
 
     @Column(nullable = false)
+    private int commentsCount;
+
+    @Column(nullable = false)
     private int readingTime;
 
     /**
@@ -77,11 +80,14 @@ public class Post {
 
     @ManyToMany
     @JoinTable(
-            name = "post_likes",
+            name = "posts_liked_by",
             joinColumns = @JoinColumn(name = "post_id"),
             inverseJoinColumns = @JoinColumn(name = "user_id")
     )
     private Set<User> likedBy = new HashSet<>();
+
+    @ManyToMany
+    private Set<User> bookmarkedBy = new HashSet<>();
 
     public int getLikeCount() {
         return likedBy.size();

@@ -7,10 +7,10 @@ import org.example.blogbackend.post.model.entity.Post;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.Set;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 @Entity
 @Table(name = "users")
@@ -32,7 +32,13 @@ public class User {
     private String password;
 
     @Column(nullable = false)
-    private String name;
+    private String firstName;
+
+    @Column(nullable = false)
+    private String lastName;
+
+    @Column(unique = true, nullable = false)
+    private String username;
 
     private String profileImageUrl;
 
@@ -44,6 +50,14 @@ public class User {
 
     @ManyToMany(mappedBy = "likedBy")
     private Set<Post> likedPosts = new HashSet<>();
+
+    @ManyToMany
+    @JoinTable(
+        name = "user_bookmarks",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "post_id")
+    )
+    private Set<Post> bookmarkedPosts = new HashSet<>();
 
     @Column(nullable = false)
     private Instant createdAt;
@@ -61,5 +75,15 @@ public class User {
     public void unlikePost(Post post) {
         likedPosts.remove(post);
         post.getLikedBy().remove(this);
+    }
+
+    public void bookmarkPost(Post post) {
+        bookmarkedPosts.add(post);
+        post.getBookmarkedBy().add(this);
+    }
+
+    public void removeBookmark(Post post) {
+        bookmarkedPosts.remove(post);
+        post.getBookmarkedBy().remove(this);
     }
 }

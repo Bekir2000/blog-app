@@ -27,7 +27,9 @@ public class UserServiceImpl implements UserService {
         }
         User user = User.builder()
                 .email(req.email())
-                .name(req.name())
+                .username(req.username())
+                .firstName(req.firstName())
+                .lastName(req.lastName())
                 .profileImageUrl(req.profileImageUrl())
                 .password(passwordEncoder.encode(req.password()))
                 .build();

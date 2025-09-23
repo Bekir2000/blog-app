@@ -21,13 +21,16 @@ public class PostResponse {
     private UUID id;
     private String title;
     private String content;
-    private Integer views;
-    private Integer likes;
+    private String description;
+    private String imageUrl;
     private AuthorResponse author;
     private CategoryResponse category;
     private Set<TagResponse> tags;
+    private Integer views;
+    private Integer likes;
+    private Integer commentsCount;
     private Integer readingTime;
+    private PostStatus status;
     private Instant createdAt;
     private Instant updatedAt;
-    private PostStatus status;
 }

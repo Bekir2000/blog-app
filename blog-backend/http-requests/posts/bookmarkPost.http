@@ -1,0 +1,2 @@
+PUT http://localhost:8080/api/v1/posts/2509ebaa-de5a-4f4c-b4bc-b1066133ea9f/bookmark
+Authorization: Bearer {{access_token}}

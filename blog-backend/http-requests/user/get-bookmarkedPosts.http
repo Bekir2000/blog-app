@@ -1,0 +1,4 @@
+### Get all bookmarked posts for the current user
+GET http://localhost:8080/api/v1/users/bookmarks
+Authorization: Bearer {{access_token}}
+Accept: application/json

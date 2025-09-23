@@ -12,6 +12,7 @@ import org.example.blogbackend.post.model.PostStatus;
 import org.example.blogbackend.post.repository.PostRepository;
 import org.example.blogbackend.category.service.CategoryService;
 import org.example.blogbackend.tag.service.TagService;
+import org.example.blogbackend.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +30,7 @@ public class PostServiceImpl implements PostService {
     private final PostRepository postRepository;
     private final CategoryService categoryService;
     private final TagService tagService;
+    private final UserRepository userRepository;
 
     // =====================
     // Public Methods
@@ -105,6 +107,25 @@ public class PostServiceImpl implements PostService {
             post.setLikes(post.getLikes() + 1);
         }
         return postRepository.save(post);
+    }
+
+    @Transactional
+    public Post toggleBookmark(UUID postId, User user) {
+        Post post = findPostByIdOrThrow(postId);
+        boolean isBookmarked = user.getBookmarkedPosts().contains(post);
+        if (isBookmarked) {
+            user.removeBookmark(post); // keeps both sides in sync
+        } else {
+            user.bookmarkPost(post); // keeps both sides in sync
+        }
+        userRepository.save(user);
+        return post;
+    }
+
+    @Override
+    public Post savePost(Post post) {
+        postRepository.save(post);
+        return post;
     }
 
     // =====================

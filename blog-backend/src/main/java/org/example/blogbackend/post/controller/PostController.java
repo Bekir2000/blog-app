@@ -107,4 +107,12 @@ public class PostController {
         return ResponseEntity.ok(postMapper.toDto(post));
     }
 
+    @PutMapping(path = "/{postId}/bookmark")
+    public ResponseEntity<PostResponse> toggleBookmark(
+            @PathVariable UUID postId,
+            @AuthenticationPrincipal BlogUserDetails blogUserDetails) {
+        User user = userService.getById(blogUserDetails.getUserId());
+        Post post = postService.toggleBookmark(postId, user);
+        return ResponseEntity.ok(postMapper.toDto(post));
+    }
 }

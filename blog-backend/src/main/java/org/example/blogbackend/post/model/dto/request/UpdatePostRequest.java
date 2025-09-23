@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import org.example.blogbackend.category.model.dto.request.CreateCategoryRequest;
 import org.example.blogbackend.post.model.PostStatus;
 import org.example.blogbackend.tag.model.dto.request.CreateTagRequest;
+import org.hibernate.validator.constraints.URL;
 
 import java.util.Set;
 import java.util.UUID;
@@ -24,6 +25,11 @@ public record UpdatePostRequest(
 
     @NotNull(message = "Category is required")
     CreateCategoryRequest category,
+
+    @URL(message = "Image URL must be a valid URL")
+    @NotBlank(message = "Image URL is required")
+    @Size(max = 2048, message = "Image URL must not exceed {max} characters")
+    String imageUrl,
 
     @Size(max = 10, message = "You can only add up to {max} tags")
     Set<CreateTagRequest> tags,
