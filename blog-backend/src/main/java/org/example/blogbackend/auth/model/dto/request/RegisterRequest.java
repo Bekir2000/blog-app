@@ -1,7 +1,9 @@
 package org.example.blogbackend.auth.model.dto.request;
 
 public record RegisterRequest(
-    String name,
+    String username,
+    String firstName,
+    String lastName,
     String email,
     String password,
     String profileImageUrl

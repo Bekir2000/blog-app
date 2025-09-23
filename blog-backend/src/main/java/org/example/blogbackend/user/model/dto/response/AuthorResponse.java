@@ -14,6 +14,8 @@ import java.util.UUID;
 public class AuthorResponse {
 
     private UUID id;
-    private String name;
+    private String username;
+    private String firstName;
+    private String lastName;
     private String profileImageUrl;
 }
