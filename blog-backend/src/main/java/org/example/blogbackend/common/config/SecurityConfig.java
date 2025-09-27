@@ -1,5 +1,6 @@
 package org.example.blogbackend.common.config;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.example.blogbackend.user.model.entity.User;
 import org.example.blogbackend.user.repository.UserRepository;
 import org.example.blogbackend.common.security.BlogUserDetailsService;
@@ -60,7 +61,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,"/api/v1/tags/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Forbidden");
+                        })
+                );
 
         return http.build();
     }
@@ -88,4 +97,3 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 }
-

@@ -11,13 +11,15 @@ import org.example.blogbackend.common.security.jwt.JwtTokenType;
 import org.example.blogbackend.common.security.jwt.JwtUtil;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.UUID;
 
 @RequiredArgsConstructor
 @Slf4j
+@Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
@@ -28,40 +30,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain chain) throws ServletException, IOException {
         String token = extractToken(request);
 
-        if (token == null) {
-            chain.doFilter(request, response);
-            return;
+        if (token != null) {
+            try {
+                if (!jwtUtil.validateToken(token)) {
+                    log.warn("Invalid JWT token");
+                } else {
+                    JwtParsed parsed = jwtUtil.parse(token);
+
+                    // Reject refresh tokens used for authentication
+                    if (parsed.getType() == JwtTokenType.REFRESH) {
+                        log.warn("Refresh token used for authentication");
+                    } else {
+                        BlogUserDetails userDetails = BlogUserDetails.fromJwt(parsed.getUserId(), null, null);
+                        var authentication = new UsernamePasswordAuthenticationToken(
+                                userDetails, null, userDetails.getAuthorities());
+                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                    }
+                }
+            } catch (Exception ex) {
+                log.warn("JWT authentication failed: {}", ex.getMessage());
+            }
         }
 
-        try {
-            if (!jwtUtil.validateToken(token)) {
-                log.warn("Invalid JWT token");
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
-                return;
-            }
-
-            JwtParsed parsed = jwtUtil.parse(token);
-
-            // Reject refresh tokens used for authentication
-            if (parsed.getType() == JwtTokenType.REFRESH) {
-                log.warn("Refresh token used for authentication");
-                response.sendError(HttpServletResponse.SC_FORBIDDEN,
-                        "Refresh token not valid for authentication");
-                return;
-            }
-
-            BlogUserDetails userDetails = BlogUserDetails.fromJwt(parsed.getUserId(), null, null);
-            var authentication = new UsernamePasswordAuthenticationToken(
-                    userDetails, null, userDetails.getAuthorities());
-
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            chain.doFilter(request, response);
-
-        } catch (Exception ex) {
-            log.warn("JWT authentication failed: {}", ex.getMessage());
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication failed");
-        }
+        chain.doFilter(request, response);
     }
 
     private String extractToken(HttpServletRequest req) {
