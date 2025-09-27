@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.example.blogbackend.user.model.dto.response.AuthorResponse;
+import org.example.blogbackend.user.model.dto.response.UserResponse;
 import org.example.blogbackend.category.model.dto.response.CategoryResponse;
 import org.example.blogbackend.tag.model.dto.response.TagResponse;
 import org.example.blogbackend.post.model.PostStatus;
@@ -23,7 +23,7 @@ public class PostResponse {
     private String content;
     private String description;
     private String imageUrl;
-    private AuthorResponse author;
+    private UserResponse author;
     private CategoryResponse category;
     private Set<TagResponse> tags;
     private Integer views;

@@ -8,13 +8,14 @@ import lombok.NoArgsConstructor;
 import java.util.UUID;
 
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder
 public class UserResponse {
+
     private UUID id;
-    private String name;
-    private String email;
+    private String username;
+    private String firstName;
+    private String lastName;
     private String profileImageUrl;
 }
-

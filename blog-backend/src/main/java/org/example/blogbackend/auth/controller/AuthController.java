@@ -4,11 +4,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.example.blogbackend.auth.service.AuthService;
+import org.example.blogbackend.user.model.dto.response.UserResponse;
 import org.example.blogbackend.user.model.mapper.UserMapper;
 import org.example.blogbackend.auth.model.dto.request.LoginRequest;
 import org.example.blogbackend.auth.model.dto.request.RegisterRequest;
 import org.example.blogbackend.auth.model.dto.response.AuthResponse;
-import org.example.blogbackend.user.model.dto.response.UserResponse;
 import org.example.blogbackend.user.model.entity.User;
 import org.example.blogbackend.common.security.BlogUserDetails;
 import org.example.blogbackend.common.security.jwt.JwtParsed;
@@ -18,8 +18,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/auth")
