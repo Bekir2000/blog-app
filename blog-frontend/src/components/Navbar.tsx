@@ -1,13 +1,17 @@
 // components/Navbar.tsx
-"use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { AuthApi } from "@/features/auth/api";
+import { UserResponse } from "@/features/auth/type";
 import { Bell, Search, SquarePenIcon } from "lucide-react";
 import Link from "next/link";
 import { InfoTooltip } from "./InfoTooltip";
 import { SidebarTrigger } from "./ui/sidebar";
 
-export default function Navbar() {
+export default async function Navbar() {
+  const user: UserResponse | null = await AuthApi.getCurrentUser();
+
   return (
     <nav className="w-full border-b border-gray-200 bg-white">
       <div className="flex items-center justify-between px-6 py-3">
@@ -33,7 +37,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Right: Write, Bell, Avatar */}
+        {/* Right: Write, Bell, Avatar or Login */}
         <div className="flex items-center gap-6">
           <button className="flex items-center gap-1 text-gray-700 hover:text-black">
             <SquarePenIcon className="w-4 h-4" /> Write
@@ -41,12 +45,21 @@ export default function Navbar() {
           <InfoTooltip message="Notifications">
             <Bell className="w-5 h-5 text-gray-600 cursor-pointer" />
           </InfoTooltip>
-          <InfoTooltip message="Account">
-            <Avatar className="cursor-pointer">
-              <AvatarImage src="/avatar.jpg" alt="User Avatar" />
-              <AvatarFallback>U</AvatarFallback>
-            </Avatar>
-          </InfoTooltip>
+
+          {user ? (
+            <InfoTooltip message="Account">
+              <Avatar className="cursor-pointer">
+                <AvatarImage src="/avatar.jpg" alt="User Avatar" />
+                <AvatarFallback>
+                  {user.username?.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </InfoTooltip>
+          ) : (
+            <Button asChild>
+              <Link href="/login">Login</Link>
+            </Button>
+          )}
         </div>
       </div>
     </nav>
