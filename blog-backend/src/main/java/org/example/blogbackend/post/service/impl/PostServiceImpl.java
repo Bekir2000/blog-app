@@ -3,9 +3,9 @@ package org.example.blogbackend.post.service.impl;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.example.blogbackend.category.model.entity.Category;
-import org.example.blogbackend.comment.model.entity.Comment;
 import org.example.blogbackend.post.model.entity.Post;
 import org.example.blogbackend.post.service.PostService;
+import org.example.blogbackend.post.service.dto.PostWithBookmark;
 import org.example.blogbackend.tag.model.entity.Tag;
 import org.example.blogbackend.user.model.entity.User;
 import org.example.blogbackend.post.model.PostStatus;
@@ -13,12 +13,15 @@ import org.example.blogbackend.post.repository.PostRepository;
 import org.example.blogbackend.category.service.CategoryService;
 import org.example.blogbackend.tag.service.TagService;
 import org.example.blogbackend.user.repository.UserRepository;
+import org.example.blogbackend.user.service.UserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +34,7 @@ public class PostServiceImpl implements PostService {
     private final CategoryService categoryService;
     private final TagService tagService;
     private final UserRepository userRepository;
+    private final UserService userService;
 
     // =====================
     // Public Methods
@@ -38,23 +42,35 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional(readOnly = true)
+    public PostWithBookmark getPostById(UUID id, UUID userId) {
+        Post post = findPostByIdOrThrow(id);
+        boolean isBookmarked = userService.getPostBookmarkStatuses(userId, List.of(post.getId())).getFirst();
+        return new PostWithBookmark(post, isBookmarked);
+    }
+
+    @Override
     public Post getPostById(UUID id) {
         return findPostByIdOrThrow(id);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<Post> getAllPosts(UUID categoryId, UUID tagId) {
+    public List<PostWithBookmark> getAllPosts(UUID categoryId, UUID tagId, UUID userId) {
+
         if (categoryId != null && tagId != null) {
-            return findPublishedPostsByCategoryAndTag(categoryId, tagId);
+            List<Post> posts = findPublishedPostsByCategoryAndTag(categoryId, tagId);
+            return attachBookmarks(posts, userId);
         }
         if (categoryId != null) {
-            return findPublishedPostsByCategory(categoryId);
+            List<Post> posts = findPublishedPostsByCategory(categoryId);
+            return attachBookmarks(posts, userId);
         }
         if (tagId != null) {
-            return findPublishedPostsByTag(tagId);
+            List<Post> posts = findPublishedPostsByTag(tagId);
+            return attachBookmarks(posts, userId);
         }
-        return findAllPublishedPosts();
+        List<Post> posts = findAllPublishedPosts();
+        return attachBookmarks(posts, userId);
     }
 
     @Override
@@ -131,6 +147,22 @@ public class PostServiceImpl implements PostService {
     // =====================
     // Private Helper Methods
     // =====================
+
+    private List<PostWithBookmark> attachBookmarks(List<Post> posts, UUID userId) {
+        if (posts == null || posts.isEmpty()) {
+            return Collections.emptyList();
+        }
+        if (userId == null) {
+            return posts.stream()
+                    .map(post -> new PostWithBookmark(post, false))
+                    .toList();
+        }
+        List<UUID> postIds = posts.stream().map(Post::getId).toList();
+        List<Boolean> bookmarks = userService.getPostBookmarkStatuses(userId, postIds);
+        return IntStream.range(0, posts.size())
+                .mapToObj(i -> new PostWithBookmark(posts.get(i), bookmarks.get(i)))
+                .toList();
+    }
 
     private Post findPostByIdOrThrow(UUID id) {
         return postRepository.findById(id)

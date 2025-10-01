@@ -10,7 +10,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
+
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +23,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public User register(RegisterRequest req) {
+    public void register(RegisterRequest req) {
         if (userRepository.existsByEmail(req.email())) {
             throw new IllegalArgumentException("Email already exists");
         }
@@ -34,19 +36,19 @@ public class UserServiceImpl implements UserService {
                 .password(passwordEncoder.encode(req.password()))
                 .build();
 
-        return userRepository.save(user);
+        userRepository.save(user);
     }
 
     @Override
     public User getById(UUID id) {
-        return userRepository
-                .findById(id)
+        return userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + id));
     }
 
     @Override
-    public boolean existsByEmail(String email) {
-        return userRepository.existsByEmail(email);
-    }
+    public List<Boolean> getPostBookmarkStatuses(UUID userId, List<UUID> postIds) {
+        List<UUID> bookmarked = userRepository.findBookmarkedPostIdsByUserIdAndPostIdIn(userId, postIds);
 
+        return postIds.stream().map(bookmarked::contains).toList();
+    }
 }

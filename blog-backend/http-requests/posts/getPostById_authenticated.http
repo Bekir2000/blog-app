@@ -1,0 +1,4 @@
+###
+GET localhost:8080/api/v1/posts/62592d4f-4a33-4771-905b-ec6b1374f769
+Authorization: Bearer {{access_token}}
+###
