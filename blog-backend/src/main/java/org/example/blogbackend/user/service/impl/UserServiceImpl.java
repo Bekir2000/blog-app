@@ -3,6 +3,10 @@ package org.example.blogbackend.user.service.impl;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.example.blogbackend.auth.model.dto.request.RegisterRequest;
+import org.example.blogbackend.post.controller.dto.response.PostResponse;
+import org.example.blogbackend.post.model.entity.Post;
+import org.example.blogbackend.post.repository.PostRepository;
+import org.example.blogbackend.post.service.PostService;
 import org.example.blogbackend.user.model.entity.User;
 import org.example.blogbackend.user.repository.UserRepository;
 import org.example.blogbackend.user.service.UserService;
@@ -20,6 +24,8 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
+    private final PostRepository postRepository;
 
     @Override
     @Transactional
@@ -50,5 +56,28 @@ public class UserServiceImpl implements UserService {
         List<UUID> bookmarked = userRepository.findBookmarkedPostIdsByUserIdAndPostIdIn(userId, postIds);
 
         return postIds.stream().map(bookmarked::contains).toList();
+    }
+
+    @Override
+    public void createBookmark(UUID postId, UUID userId) {
+        Post post = findPostByIdOrThrow(postId);
+        User user = getById(userId);
+
+        user.bookmarkPost(post);
+        userRepository.save(user);
+    }
+
+    @Override
+    public void deleteBookmark(UUID postId, UUID userId) {
+        Post post = findPostByIdOrThrow(postId);
+        User user = getById(userId);
+
+        user.unbookmarkPost(post);
+        userRepository.save(user);
+    }
+
+    private Post findPostByIdOrThrow(UUID id) {
+        return postRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Post not found with ID: " + id));
     }
 }

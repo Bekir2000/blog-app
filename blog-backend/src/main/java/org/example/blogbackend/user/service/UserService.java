@@ -10,4 +10,6 @@ public interface UserService {
     void register(RegisterRequest req);
     User getById(UUID id);
     List<Boolean> getPostBookmarkStatuses(UUID userId, List<UUID> postIds);
+    void createBookmark(UUID postId, UUID userId);
+    void deleteBookmark(UUID postId, UUID userId);
 }

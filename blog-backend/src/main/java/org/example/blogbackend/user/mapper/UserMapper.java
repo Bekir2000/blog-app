@@ -1,4 +1,4 @@
-package org.example.blogbackend.user.model.mapper;
+package org.example.blogbackend.user.mapper;
 
 import org.example.blogbackend.user.model.dto.response.UserResponse;
 import org.example.blogbackend.user.model.entity.User;

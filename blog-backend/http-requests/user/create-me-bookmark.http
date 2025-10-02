@@ -1,0 +1,7 @@
+POST http://localhost:8080/api/v1/me/bookmarks
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "postId": "8c0e3196-e786-4151-9723-50b12b683a4f"
+}

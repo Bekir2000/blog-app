@@ -53,9 +53,9 @@ public class User {
 
     @ManyToMany
     @JoinTable(
-        name = "user_bookmarks",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "post_id")
+            name = "user_bookmarks",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "post_id")
     )
     private Set<Post> bookmarkedPosts = new HashSet<>();
 
@@ -69,21 +69,17 @@ public class User {
 
     public void likePost(Post post) {
         likedPosts.add(post);
-        post.getLikedBy().add(this);
     }
 
     public void unlikePost(Post post) {
         likedPosts.remove(post);
-        post.getLikedBy().remove(this);
     }
 
     public void bookmarkPost(Post post) {
         bookmarkedPosts.add(post);
-        post.getBookmarkedBy().add(this);
     }
 
-    public void removeBookmark(Post post) {
+    public void unbookmarkPost(Post post) {
         bookmarkedPosts.remove(post);
-        post.getBookmarkedBy().remove(this);
     }
 }

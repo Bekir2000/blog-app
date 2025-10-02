@@ -33,7 +33,6 @@ public class PostServiceImpl implements PostService {
     private final PostRepository postRepository;
     private final CategoryService categoryService;
     private final TagService tagService;
-    private final UserRepository userRepository;
     private final UserService userService;
 
     // =====================
@@ -123,19 +122,6 @@ public class PostServiceImpl implements PostService {
             post.setLikes(post.getLikes() + 1);
         }
         return postRepository.save(post);
-    }
-
-    @Transactional
-    public Post toggleBookmark(UUID postId, User user) {
-        Post post = findPostByIdOrThrow(postId);
-        boolean isBookmarked = user.getBookmarkedPosts().contains(post);
-        if (isBookmarked) {
-            user.removeBookmark(post); // keeps both sides in sync
-        } else {
-            user.bookmarkPost(post); // keeps both sides in sync
-        }
-        userRepository.save(user);
-        return post;
     }
 
     @Override

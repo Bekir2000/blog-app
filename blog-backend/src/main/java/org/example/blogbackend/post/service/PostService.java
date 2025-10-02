@@ -18,5 +18,4 @@ public interface PostService {
     boolean existsPostById(UUID id);
     Post toggleLike(UUID postId, User user);
     Post savePost(Post post);
-    Post toggleBookmark(UUID postId, User user);
 }

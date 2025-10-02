@@ -85,10 +85,7 @@ public class Post {
             inverseJoinColumns = @JoinColumn(name = "user_id")
     )
     private Set<User> likedBy = new HashSet<>();
-
-    @ManyToMany
-    private Set<User> bookmarkedBy = new HashSet<>();
-
+    
     public int getLikeCount() {
         return likedBy.size();
     }

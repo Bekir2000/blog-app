@@ -5,7 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.example.blogbackend.auth.service.AuthService;
 import org.example.blogbackend.user.model.dto.response.UserResponse;
-import org.example.blogbackend.user.model.mapper.UserMapper;
+import org.example.blogbackend.user.mapper.UserMapper;
 import org.example.blogbackend.auth.model.dto.request.LoginRequest;
 import org.example.blogbackend.auth.model.dto.request.RegisterRequest;
 import org.example.blogbackend.auth.model.dto.response.AuthResponse;
@@ -71,13 +71,6 @@ public class AuthController {
         refreshCookieService.clear(res); // delete cookie client-side
         return ResponseEntity.noContent().build();
     }
-
-    @GetMapping("/me")
-    public ResponseEntity<UserResponse> me(@AuthenticationPrincipal BlogUserDetails userDetails) {
-        User user = userService.getById(userDetails.getUserId());
-        return ResponseEntity.ok(userMapper.toDto(user));
-    }
-
     /* -------------------- private helpers -------------------- */
 
     private ResponseEntity<AuthResponse> respondWithTokens(
