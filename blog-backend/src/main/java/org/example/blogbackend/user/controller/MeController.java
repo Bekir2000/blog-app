@@ -14,6 +14,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -29,6 +30,8 @@ public class MeController {
         User user = userService.getById(userDetails.getUserId());
         return ResponseEntity.ok(userMapper.toDto(user));
     }
+
+    // --- BOOKMARK ENDPOINTS ---
 
     @GetMapping("/bookmarks")
     public ResponseEntity<List<PostResponse>> getBookmarkedPosts(@AuthenticationPrincipal BlogUserDetails blogUserDetails) {
@@ -52,4 +55,45 @@ public class MeController {
         return ResponseEntity.noContent().build();
     }
 
+    // --- FOLLOWING ENDPOINTS ---
+
+    /**
+     * GET /api/v1/me/following
+     * Returns the list of users the current user follows.
+     */
+    @GetMapping("/following")
+    public ResponseEntity<List<UserResponse>> getMyFollowing(@AuthenticationPrincipal BlogUserDetails currentUser) {
+        Set<User> followingList = userService.getFollowingList(currentUser.getUserId());
+        return ResponseEntity.ok(
+                followingList.stream()
+                        .map(userMapper::toDto)
+                        .toList()
+        );
+    }
+
+    /**
+     * POST /api/v1/me/following/{targetUserId}
+     * Follows the user with the specific ID.
+     */
+    @PostMapping("/following/{targetUserId}")
+    public ResponseEntity<Void> followUser(
+            @AuthenticationPrincipal BlogUserDetails currentUser,
+            @PathVariable UUID targetUserId
+    ) {
+        userService.followUser(currentUser.getUserId(), targetUserId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * DELETE /api/v1/me/following/{targetUserId}
+     * Unfollows the user with the specific ID.
+     */
+    @DeleteMapping("/following/{targetUserId}")
+    public ResponseEntity<Void> unfollowUser(
+            @AuthenticationPrincipal BlogUserDetails currentUser,
+            @PathVariable UUID targetUserId
+    ) {
+        userService.unfollowUser(currentUser.getUserId(), targetUserId);
+        return ResponseEntity.noContent().build();
+    }
 }

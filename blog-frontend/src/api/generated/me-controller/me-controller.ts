@@ -7,43 +7,75 @@
 import type {
   CreateBookmarkRequest,
   PostResponse,
-  UserResponse,
-} from ".././model";
+  UserResponse
+} from '.././model';
 
-import { serverFetch } from "../../../lib/api-client";
+import { serverFetch } from '../../../lib/api-client';
 
-export const getBookmarkedPosts = () => {
-  return serverFetch<PostResponse[]>({
-    url: `/api/v1/me/bookmarks`,
-    method: "GET",
-  });
-};
-export const bookmarkPost = (createBookmarkRequest: CreateBookmarkRequest) => {
-  return serverFetch<void>({
-    url: `/api/v1/me/bookmarks`,
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    data: createBookmarkRequest,
-  });
-};
-export const getProfile = () => {
-  return serverFetch<UserResponse>({ url: `/api/v1/me`, method: "GET" });
-};
-export const unbookmarkPost = (postId: string) => {
-  return serverFetch<void>({
-    url: `/api/v1/me/bookmarks/${postId}`,
-    method: "DELETE",
-  });
-};
-export type GetBookmarkedPostsResult = NonNullable<
-  Awaited<ReturnType<typeof getBookmarkedPosts>>
->;
-export type BookmarkPostResult = NonNullable<
-  Awaited<ReturnType<typeof bookmarkPost>>
->;
-export type GetProfileResult = NonNullable<
-  Awaited<ReturnType<typeof getProfile>>
->;
-export type UnbookmarkPostResult = NonNullable<
-  Awaited<ReturnType<typeof unbookmarkPost>>
->;
+
+
+  export const followUser = (
+    targetUserId: string,
+ ) => {
+      return serverFetch<void>(
+      {url: `/api/v1/me/following/${targetUserId}`, method: 'POST'
+    },
+      );
+    }
+  export const unfollowUser = (
+    targetUserId: string,
+ ) => {
+      return serverFetch<void>(
+      {url: `/api/v1/me/following/${targetUserId}`, method: 'DELETE'
+    },
+      );
+    }
+  export const getBookmarkedPosts = (
+    
+ ) => {
+      return serverFetch<PostResponse[]>(
+      {url: `/api/v1/me/bookmarks`, method: 'GET'
+    },
+      );
+    }
+  export const bookmarkPost = (
+    createBookmarkRequest: CreateBookmarkRequest,
+ ) => {
+      return serverFetch<void>(
+      {url: `/api/v1/me/bookmarks`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createBookmarkRequest
+    },
+      );
+    }
+  export const getProfile = (
+    
+ ) => {
+      return serverFetch<UserResponse>(
+      {url: `/api/v1/me`, method: 'GET'
+    },
+      );
+    }
+  export const getMyFollowing = (
+    
+ ) => {
+      return serverFetch<UserResponse[]>(
+      {url: `/api/v1/me/following`, method: 'GET'
+    },
+      );
+    }
+  export const unbookmarkPost = (
+    postId: string,
+ ) => {
+      return serverFetch<void>(
+      {url: `/api/v1/me/bookmarks/${postId}`, method: 'DELETE'
+    },
+      );
+    }
+  export type FollowUserResult = NonNullable<Awaited<ReturnType<typeof followUser>>>
+export type UnfollowUserResult = NonNullable<Awaited<ReturnType<typeof unfollowUser>>>
+export type GetBookmarkedPostsResult = NonNullable<Awaited<ReturnType<typeof getBookmarkedPosts>>>
+export type BookmarkPostResult = NonNullable<Awaited<ReturnType<typeof bookmarkPost>>>
+export type GetProfileResult = NonNullable<Awaited<ReturnType<typeof getProfile>>>
+export type GetMyFollowingResult = NonNullable<Awaited<ReturnType<typeof getMyFollowing>>>
+export type UnbookmarkPostResult = NonNullable<Awaited<ReturnType<typeof unbookmarkPost>>>

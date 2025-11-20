@@ -1,5 +1,7 @@
 import { BarChart, Bookmark, FileText, Home, User } from "lucide-react";
 
+import { getMyFollowing } from "@/api/generated/me-controller/me-controller";
+import { UserResponse } from "@/api/generated/model";
 import {
   Sidebar,
   SidebarContent,
@@ -10,6 +12,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { getUser } from "@/lib/auth";
 
 // Menu items.
 const menuItems = [
@@ -40,36 +43,12 @@ const menuItems = [
   },
 ];
 
-<<<<<<< HEAD
-const followingItems = [
-  {
-    name: "Manpreet Singh",
-    avatarUrl: "https://randomuser.me/api/portraits/men/32.jpg",
-    online: true,
-  },
-  {
-    name: "Data Science Collective",
-    avatarUrl: "https://randomuser.me/api/portraits/lego/1.jpg",
-    online: true,
-  },
-  {
-    name: "Liu Zuo Lin",
-    avatarUrl: "https://randomuser.me/api/portraits/women/44.jpg",
-    online: false,
-  },
-  {
-    name: "Sophia Chen",
-    avatarUrl: "https://randomuser.me/api/portraits/women/68.jpg",
-    online: true,
-  },
-  {
-    name: "Carlos Diaz",
-    avatarUrl: "https://randomuser.me/api/portraits/men/85.jpg",
-    online: false,
-  },
-];
-
-export function MenuSidebar() {
+export async function MenuSidebar() {
+  let followingItems: UserResponse[] = [];
+  const user = await getUser();
+  if (user) {
+    followingItems = await getMyFollowing();
+  }
   return (
     <Sidebar>
       <SidebarContent className="flex flex-col p-4 space-y-6">
@@ -104,22 +83,22 @@ export function MenuSidebar() {
             <SidebarMenu>
               {followingItems.map((user) => (
                 <SidebarMenuItem
-                  key={user.name}
+                  key={user.id}
                   className="mb-1 last:mb-0 cursor-pointer"
                 >
                   <div className="flex items-center space-x-3">
                     <div className="relative">
                       <img
-                        src={user.avatarUrl}
-                        alt={user.name}
+                        src={user.profileImageUrl}
+                        alt={user.username}
                         className="w-8 h-8 rounded-full object-cover"
                       />
-                      {user.online && (
+                      {/* {user.online && (
                         <span className="absolute bottom-0 right-0 block w-2.5 h-2.5 rounded-full border-2 border-white bg-green-500" />
-                      )}
+                      )} */}
                     </div>
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {user.name}
+                      {user.username}
                     </span>
                   </div>
                 </SidebarMenuItem>
