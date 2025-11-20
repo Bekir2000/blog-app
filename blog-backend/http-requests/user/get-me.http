@@ -1,4 +1,4 @@
 ###
 GET localhost:8080/api/v1/me
-Authorization: Bearer {{access_token}}
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiIzNmZkN2Q1Ni0xMmQ0LTQ2NjItYTIyMS1mZTNjOWIyMDFjZjIiLCJzdWIiOiJhNzM1NzVlMS1hN2JhLTQzYzEtOTI2My02YWQ3NDFiYjEzN2MiLCJpYXQiOjE3NjM1ODc2NzUsImV4cCI6MTc2MzU4NzczNSwidHlwIjoiYWNjZXNzIn0.4AH82LTodEsc8-i5m2Sl0jaYJYn3eTEEn7BkCaFujio
 ###

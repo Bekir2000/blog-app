@@ -44,7 +44,7 @@ public class JwtUtil {
                 .id(jti.toString())                   // jti
                 .subject(userId.toString())           // sub userId (UUID string)
                 .issuedAt(Date.from(now))             // iat
-                .expiration(Date.from(exp))           // exp
+                .expiration(Date.from(exp))           // exp in seconds
                 .claim("typ", type.name().toLowerCase()) // "access" | "refresh"
                 .signWith(key)
                 .compact();

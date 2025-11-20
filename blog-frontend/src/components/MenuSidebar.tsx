@@ -40,6 +40,7 @@ const menuItems = [
   },
 ];
 
+<<<<<<< HEAD
 const followingItems = [
   {
     name: "Manpreet Singh",

@@ -3,6 +3,7 @@ package org.example.blogbackend.auth.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.example.blogbackend.auth.model.dto.request.RefreshRequest;
 import org.example.blogbackend.auth.service.AuthService;
 import org.example.blogbackend.user.model.dto.response.UserResponse;
 import org.example.blogbackend.user.mapper.UserMapper;
@@ -53,12 +54,16 @@ public class AuthController {
     }
 
     @PostMapping("/refresh-access")
-    public ResponseEntity<AuthResponse> refreshAccess(HttpServletRequest req, HttpServletResponse res) {
-        String refreshTokenValue = refreshCookieService.read(req);
-        if (refreshTokenValue == null || refreshTokenValue.isBlank()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-        var pair = authService.refreshAccess(refreshTokenValue);
+    public ResponseEntity<AuthResponse> refreshAccess(
+            HttpServletRequest req,
+            HttpServletResponse res,
+            @RequestBody RefreshRequest refreshRequest
+    ) {
+        //String refreshTokenValue = refreshCookieService.read(req);
+        //if (refreshTokenValue == null || refreshTokenValue.isBlank()) {
+        //    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        //}
+        var pair = authService.refreshAccess(refreshRequest.refreshToken());
         return respondWithTokens(res, pair); // sets new cookie + returns access
     }
 
@@ -84,7 +89,8 @@ public class AuthController {
 
         // body with access token info
         AuthResponse body = AuthResponse.builder()
-                .token(access.getValue())
+                .accessToken(access.getValue())
+                .refreshToken(refresh.getValue())
                 .expiresIn(access.getExpiresAt().getEpochSecond())
                 .build();
 

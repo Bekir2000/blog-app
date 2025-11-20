@@ -8,7 +8,7 @@ Content-Type: application/json
 
 > {%
     // Store token from JSON response
-    client.global.set("access_token", response.body.token);
+    client.global.set("access_token", response.body.accessToken);
 
     // Extract cookie from response headers
     const cookieHeader = response.headers.valueOf("Set-Cookie");

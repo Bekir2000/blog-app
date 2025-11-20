@@ -2,16 +2,14 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { AuthApi } from "@/features/auth/api";
-import { UserResponse } from "@/features/auth/type";
+import { getUser } from "@/lib/auth";
 import { Bell, Search, SquarePenIcon } from "lucide-react";
 import Link from "next/link";
 import { InfoTooltip } from "./InfoTooltip";
 import { SidebarTrigger } from "./ui/sidebar";
 
 export default async function Navbar() {
-  const user: UserResponse | null = await AuthApi.getCurrentUser();
-
+  const user = await getUser();
   return (
     <nav className="w-full border-b border-gray-200 bg-white">
       <div className="flex items-center justify-between px-6 py-3">

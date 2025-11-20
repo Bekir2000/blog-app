@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    container_name: postgres-db
+    restart: always
+    environment:
+      - POSTGRES_DB=blogdb
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password99
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  backend:
+    build: ./blog-backend
+    container_name: blog-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=blogdb
+      - DB_USER=postgres
+      - DB_PASSWORD=password99
+    depends_on:
+      - db
+
+  frontend:
+    build: ./blog-frontend
+    container_name: blog-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
