@@ -18,12 +18,12 @@ import { getUser } from "@/lib/auth";
 const menuItems = [
   {
     title: "Home",
-    url: "#",
+    url: "/",
     icon: Home,
   },
   {
     title: "Library",
-    url: "#",
+    url: "/bookmarks",
     icon: Bookmark,
   },
   {
