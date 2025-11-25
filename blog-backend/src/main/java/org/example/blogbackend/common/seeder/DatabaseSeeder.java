@@ -15,11 +15,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 @Configuration
 public class DatabaseSeeder {
+
     @Bean
     CommandLineRunner seedDatabase(
             PostRepository postRepository,
@@ -30,113 +33,91 @@ public class DatabaseSeeder {
     ) {
         return args -> {
             if (postRepository.count() == 0) {
+                System.out.println("🌱 Seeding database with 30 posts...");
 
-                // Users
-                List<User> users = List.of(
-                    User.builder()
-                        .username("joen")
-                        .email("joe.njenga@example.com")
-                        .password(passwordEncoder.encode("password"))
-                        .firstName("Joe")
-                        .lastName("Njenga")
-                        .build(),
-                    User.builder()
-                        .username("devrim")
-                        .email("devrim.ozcay@example.com")
-                        .password(passwordEncoder.encode("password"))
-                        .firstName("Devrim")
-                        .lastName("Ozcay")
-                        .build(),
-                    User.builder()
-                        .username("abdur")
-                        .email("abdur.rahman@example.com")
-                        .profileImageUrl("https://miro.medium.com/v2/resize:fill:64:64/1*L6qxuEdgGIfD_4Jbg_1U9g.jpeg")
-                        .password(passwordEncoder.encode("password"))
-                        .firstName("Abdur")
-                        .lastName("Rahman")
-                        .build(),
-                        User.builder()
-                                .username("admin")
-                                .email("admin@gmail.com")
-                                .password(passwordEncoder.encode("admin"))
-                                .firstName("admin")
-                                .lastName("admin")
-                                .build()
-                );
-                List<User> savedUsers = userRepository.saveAll(users);
-                User joe   = savedUsers.get(0);
-                User devrim= savedUsers.get(1);
-                User abdur = savedUsers.get(2);
+                // 1. Create Users
+                List<User> users = createUsers(passwordEncoder);
+                userRepository.saveAll(users);
 
-                // Category
-                Category category = Category.builder()
-                    .name("Technology")
-                    .build();
-                categoryRepository.save(category);
+                // 2. Create Categories
+                List<Category> categories = createCategories();
+                categoryRepository.saveAll(categories);
 
-                // Tag
-                Tag tag = Tag.builder()
-                    .name("AI")
-                    .build();
-                tagRepository.save(tag);
+                // 3. Create Tags
+                List<Tag> tags = createTags();
+                tagRepository.saveAll(tags);
 
-                // Posts
-                List<Post> posts = List.of(
-                    Post.builder()
-                        .title("9 Books Every AI Engineer Should Read (To Go Fully Professional)")
-                        .description("Picking an AI engineering book and reading it from start to finish is tough!")
-                        .content("content")
-                        .imageUrl("https://miro.medium.com/v2/resize:fit:1400/format:webp/1*SdvICPEkDR4UQrThkXGKvQ.png")
-                        .views(620)
-                        .likes(13)
-                        .readingTime(5)
-                        .status(PostStatus.PUBLISHED)
-                        .author(joe)
-                        .category(category)
-                        .tags(Set.of(tag))
-                        .likedBy(Set.of())
-                        .createdAt(Instant.now())
-                        .updatedAt(Instant.now())
-                        .build(),
+                // 4. Generate 30 Posts
+                List<Post> posts = new ArrayList<>();
+                Random random = new Random();
 
-                    Post.builder()
-                        .title("Python is Dying and Nobody Wants to Admit It")
-                        .description("You won’t hear this at PyCon. You won’t read it in the official Python blog. But after 2 years of Python development and...")
-                        .content("content")
-                        .imageUrl("https://miro.medium.com/v2/resize:fit:1400/format:webp/0*KzVJGUUA2UFdSmqQ")
-                        .views(708)
-                        .likes(152)
-                        .readingTime(7)
-                        .status(PostStatus.PUBLISHED)
-                        .author(devrim)
-                        .category(category)
-                        .tags(Set.of(tag))
-                        .likedBy(Set.of())
-                        .createdAt(Instant.now())
-                        .updatedAt(Instant.now())
-                        .build(),
+                // Some placeholder images to cycle through
+                String[] imageUrls = {
+                        "https://miro.medium.com/v2/resize:fit:1400/format:webp/1*SdvICPEkDR4UQrThkXGKvQ.png",
+                        "https://miro.medium.com/v2/resize:fit:1400/format:webp/0*KzVJGUUA2UFdSmqQ",
+                        "https://miro.medium.com/v2/resize:fit:2000/format:webp/0*jNm75DMytWXufzDP",
+                        "https://images.unsplash.com/photo-1498050108023-c5249f4df085",
+                        "https://images.unsplash.com/photo-1555066931-4365d14bab8c"
+                };
 
-                    Post.builder()
-                        .title("7 Python Automation Projects You Can Build in Less Than 2 Hours Each")
-                        .description("Small Builds. Big Impact.")
-                        .content("content")
-                        .imageUrl("https://miro.medium.com/v2/resize:fit:2000/format:webp/0*jNm75DMytWXufzDP")
-                        .views(352)
-                        .likes(6)
-                        .readingTime(10)
-                        .status(PostStatus.PUBLISHED)
-                        .author(abdur)
-                        .category(category)
-                        .tags(Set.of(tag))
-                        .likedBy(Set.of())
-                        .createdAt(Instant.now())
-                        .updatedAt(Instant.now())
-                        .build()
-                );
+                for (int i = 1; i <= 30; i++) {
+                    User author = users.get(random.nextInt(users.size()));
+                    Category category = categories.get(random.nextInt(categories.size()));
+                    Tag tag = tags.get(random.nextInt(tags.size()));
+                    String imageUrl = imageUrls[i % imageUrls.length]; // Cycle images
+
+                    Post post = Post.builder()
+                            .title("Artificial Post #" + i + ": The Future of " + category.getName())
+                            .description("This is a generated description for post number " + i + ". It contains enough text to look like a real preview on the frontend.")
+                            .content("<h1>Content for Post " + i + "</h1><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>")
+                            .imageUrl(imageUrl)
+                            .views(random.nextInt(1000))
+                            .likes(random.nextInt(100))
+                            .readingTime(random.nextInt(10) + 1)
+                            .status(PostStatus.PUBLISHED) // Important for Feed
+                            .author(author)
+                            .category(category)
+                            .tags(Set.of(tag))
+                            .likedBy(Set.of())
+                            .createdAt(Instant.now().minusSeconds(i * 3600L)) // Stagger times so they aren't all identical
+                            .updatedAt(Instant.now())
+                            .build();
+
+                    posts.add(post);
+                }
 
                 postRepository.saveAll(posts);
-                System.out.println("✅ Seeded mock posts");
+                System.out.println("✅ Successfully seeded 30 posts!");
             }
         };
+    }
+
+    // --- Helper Methods ---
+
+    private List<User> createUsers(PasswordEncoder passwordEncoder) {
+        return List.of(
+                User.builder().username("joen").email("joe@test.com").password(passwordEncoder.encode("password")).firstName("Joe").lastName("Njenga").build(),
+                User.builder().username("devrim").email("devrim@test.com").password(passwordEncoder.encode("password")).firstName("Devrim").lastName("Ozcay").build(),
+                User.builder().username("abdur").email("abdur@test.com").password(passwordEncoder.encode("password")).firstName("Abdur").lastName("Rahman").build(),
+                User.builder().username("admin").email("admin@test.com").password(passwordEncoder.encode("admin")).firstName("Admin").lastName("User").build()
+        );
+    }
+
+    private List<Category> createCategories() {
+        return List.of(
+                Category.builder().name("Technology").build(),
+                Category.builder().name("Lifestyle").build(),
+                Category.builder().name("Coding").build(),
+                Category.builder().name("AI").build()
+        );
+    }
+
+    private List<Tag> createTags() {
+        return List.of(
+                Tag.builder().name("Java").build(),
+                Tag.builder().name("Spring Boot").build(),
+                Tag.builder().name("NextJS").build(),
+                Tag.builder().name("Architecture").build()
+        );
     }
 }

@@ -1,7 +1,7 @@
 import { MenuSidebar } from "@/components/MenuSidebar";
 import Navbar from "@/components/Navbar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { Toaster } from "@/components/ui/sonner"; // 💡 Added Sonner Toaster Import
+import { Toaster } from "@/components/ui/sonner";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Roboto } from "next/font/google";
 import "./globals.css";
@@ -39,14 +39,18 @@ export default async function RootLayout({
       >
         <SidebarProvider defaultOpen={false}>
           <MenuSidebar />
+
+          {/* SidebarInset is the scrolling container. 
+            Navbar must be a direct child here to stick correctly.
+          */}
           <SidebarInset>
-            <header>
-              <Navbar />
-            </header>
-            <div>{children}</div>
+            {/* REMOVED <header> wrapper here */}
+            <Navbar />
+
+            {/* Main Content */}
+            <main>{children}</main>
           </SidebarInset>
         </SidebarProvider>
-        {/* 💡 The Sonner Toaster is added here to catch all toasts */}
         <Toaster />
       </body>
     </html>

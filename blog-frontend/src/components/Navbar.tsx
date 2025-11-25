@@ -1,5 +1,3 @@
-// components/Navbar.tsx
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { getUser } from "@/lib/auth";
@@ -10,43 +8,49 @@ import { SidebarTrigger } from "./ui/sidebar";
 
 export default async function Navbar() {
   const user = await getUser();
+
   return (
-    <nav className="w-full border-b border-gray-200 bg-white">
+    // FIX: Added 'sticky top-0 z-50' and 'backdrop-blur'
+    <nav className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/80 backdrop-blur-md transition-all">
       <div className="flex items-center justify-between px-6 py-3">
         {/* Left: Menu + Logo */}
         <div className="flex items-center gap-4">
           <InfoTooltip message="Menu">
             <SidebarTrigger />
           </InfoTooltip>
-          <Link href="/" className="text-2xl font-serif font-bold">
+          <Link
+            href="/"
+            className="text-2xl font-serif font-bold tracking-tight"
+          >
             Blogium
           </Link>
         </div>
 
         {/* Center: Search */}
-        <div className="flex-1 px-6">
-          <div className="relative w-full max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
+        <div className="hidden md:flex flex-1 max-w-md px-6">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
               placeholder="Search"
-              className="w-full rounded-full border border-gray-200 bg-gray-50 pl-10 pr-4 py-2 text-sm focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-full border border-gray-100 bg-gray-50 pl-10 pr-4 py-2 text-sm focus:border-gray-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-gray-100 transition-all"
             />
           </div>
         </div>
 
         {/* Right: Write, Bell, Avatar or Login */}
         <div className="flex items-center gap-6">
-          <button className="flex items-center gap-1 text-gray-700 hover:text-black">
+          <button className="hidden sm:flex items-center gap-1 text-gray-600 hover:text-black transition-colors">
             <SquarePenIcon className="w-4 h-4" /> Write
           </button>
+
           <InfoTooltip message="Notifications">
-            <Bell className="w-5 h-5 text-gray-600 cursor-pointer" />
+            <Bell className="w-5 h-5 text-gray-600 hover:text-black cursor-pointer transition-colors" />
           </InfoTooltip>
 
           {user ? (
             <InfoTooltip message="Account">
-              <Avatar className="cursor-pointer">
+              <Avatar className="cursor-pointer border border-gray-200 hover:border-gray-400 transition-colors">
                 <AvatarImage src="/avatar.jpg" alt="User Avatar" />
                 <AvatarFallback>
                   {user.username?.charAt(0).toUpperCase()}
@@ -54,7 +58,7 @@ export default async function Navbar() {
               </Avatar>
             </InfoTooltip>
           ) : (
-            <Button asChild>
+            <Button asChild className="rounded-full">
               <Link href="/login">Login</Link>
             </Button>
           )}

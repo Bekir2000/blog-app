@@ -14,6 +14,7 @@ import org.example.blogbackend.category.service.CategoryService;
 import org.example.blogbackend.tag.service.TagService;
 import org.example.blogbackend.user.repository.UserRepository;
 import org.example.blogbackend.user.service.UserService;
+import org.springframework.data.domain.Pageable; // <--- Import added
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,21 +55,20 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PostWithBookmark> getAllPosts(UUID categoryId, UUID tagId, UUID userId) {
+    public List<PostWithBookmark> getAllPosts(UUID categoryId, UUID tagId, UUID userId, Pageable pageable) {
+
+        List<Post> posts;
 
         if (categoryId != null && tagId != null) {
-            List<Post> posts = findPublishedPostsByCategoryAndTag(categoryId, tagId);
-            return attachBookmarks(posts, userId);
+            posts = findPublishedPostsByCategoryAndTag(categoryId, tagId, pageable);
+        } else if (categoryId != null) {
+            posts = findPublishedPostsByCategory(categoryId, pageable);
+        } else if (tagId != null) {
+            posts = findPublishedPostsByTag(tagId, pageable);
+        } else {
+            posts = findAllPublishedPosts(pageable);
         }
-        if (categoryId != null) {
-            List<Post> posts = findPublishedPostsByCategory(categoryId);
-            return attachBookmarks(posts, userId);
-        }
-        if (tagId != null) {
-            List<Post> posts = findPublishedPostsByTag(tagId);
-            return attachBookmarks(posts, userId);
-        }
-        List<Post> posts = findAllPublishedPosts();
+
         return attachBookmarks(posts, userId);
     }
 
@@ -155,25 +155,28 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() -> new EntityNotFoundException(POST_NOT_FOUND_MESSAGE + id));
     }
 
-    private List<Post> findPublishedPostsByCategoryAndTag(UUID categoryId, UUID tagId) {
+    private List<Post> findPublishedPostsByCategoryAndTag(UUID categoryId, UUID tagId, Pageable pageable) {
         Category category = categoryService.getCategoryById(categoryId);
         Tag tag = tagService.getTagById(tagId);
+        // Extracts the content list from the Page object
         return postRepository.findAllByStatusAndCategoryAndTagsContaining(
-                PostStatus.PUBLISHED, category, tag);
+                PostStatus.PUBLISHED, category, tag, pageable).getContent();
     }
 
-    private List<Post> findPublishedPostsByCategory(UUID categoryId) {
+    private List<Post> findPublishedPostsByCategory(UUID categoryId, Pageable pageable) {
         Category category = categoryService.getCategoryById(categoryId);
-        return postRepository.findAllByStatusAndCategory(PostStatus.PUBLISHED, category);
+        return postRepository.findAllByStatusAndCategory(
+                PostStatus.PUBLISHED, category, pageable).getContent();
     }
 
-    private List<Post> findPublishedPostsByTag(UUID tagId) {
+    private List<Post> findPublishedPostsByTag(UUID tagId, Pageable pageable) {
         Tag tag = tagService.getTagById(tagId);
-        return postRepository.findAllByStatusAndTagsContaining(PostStatus.PUBLISHED, tag);
+        return postRepository.findAllByStatusAndTagsContaining(
+                PostStatus.PUBLISHED, tag, pageable).getContent();
     }
 
-    private List<Post> findAllPublishedPosts() {
-        return postRepository.findAllByStatus(PostStatus.PUBLISHED);
+    private List<Post> findAllPublishedPosts(Pageable pageable) {
+        return postRepository.findAllByStatus(PostStatus.PUBLISHED, pageable).getContent();
     }
 
     private void validatePost(Post post) {
@@ -239,7 +242,6 @@ public class PostServiceImpl implements PostService {
             return;
         }
 
-        // Compare tags by name instead of ID (newly created tags won’t have an ID yet)
         if (!areTagSetsEqual(existingTags, updatedTags)) {
             Set<Tag> resolvedTags = tagService.findOrCreateTagsIn(updatedTags);
             existingPost.setTags(resolvedTags);

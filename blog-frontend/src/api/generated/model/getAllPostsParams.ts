@@ -8,4 +8,6 @@
 export type GetAllPostsParams = {
 categoryId?: string;
 tagId?: string;
+page?: number;
+size?: number;
 };

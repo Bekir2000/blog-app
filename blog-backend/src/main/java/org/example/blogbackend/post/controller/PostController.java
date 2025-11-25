@@ -12,6 +12,9 @@ import org.example.blogbackend.user.model.entity.User;
 import org.example.blogbackend.common.security.BlogUserDetails;
 import org.example.blogbackend.post.service.PostService;
 import org.example.blogbackend.user.service.UserService;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -36,14 +39,22 @@ public class PostController {
     public ResponseEntity<List<PostWithBookmarkResponse>> getAllPosts(
             @RequestParam(required = false) UUID categoryId,
             @RequestParam(required = false) UUID tagId,
+            // 1. Add Pagination Params (Default: page 0, size 10)
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
             @AuthenticationPrincipal BlogUserDetails blogUserDetails) {
 
-        UUID userId = (blogUserDetails != null)? blogUserDetails.getUserId() : null;
+        UUID userId = (blogUserDetails != null) ? blogUserDetails.getUserId() : null;
+
+        // 2. Create Pageable object (Sort by newest first usually)
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        // 3. Pass pageable to service
         return ResponseEntity.ok(
-                postService.getAllPosts(categoryId, tagId, userId)
-                           .stream()
-                           .map(postMapper::toPostWithBookmarkResponse)
-                           .toList()
+                postService.getAllPosts(categoryId, tagId, userId, pageable) // <--- Updated call
+                        .stream()
+                        .map(postMapper::toPostWithBookmarkResponse)
+                        .toList()
         );
     }
 

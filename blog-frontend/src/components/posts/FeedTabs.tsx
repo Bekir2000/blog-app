@@ -2,14 +2,19 @@ import { getAllPosts } from "@/api/generated/post-controller/post-controller";
 import { InfoTooltip } from "@/components/InfoTooltip";
 import { PostsGrid } from "@/components/posts/PostGrid";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getUser } from "@/lib/auth";
 
 export async function FeedTabs() {
-  const postWithBookMarks = await getAllPosts();
+  // FIX: Explicitly pass page 0 and size 5 to match your Server Action logic
+  const postWithBookMarks = await getAllPosts({
+    page: 0,
+    size: 5,
+  });
 
-  //console.log("postWithBookMarks", postWithBookMarks);
+  const currentUser = await getUser();
+
   return (
     <Tabs defaultValue="foryou" className="mx-auto w-3xl">
-      {/* thin baseline like the original */}
       <TabsList>
         <InfoTooltip message="Recommended stories based on your reading history">
           <TabsTrigger value="foryou">For you</TabsTrigger>
@@ -21,7 +26,7 @@ export async function FeedTabs() {
       </TabsList>
 
       <TabsContent value="foryou" className="pt-4">
-        <PostsGrid postWithBookMarks={postWithBookMarks} />
+        <PostsGrid initialPosts={postWithBookMarks} currentUser={currentUser} />
       </TabsContent>
 
       <TabsContent value="featured" className="pt-4">
