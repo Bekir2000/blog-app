@@ -1,5 +1,6 @@
 package org.example.blogbackend.common.seeder;
 
+import net.datafaker.Faker;
 import org.example.blogbackend.post.model.entity.Post;
 import org.example.blogbackend.post.model.PostStatus;
 import org.example.blogbackend.post.repository.PostRepository;
@@ -17,8 +18,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @Configuration
 public class DatabaseSeeder {
@@ -32,54 +33,85 @@ public class DatabaseSeeder {
             PasswordEncoder passwordEncoder
     ) {
         return args -> {
+            // Only seed if the DB is empty
             if (postRepository.count() == 0) {
-                System.out.println("🌱 Seeding database with 30 posts...");
+                Faker faker = new Faker();
+                System.out.println("🌱 Seeding database with Faker data...");
 
-                // 1. Create Users
-                List<User> users = createUsers(passwordEncoder);
+                // --- 1. Create Users (1 Admin + 10 Random) ---
+                List<User> users = new ArrayList<>();
+
+                // 1.1 Create Admin
+                users.add(User.builder()
+                        .username("admin")
+                        .email("admin@test.com")
+                        .password(passwordEncoder.encode("admin"))
+                        .firstName("Admin")
+                        .lastName("User")
+                        // Generates an avatar with initials "AU" and a random background color
+                        .profileImageUrl("https://ui-avatars.com/api/?name=Admin+User&background=random")
+                        .build());
+
+                // 1.2 Generate 10 Random Users
+                for (int i = 0; i < 10; i++) {
+                    String firstName = faker.name().firstName();
+                    String lastName = faker.name().lastName();
+                    String username = (firstName + lastName).toLowerCase();
+
+                    // Generate a "Real" looking face using Pravatar based on the index (1-70 are valid IDs)
+                    // Alternatively, you can use: faker.internet().avatar()
+                    String avatarUrl = "https://i.pravatar.cc/150?img=" + (i + 1);
+
+
+                    users.add(User.builder()
+                            .username(username)
+                            .email(faker.internet().emailAddress())
+                            .password(passwordEncoder.encode("password"))
+                            .firstName(firstName)
+                            .lastName(lastName)
+                            .profileImageUrl(avatarUrl) // <--- Added the image URL here
+                            .build());
+                }
                 userRepository.saveAll(users);
 
-                // 2. Create Categories
-                List<Category> categories = createCategories();
+                // --- 2. Create Categories ---
+                List<Category> categories = new ArrayList<>();
+                for (int i = 0; i < 5; i++) {
+                    categories.add(Category.builder().name(faker.book().genre()).build());
+                }
                 categoryRepository.saveAll(categories);
 
-                // 3. Create Tags
-                List<Tag> tags = createTags();
+                // --- 3. Create Tags ---
+                List<Tag> tags = new ArrayList<>();
+                for (int i = 0; i < 8; i++) {
+                    tags.add(Tag.builder().name(faker.programmingLanguage().name()).build());
+                }
                 tagRepository.saveAll(tags);
 
-                // 4. Generate 30 Posts
+                // --- 4. Generate 50 Posts ---
                 List<Post> posts = new ArrayList<>();
-                Random random = new Random();
 
-                // Some placeholder images to cycle through
-                String[] imageUrls = {
-                        "https://miro.medium.com/v2/resize:fit:1400/format:webp/1*SdvICPEkDR4UQrThkXGKvQ.png",
-                        "https://miro.medium.com/v2/resize:fit:1400/format:webp/0*KzVJGUUA2UFdSmqQ",
-                        "https://miro.medium.com/v2/resize:fit:2000/format:webp/0*jNm75DMytWXufzDP",
-                        "https://images.unsplash.com/photo-1498050108023-c5249f4df085",
-                        "https://images.unsplash.com/photo-1555066931-4365d14bab8c"
-                };
+                for (int i = 0; i < 50; i++) {
+                    User author = users.get(faker.number().numberBetween(0, users.size()));
+                    Category category = categories.get(faker.number().numberBetween(0, categories.size()));
+                    Tag tag = tags.get(faker.number().numberBetween(0, tags.size()));
 
-                for (int i = 1; i <= 30; i++) {
-                    User author = users.get(random.nextInt(users.size()));
-                    Category category = categories.get(random.nextInt(categories.size()));
-                    Tag tag = tags.get(random.nextInt(tags.size()));
-                    String imageUrl = imageUrls[i % imageUrls.length]; // Cycle images
+                    String imageUrl = "https://picsum.photos/seed/" + (i + 1) + "/800/600";
 
                     Post post = Post.builder()
-                            .title("Artificial Post #" + i + ": The Future of " + category.getName())
-                            .description("This is a generated description for post number " + i + ". It contains enough text to look like a real preview on the frontend.")
-                            .content("<h1>Content for Post " + i + "</h1><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>")
+                            .title(faker.book().title())
+                            .description(faker.lorem().sentence(15))
+                            .content("<h1>" + faker.lorem().sentence() + "</h1><p>" + faker.lorem().paragraph(10) + "</p>")
                             .imageUrl(imageUrl)
-                            .views(random.nextInt(1000))
-                            .likes(random.nextInt(100))
-                            .readingTime(random.nextInt(10) + 1)
-                            .status(PostStatus.PUBLISHED) // Important for Feed
+                            .views(faker.number().numberBetween(0, 5000))
+                            .likes(faker.number().numberBetween(0, 500))
+                            .readingTime(faker.number().numberBetween(1, 15))
+                            .status(PostStatus.PUBLISHED)
                             .author(author)
                             .category(category)
                             .tags(Set.of(tag))
                             .likedBy(Set.of())
-                            .createdAt(Instant.now().minusSeconds(i * 3600L)) // Stagger times so they aren't all identical
+                            .createdAt(faker.date().past(30, TimeUnit.DAYS).toInstant())
                             .updatedAt(Instant.now())
                             .build();
 
@@ -87,37 +119,8 @@ public class DatabaseSeeder {
                 }
 
                 postRepository.saveAll(posts);
-                System.out.println("✅ Successfully seeded 30 posts!");
+                System.out.println("✅ Successfully seeded " + posts.size() + " posts and " + users.size() + " users!");
             }
         };
-    }
-
-    // --- Helper Methods ---
-
-    private List<User> createUsers(PasswordEncoder passwordEncoder) {
-        return List.of(
-                User.builder().username("joen").email("joe@test.com").password(passwordEncoder.encode("password")).firstName("Joe").lastName("Njenga").build(),
-                User.builder().username("devrim").email("devrim@test.com").password(passwordEncoder.encode("password")).firstName("Devrim").lastName("Ozcay").build(),
-                User.builder().username("abdur").email("abdur@test.com").password(passwordEncoder.encode("password")).firstName("Abdur").lastName("Rahman").build(),
-                User.builder().username("admin").email("admin@test.com").password(passwordEncoder.encode("admin")).firstName("Admin").lastName("User").build()
-        );
-    }
-
-    private List<Category> createCategories() {
-        return List.of(
-                Category.builder().name("Technology").build(),
-                Category.builder().name("Lifestyle").build(),
-                Category.builder().name("Coding").build(),
-                Category.builder().name("AI").build()
-        );
-    }
-
-    private List<Tag> createTags() {
-        return List.of(
-                Tag.builder().name("Java").build(),
-                Tag.builder().name("Spring Boot").build(),
-                Tag.builder().name("NextJS").build(),
-                Tag.builder().name("Architecture").build()
-        );
     }
 }
