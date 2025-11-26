@@ -94,9 +94,9 @@ export async function MenuSidebar() {
                         alt={user.username}
                         className="w-8 h-8 rounded-full object-cover"
                       />
-                      {/* {user.online && (
+                      {user.isOnline && (
                         <span className="absolute bottom-0 right-0 block w-2.5 h-2.5 rounded-full border-2 border-white bg-green-500" />
-                      )} */}
+                      )}
                     </div>
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       {user.username}

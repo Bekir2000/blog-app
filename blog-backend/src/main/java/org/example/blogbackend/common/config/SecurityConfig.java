@@ -32,8 +32,11 @@ import java.util.List;
 public class SecurityConfig {
 
     @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtUtil jwtUtil) {
-        return new JwtAuthenticationFilter(jwtUtil);
+    public JwtAuthenticationFilter jwtAuthenticationFilter(
+            JwtUtil jwtUtil,
+            UserRepository userRepository
+    ) {
+        return new JwtAuthenticationFilter(jwtUtil, userRepository);
     }
 
     @Bean

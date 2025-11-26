@@ -11,4 +11,6 @@ export interface UserResponse {
   firstName?: string;
   lastName?: string;
   profileImageUrl?: string;
+  isOnline?: boolean;
+  lastActiveAt?: string;
 }

@@ -17,9 +17,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Configuration
 public class DatabaseSeeder {
@@ -33,35 +35,30 @@ public class DatabaseSeeder {
             PasswordEncoder passwordEncoder
     ) {
         return args -> {
-            // Only seed if the DB is empty
             if (postRepository.count() == 0) {
                 Faker faker = new Faker();
                 System.out.println("🌱 Seeding database with Faker data...");
 
-                // --- 1. Create Users (1 Admin + 10 Random) ---
+                // --- 1. Create Users ---
                 List<User> users = new ArrayList<>();
 
-                // 1.1 Create Admin
-                users.add(User.builder()
+                // 1.1 Admin
+                User adminUser = User.builder()
                         .username("admin")
                         .email("admin@test.com")
                         .password(passwordEncoder.encode("admin"))
                         .firstName("Admin")
                         .lastName("User")
-                        // Generates an avatar with initials "AU" and a random background color
                         .profileImageUrl("https://ui-avatars.com/api/?name=Admin+User&background=random")
-                        .build());
+                        .build();
+                users.add(adminUser);
 
-                // 1.2 Generate 10 Random Users
+                // 1.2 Random Users
                 for (int i = 0; i < 10; i++) {
                     String firstName = faker.name().firstName();
                     String lastName = faker.name().lastName();
                     String username = (firstName + lastName).toLowerCase();
-
-                    // Generate a "Real" looking face using Pravatar based on the index (1-70 are valid IDs)
-                    // Alternatively, you can use: faker.internet().avatar()
                     String avatarUrl = "https://i.pravatar.cc/150?img=" + (i + 1);
-
 
                     users.add(User.builder()
                             .username(username)
@@ -69,28 +66,46 @@ public class DatabaseSeeder {
                             .password(passwordEncoder.encode("password"))
                             .firstName(firstName)
                             .lastName(lastName)
-                            .profileImageUrl(avatarUrl) // <--- Added the image URL here
+                            .profileImageUrl(avatarUrl)
                             .build());
                 }
-                userRepository.saveAll(users);
+                users = userRepository.saveAll(users);
 
-                // --- 2. Create Categories ---
-                List<Category> categories = new ArrayList<>();
-                for (int i = 0; i < 5; i++) {
-                    categories.add(Category.builder().name(faker.book().genre()).build());
+                // 1.3 Set Follows (Admin follows everyone else)
+                User savedAdmin = users.get(0);
+                for (int i = 1; i < users.size(); i++) {
+                    savedAdmin.follow(users.get(i));
                 }
-                categoryRepository.saveAll(categories);
+                userRepository.save(savedAdmin);
 
-                // --- 3. Create Tags ---
-                List<Tag> tags = new ArrayList<>();
-                for (int i = 0; i < 8; i++) {
-                    tags.add(Tag.builder().name(faker.programmingLanguage().name()).build());
+                // --- 2. Create Categories (UNIQUE FIX) ---
+                Set<String> uniqueCategoryNames = new HashSet<>();
+                // Keep generating until we have 5 unique names
+                while (uniqueCategoryNames.size() < 5) {
+                    uniqueCategoryNames.add(faker.book().genre());
                 }
-                tagRepository.saveAll(tags);
+
+                List<Category> categories = uniqueCategoryNames.stream()
+                        .map(name -> Category.builder().name(name).build())
+                        .collect(Collectors.toList());
+
+                categories = categoryRepository.saveAll(categories);
+
+                // --- 3. Create Tags (UNIQUE FIX) ---
+                Set<String> uniqueTagNames = new HashSet<>();
+                // Keep generating until we have 8 unique names
+                while (uniqueTagNames.size() < 8) {
+                    uniqueTagNames.add(faker.programmingLanguage().name());
+                }
+
+                List<Tag> tags = uniqueTagNames.stream()
+                        .map(name -> Tag.builder().name(name).build())
+                        .collect(Collectors.toList());
+
+                tags = tagRepository.saveAll(tags);
 
                 // --- 4. Generate 50 Posts ---
                 List<Post> posts = new ArrayList<>();
-
                 for (int i = 0; i < 50; i++) {
                     User author = users.get(faker.number().numberBetween(0, users.size()));
                     Category category = categories.get(faker.number().numberBetween(0, categories.size()));

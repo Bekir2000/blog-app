@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.blogbackend.common.security.jwt.JwtParsed;
 import org.example.blogbackend.common.security.jwt.JwtTokenType;
 import org.example.blogbackend.common.security.jwt.JwtUtil;
+import org.example.blogbackend.user.repository.UserRepository; // <--- 1. Import Repo
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.Instant;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -23,6 +25,7 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final UserRepository userRepository; // <--- 2. Inject Repo
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -37,10 +40,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 } else {
                     JwtParsed parsed = jwtUtil.parse(token);
 
-                    // Reject refresh tokens used for authentication
                     if (parsed.getType() == JwtTokenType.REFRESH) {
                         log.warn("Refresh token used for authentication");
                     } else {
+                        // --- 3. TRACK ACTIVITY ---
+                        // Update the timestamp in the background
+                        // (Ideally, wrap this in an async method for high-performance apps)
+                        try {
+                            userRepository.updateLastActiveAt(parsed.getUserId(), Instant.now());
+                        } catch (Exception e) {
+                            // Don't fail the request if tracking fails
+                            log.error("Failed to update user activity", e);
+                        }
+
                         BlogUserDetails userDetails = BlogUserDetails.fromJwt(parsed.getUserId(), null, null);
                         var authentication = new UsernamePasswordAuthenticationToken(
                                 userDetails, null, userDetails.getAuthorities());
