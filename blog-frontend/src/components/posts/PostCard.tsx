@@ -1,4 +1,3 @@
-// components/PostCard.tsx
 import { PostWithBookmarkResponse, UserResponse } from "@/api/generated/model";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -10,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Calendar, MessageCircle, ThumbsUp } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link"; // <--- 1. Import Link
 import { PostActions } from "./PostActions";
 
 export function PostCard({
@@ -19,40 +19,46 @@ export function PostCard({
   postWithBookMark: PostWithBookmarkResponse;
   currentUser: UserResponse | null;
 }) {
-  // 1. Safely access the post object
   const post = postWithBookMark?.post;
 
-  // 2. GUARD CLAUSE: If post is null or undefined, don't render anything
   if (!post) {
     return null;
-    // Alternatively, return a placeholder:
-    // return <div className="p-4">Post unavailable</div>;
   }
 
   const isBookmarked = postWithBookMark.isBookmarked;
+  const postUrl = `/posts/${post.id}`; // <--- 2. Define the URL
 
   return (
-    <Card className="max-w-3xl min-w-10 shadow-md">
+    <Card className="max-w-3xl min-w-10 shadow-md transition-shadow hover:shadow-lg">
       <CardHeader>
-        <div className="text-sm flex flex-row items-center gap-2 mb-2">
-          <Avatar>
-            {/* Added optional chaining (?.) just in case author is missing */}
+        {/* User Info (Not part of the main click to keep profile accessible separately) */}
+        <div className="text-sm flex flex-row items-center gap-2 mb-3">
+          <Avatar className="h-6 w-6">
             <AvatarImage
               src={post.author?.profileImageUrl ?? undefined}
               alt={post.author?.firstName}
             />
-            <AvatarFallback>{post.author?.username?.[0] ?? "?"}</AvatarFallback>
+            <AvatarFallback className="text-[10px]">
+              {post.author?.username?.[0] ?? "?"}
+            </AvatarFallback>
           </Avatar>
-          <div>
+          <div className="text-xs font-medium text-gray-700">
             {post.author?.firstName} {post.author?.lastName}
           </div>
         </div>
-        <div className="flex flex-row items-start justify-between gap-4">
+
+        {/* 3. Wrap the Main Content in a Link */}
+        <Link
+          href={postUrl}
+          className="flex flex-row items-start justify-between gap-4 group cursor-pointer"
+        >
           <div className="flex-1">
-            <CardTitle className="text-xl font-bold leading-snug">
+            <CardTitle className="text-xl font-bold leading-snug group-hover:text-gray-700 transition-colors">
               {post.title}
             </CardTitle>
-            <CardDescription className="mt-2">
+            <CardDescription className="mt-2 line-clamp-2">
+              {" "}
+              {/* line-clamp limits text to 2 lines */}
               {post.description}
             </CardDescription>
           </div>
@@ -68,21 +74,21 @@ export function PostCard({
               />
             )}
           </div>
-        </div>
+        </Link>
       </CardHeader>
 
-      <CardFooter className="flex justify-between items-center text-sm text-gray-600">
+      <CardFooter className="flex justify-between items-center text-sm text-gray-600 mt-2">
+        {/* Footer info links to post as well, or stays static */}
         <div className="flex items-center gap-6">
-          <span className="flex items-center gap-1 ">
-            {/* Added safety check for createdAt */}
-            <Calendar className="w-4 h-4" />{" "}
+          <span className="flex items-center gap-1 text-xs">
+            <Calendar className="w-3.5 h-3.5" />{" "}
             {post.createdAt ? post.createdAt.split("T")[0] : ""}
           </span>
-          <span className="flex items-center gap-1">
-            <ThumbsUp className="w-4 h-4" /> {post.likes || 0}
+          <span className="flex items-center gap-1 text-xs">
+            <ThumbsUp className="w-3.5 h-3.5" /> {post.likes || 0}
           </span>
-          <span className="flex items-center gap-1">
-            <MessageCircle className="w-4 h-4" /> {post.commentsCount || 0}
+          <span className="flex items-center gap-1 text-xs">
+            <MessageCircle className="w-3.5 h-3.5" /> {post.commentsCount || 0}
           </span>
         </div>
 

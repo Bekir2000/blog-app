@@ -69,6 +69,7 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest req, HttpServletResponse res) {
+        //ToDo: fix that when logout refresh_token is blacklisted
         String refreshTokenValue = refreshCookieService.read(req);
         if (refreshTokenValue != null && !refreshTokenValue.isBlank()) {
             authService.logout(refreshTokenValue); // blacklist refresh jti
