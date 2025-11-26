@@ -1,4 +1,4 @@
-import { getBookmarkedPosts } from "@/api/generated/me-controller/me-controller";
+import { getBookmarkedPosts } from "@/api/generated/server/me-controller/me-controller";
 import { PostsGrid } from "@/components/posts/PostGrid";
 import { getUser } from "@/lib/auth";
 

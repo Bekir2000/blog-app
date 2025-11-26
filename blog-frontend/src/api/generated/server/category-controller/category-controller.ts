@@ -7,9 +7,9 @@
 import type {
   CategoryResponse,
   CreateCategoryRequest
-} from '.././model';
+} from '../../model';
 
-import { serverFetch } from '../../../lib/api-client';
+import { serverFetch } from '../../../../lib/api-client';
 
 
 

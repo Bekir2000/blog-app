@@ -1,8 +1,8 @@
 "use client";
 
+import { useGetAllPostsInfinite } from "@/api/generated/client/post-controller/post-controller";
 import { PostWithBookmarkResponse, UserResponse } from "@/api/generated/model";
-import { fetchPostsPage } from "@/lib/actions/posts/actions";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useInView } from "react-intersection-observer";
 import { PostCard } from "./PostCard";
 import { PostSkeleton } from "./PostSkeleton";
@@ -13,68 +13,80 @@ interface PostsGridProps {
 }
 
 export function PostsGrid({ initialPosts, currentUser }: PostsGridProps) {
-  const [posts, setPosts] = useState<PostWithBookmarkResponse[]>(
-    initialPosts || []
-  );
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-
   const { ref, inView } = useInView({
     threshold: 0,
-    // Keep the large rootMargin for prefetching
-    rootMargin: "1200px",
+    rootMargin: "1200px", // Prefetch when 2 screens away from bottom
   });
 
-  const loadMorePosts = async () => {
-    if (isLoading || !hasMore) return;
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useGetAllPostsInfinite(
+      // 1. API Params: Must match the size used in FeedTabs (5)
+      { size: 5 },
+      // 2. React Query Options
+      {
+        query: {
+          queryKey: ["posts"],
 
-    setIsLoading(true);
+          initialData: {
+            pages: [
+              {
+                data: initialPosts || [],
+                status: 200,
+                headers: {} as any,
+              },
+            ],
+            pageParams: [0],
+          },
 
-    try {
-      const newPosts = await fetchPostsPage(page);
+          // Logic to calculate next page index
+          getNextPageParam: (lastPage, allPages) => {
+            // Access .data because lastPage is the wrapper object
+            const posts = lastPage?.data;
 
-      if (newPosts && newPosts.length > 0) {
-        setPosts((prev) => [...prev, ...newPosts]);
-        setPage((prev) => prev + 1);
-      } else {
-        setHasMore(false);
+            // If no posts, or fewer than page size, we are done
+            if (!posts || posts.length === 0 || posts.length < 5) {
+              return undefined;
+            }
+
+            // Otherwise, fetch next page
+            return allPages.length;
+          },
+        },
       }
-    } catch (error) {
-      console.error("Error loading posts:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    );
 
   useEffect(() => {
-    if (inView && hasMore && !isLoading) {
-      loadMorePosts();
+    // Fetch next page if in view and not currently loading
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
-  }, [inView, hasMore, isLoading]);
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Flatten pages into a single list
+  const allPosts = data?.pages.flatMap((page) => page.data) || [];
 
   return (
     <div className="gap-6 flex flex-col pb-10">
-      {posts.map((postWithBookMark, index) => {
+      {allPosts.map((postWithBookMark) => {
         if (!postWithBookMark?.post) return null;
-        const key = postWithBookMark.post.id || index;
+
+        const id = postWithBookMark.post.id;
+
         return (
           <PostCard
-            key={key}
+            key={id}
             postWithBookMark={postWithBookMark}
             currentUser={currentUser}
           />
         );
       })}
 
-      {hasMore && (
+      {/* Skeletons Loading State */}
+      {hasNextPage && (
         <div ref={ref} className="flex flex-col gap-6">
-          {isLoading && (
+          {(isFetchingNextPage || hasNextPage) && (
             <>
-              {/* UX FIX: Render 5 skeletons to match the Page Size (5).
-                  This creates enough height so the user can keep scrolling 
-                  and doesn't feel "stuck" at the bottom. 
-              */}
+              {/* Render 5 skeletons to match page size */}
               {Array.from({ length: 5 }).map((_, i) => (
                 <PostSkeleton key={i} />
               ))}
@@ -83,7 +95,8 @@ export function PostsGrid({ initialPosts, currentUser }: PostsGridProps) {
         </div>
       )}
 
-      {!hasMore && posts.length > 0 && (
+      {/* End of Feed Message */}
+      {!hasNextPage && allPosts.length > 0 && (
         <div className="text-center py-6 text-gray-400 text-sm">
           You've reached the end.
         </div>

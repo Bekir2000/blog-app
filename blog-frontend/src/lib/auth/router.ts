@@ -12,7 +12,7 @@ const COOKIE_NAMES = [
  * Helper: Clears cookies and redirects to login
  */
 function createLogoutResponse(request: NextRequest) {
-  const loginUrl = new URL("/auth/login", request.url);
+  const loginUrl = new URL("/login", request.url);
   const res = NextResponse.redirect(loginUrl);
 
   COOKIE_NAMES.forEach((name) => {

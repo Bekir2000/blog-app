@@ -7,9 +7,9 @@
 import type {
   BulkCreateTagsRequest,
   TagResponse
-} from '.././model';
+} from '../../model';
 
-import { serverFetch } from '../../../lib/api-client';
+import { serverFetch } from '../../../../lib/api-client';
 
 
 

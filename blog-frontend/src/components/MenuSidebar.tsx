@@ -1,7 +1,7 @@
 import { BarChart, Bookmark, FileText, Home, User } from "lucide-react";
 
-import { getMyFollowing } from "@/api/generated/me-controller/me-controller";
 import { UserResponse } from "@/api/generated/model";
+import { getMyFollowing } from "@/api/generated/server/me-controller/me-controller";
 import {
   Sidebar,
   SidebarContent,
@@ -13,6 +13,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { getUser } from "@/lib/auth";
+import Link from "next/link";
 
 // Menu items.
 const menuItems = [
@@ -61,13 +62,13 @@ export async function MenuSidebar() {
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title} className="mb-1 last:mb-0">
                   <SidebarMenuButton asChild>
-                    <a
+                    <Link
                       href={item.url}
                       className="flex items-center space-x-3 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
                     >
                       <item.icon className="w-5 h-5" />
                       <span className="text-sm font-medium">{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

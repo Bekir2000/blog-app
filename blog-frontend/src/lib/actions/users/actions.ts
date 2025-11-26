@@ -3,7 +3,7 @@
 import {
   bookmarkPost,
   unbookmarkPost,
-} from "@/api/generated/me-controller/me-controller";
+} from "@/api/generated/server/me-controller/me-controller";
 import { getUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";

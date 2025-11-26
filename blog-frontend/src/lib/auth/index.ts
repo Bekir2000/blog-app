@@ -1,14 +1,14 @@
 // lib/auth/index.ts
 "use server";
 
+import { UserResponse } from "@/api/generated/model";
 import {
   login,
   logout,
   refreshAccess,
   register,
-} from "@/api/generated/auth-controller/auth-controller";
-import { getProfile } from "@/api/generated/me-controller/me-controller";
-import { UserResponse } from "@/api/generated/model";
+} from "@/api/generated/server/auth-controller/auth-controller";
+import { getProfile } from "@/api/generated/server/me-controller/me-controller";
 import { expiresAtMs } from "./jwt";
 import {
   clearAuthCookies,
@@ -20,17 +20,6 @@ import {
 const API_URL = process.env.API_URL;
 if (!API_URL) {
   throw new Error("Missing environment variable: API_URL");
-}
-
-/**
- * Helper: Standard JSON POST options
- */
-function createFetchOptions(body: Record<string, unknown>): RequestInit {
-  return {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  };
 }
 
 export async function signUp(

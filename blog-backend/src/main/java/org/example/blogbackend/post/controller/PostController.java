@@ -41,7 +41,7 @@ public class PostController {
             @RequestParam(required = false) UUID tagId,
             // 1. Add Pagination Params (Default: page 0, size 10)
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "5") int size,
             @AuthenticationPrincipal BlogUserDetails blogUserDetails) {
 
         UUID userId = (blogUserDetails != null) ? blogUserDetails.getUserId() : null;

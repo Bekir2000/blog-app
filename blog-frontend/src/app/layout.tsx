@@ -6,6 +6,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Roboto } from "next/font/google";
 import "./globals.css";
 
+// ✅ 1. Import the Providers component
+import { Providers } from "../components/providers";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -37,21 +40,22 @@ export default async function RootLayout({
       <body
         className={`${roboto.variable} ${geistSans.variable} ${geistMono.variable} min-h-screen bg-white text-black`}
       >
-        <SidebarProvider defaultOpen={false}>
-          <MenuSidebar />
-
-          {/* SidebarInset is the scrolling container. 
-            Navbar must be a direct child here to stick correctly.
-          */}
-          <SidebarInset>
-            {/* REMOVED <header> wrapper here */}
-            <Navbar />
-
-            {/* Main Content */}
-            <main>{children}</main>
-          </SidebarInset>
-        </SidebarProvider>
-        <Toaster />
+        {/* ✅ 2. Wrap EVERYTHING inside Providers */}
+        <Providers>
+          <SidebarProvider defaultOpen={false}>
+            <MenuSidebar />
+            <SidebarInset>
+              <Navbar />
+              <main>
+                {/* 'children' here contains FeedTabs (Server Component).
+                  It passes through the Providers without losing its server-side rendering.
+                */}
+                {children}
+              </main>
+            </SidebarInset>
+          </SidebarProvider>
+          <Toaster />
+        </Providers>
       </body>
     </html>
   );
