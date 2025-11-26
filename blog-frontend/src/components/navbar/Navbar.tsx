@@ -1,16 +1,15 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { getUser } from "@/lib/auth";
 import { Bell, Search, SquarePenIcon } from "lucide-react";
 import Link from "next/link";
-import { InfoTooltip } from "./InfoTooltip";
-import { SidebarTrigger } from "./ui/sidebar";
+import { InfoTooltip } from "../InfoTooltip";
+import { SidebarTrigger } from "../ui/sidebar";
+import { UserNav } from "./UserNav"; // <--- Import the new component
 
 export default async function Navbar() {
   const user = await getUser();
 
   return (
-    // FIX: Added 'sticky top-0 z-50' and 'backdrop-blur'
     <nav className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/80 backdrop-blur-md transition-all">
       <div className="flex items-center justify-between px-6 py-3">
         {/* Left: Menu + Logo */}
@@ -38,25 +37,21 @@ export default async function Navbar() {
           </div>
         </div>
 
-        {/* Right: Write, Bell, Avatar or Login */}
-        <div className="flex items-center gap-6">
-          <button className="hidden sm:flex items-center gap-1 text-gray-600 hover:text-black transition-colors">
+        {/* Right: Write, Bell, User */}
+        <div className="flex items-center gap-4">
+          <button className="hidden sm:flex items-center gap-1 text-gray-600 hover:text-black transition-colors px-2">
             <SquarePenIcon className="w-4 h-4" /> Write
           </button>
 
           <InfoTooltip message="Notifications">
-            <Bell className="w-5 h-5 text-gray-600 hover:text-black cursor-pointer transition-colors" />
+            <Button variant="ghost" size="icon" className="rounded-full">
+              <Bell className="w-5 h-5 text-gray-600" />
+            </Button>
           </InfoTooltip>
 
           {user ? (
-            <InfoTooltip message="Account">
-              <Avatar className="cursor-pointer border border-gray-200 hover:border-gray-400 transition-colors">
-                <AvatarImage src="/avatar.jpg" alt="User Avatar" />
-                <AvatarFallback>
-                  {user.username?.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            </InfoTooltip>
+            // Clean abstraction: The logic is now inside UserNav
+            <UserNav user={user} />
           ) : (
             <Button asChild className="rounded-full">
               <Link href="/login">Login</Link>

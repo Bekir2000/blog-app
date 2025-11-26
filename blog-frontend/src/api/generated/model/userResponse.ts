@@ -6,11 +6,12 @@
  */
 
 export interface UserResponse {
-  id?: string;
-  username?: string;
-  firstName?: string;
-  lastName?: string;
+  id: string;
+  username: string;
+  firstName: string;
+  lastName: string;
   profileImageUrl?: string;
-  isOnline?: boolean;
-  lastActiveAt?: string;
+  email: string;
+  isOnline: boolean;
+  lastActiveAt: string;
 }
