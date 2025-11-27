@@ -3,7 +3,7 @@ import { PostDetail } from "@/components/posts/PostDetail";
 import { getUser } from "@/lib/auth";
 
 export default async function Page({ params }: { params: { id: string } }) {
-  const postId = await params.id;
+  const postId = (await params).id;
   const post = await getPostById(postId);
   const user = await getUser();
 
