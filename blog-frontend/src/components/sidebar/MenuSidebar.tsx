@@ -1,5 +1,3 @@
-import { BarChart, Bookmark, FileText, Home, User } from "lucide-react";
-
 import { UserResponse } from "@/api/generated/model";
 import { getMyFollowing } from "@/api/generated/server/me-controller/me-controller";
 import {
@@ -13,9 +11,12 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { getUser } from "@/lib/auth";
+import { BarChart, Bookmark, FileText, Home, User } from "lucide-react";
 import Link from "next/link";
+// Import the new Client Component
+import { FollowingList } from "./following-list";
 
-// Menu items.
+// Menu items configuration
 const menuItems = [
   {
     title: "Home",
@@ -47,12 +48,16 @@ const menuItems = [
 export async function MenuSidebar() {
   let followingItems: UserResponse[] = [];
   const user = await getUser();
+
   if (user) {
+    // 1. Fetch initial data on the server
     followingItems = await getMyFollowing();
   }
+
   return (
     <Sidebar>
       <SidebarContent className="flex flex-col p-4 space-y-6">
+        {/* Top Section: Static Application Menu */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-sm text-muted-foreground mt-2 mb-3">
             Application
@@ -76,37 +81,9 @@ export async function MenuSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-sm text-muted-foreground mt-6 mb-3">
-            Following
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {followingItems.map((user) => (
-                <SidebarMenuItem
-                  key={user.id}
-                  className="mb-1 last:mb-0 cursor-pointer"
-                >
-                  <div className="flex items-center space-x-3">
-                    <div className="relative">
-                      <img
-                        src={user.profileImageUrl}
-                        alt={user.username}
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                      {user.isOnline && (
-                        <span className="absolute bottom-0 right-0 block w-2.5 h-2.5 rounded-full border-2 border-white bg-green-500" />
-                      )}
-                    </div>
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {user.username}
-                    </span>
-                  </div>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {/* Bottom Section: Dynamic Following List 
+            We pass the server data to the client component here */}
+        <FollowingList initialItems={followingItems} />
       </SidebarContent>
     </Sidebar>
   );
