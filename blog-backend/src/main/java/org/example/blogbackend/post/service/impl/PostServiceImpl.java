@@ -7,6 +7,7 @@ import org.example.blogbackend.category.model.entity.Category;
 import org.example.blogbackend.category.repository.CategoryRepository;
 import org.example.blogbackend.category.service.CategoryService;
 import org.example.blogbackend.post.dto.request.PostRequest;
+import org.example.blogbackend.post.dto.response.PagedResponse;
 import org.example.blogbackend.post.dto.response.PostCardResponse;
 import org.example.blogbackend.post.dto.response.PostDetailResponse;
 import org.example.blogbackend.post.dto.response.PostResponse;
@@ -88,24 +89,26 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<PostCardResponse> getPostCards(UUID userId, UUID categoryId, UUID tagId, Pageable pageable) {
+    public PagedResponse<PostCardResponse> getPostCards(UUID userId, UUID categoryId, UUID tagId, Pageable pageable) {
+
         Page<PostCardView> postCards = fetchPostCardViews(categoryId, tagId, pageable);
 
         Set<UUID> postIds = postCards.getContent().stream()
                 .map(PostCardView::getId)
                 .collect(Collectors.toSet());
 
-        // Batch fetch bookmarks to avoid N+1 problem
         Set<UUID> bookmarkedPostIds = (userId != null && !postIds.isEmpty())
                 ? userRepository.findBookmarkedPostIdsByUserIdAndPostIdIn(userId, postIds)
                 : Collections.emptySet();
 
-        return postCards.map(postCard ->
+        Page<PostCardResponse> responsePage = postCards.map(postCard ->
                 postMapper.toPostCardResponse(
                         postCard,
                         bookmarkedPostIds.contains(postCard.getId())
                 )
         );
+
+        return postMapper.toPagedResponse(responsePage);
     }
 
     @Override

@@ -1,6 +1,7 @@
 package org.example.blogbackend.post.service;
 
 import org.example.blogbackend.post.dto.request.PostRequest;
+import org.example.blogbackend.post.dto.response.PagedResponse;
 import org.example.blogbackend.post.dto.response.PostCardResponse;
 import org.example.blogbackend.post.dto.response.PostDetailResponse;
 import org.example.blogbackend.post.dto.response.PostResponse;
@@ -16,7 +17,7 @@ public interface PostService {
 
     PostDetailResponse getPostById(UUID postId, UUID userId);
 
-    Page<PostCardResponse> getPostCards(UUID userId, UUID categoryId, UUID tagId, Pageable pageable);
+    PagedResponse<PostCardResponse> getPostCards(UUID userId, UUID categoryId, UUID tagId, Pageable pageable);
 
     List<PostCardResponse> getDraftPosts(UUID userId);
 

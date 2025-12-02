@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.blogbackend.common.security.BlogUserDetails;
 import org.example.blogbackend.post.dto.request.PostRequest;
+import org.example.blogbackend.post.dto.response.PagedResponse;
 import org.example.blogbackend.post.dto.response.PostCardResponse;
 import org.example.blogbackend.post.dto.response.PostDetailResponse;
 import org.example.blogbackend.post.dto.response.PostResponse;
@@ -12,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -37,15 +39,13 @@ public class PostController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<PostCardResponse>> getAllPostCards(
+    public ResponseEntity<PagedResponse<PostCardResponse>> getAllPostCards(
             @RequestParam(required = false) UUID categoryId,
             @RequestParam(required = false) UUID tagId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size,
+            @PageableDefault(size = 5, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal BlogUserDetails userDetails) {
 
         UUID userId = (userDetails != null) ? userDetails.getUserId() : null;
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
         return ResponseEntity.ok(
                 postService.getPostCards(userId, categoryId, tagId, pageable)
