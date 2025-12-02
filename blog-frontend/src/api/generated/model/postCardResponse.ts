@@ -7,9 +7,8 @@
 import type { UserResponse } from './userResponse';
 import type { CategoryResponse } from './categoryResponse';
 import type { TagResponse } from './tagResponse';
-import type { PostResponseStatus } from './postResponseStatus';
 
-export interface PostResponse {
+export interface PostCardResponse {
   id?: string;
   title?: string;
   description?: string;
@@ -24,6 +23,4 @@ export interface PostResponse {
   isBookmarked?: boolean;
   createdAt?: string;
   updatedAt?: string;
-  content?: string;
-  status?: PostResponseStatus;
 }

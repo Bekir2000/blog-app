@@ -7,9 +7,9 @@
 import type { UserResponse } from './userResponse';
 import type { CategoryResponse } from './categoryResponse';
 import type { TagResponse } from './tagResponse';
-import type { PostResponseStatus } from './postResponseStatus';
+import type { PostDetailResponseStatus } from './postDetailResponseStatus';
 
-export interface PostResponse {
+export interface PostDetailResponse {
   id?: string;
   title?: string;
   description?: string;
@@ -25,5 +25,6 @@ export interface PostResponse {
   createdAt?: string;
   updatedAt?: string;
   content?: string;
-  status?: PostResponseStatus;
+  followingAuthor?: boolean;
+  status?: PostDetailResponseStatus;
 }

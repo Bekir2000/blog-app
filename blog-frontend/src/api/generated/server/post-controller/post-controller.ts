@@ -5,24 +5,42 @@
  * OpenAPI spec version: v0
  */
 import type {
-  CreatePostRequest,
-  GetAllPostsParams,
-  PostResponse,
-  PostWithBookmarkResponse
+  GetAllPostCardsParams,
+  PagedResponsePostCardResponse,
+  PostCardResponse,
+  PostDetailResponse,
+  PostRequest,
+  PostResponse
 } from '../../model';
 
 import { serverFetch } from '../../../../lib/api-client';
 
 
 
+  export const getPostById = (
+    postId: string,
+ ) => {
+      return serverFetch<PostDetailResponse>(
+      {url: `/api/v1/posts/${postId}`, method: 'GET'
+    },
+      );
+    }
   export const updatePost = (
     postId: string,
-    createPostRequest: CreatePostRequest,
+    postRequest: PostRequest,
  ) => {
       return serverFetch<PostResponse>(
       {url: `/api/v1/posts/${postId}`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
-      data: createPostRequest
+      data: postRequest
+    },
+      );
+    }
+  export const deletePost = (
+    postId: string,
+ ) => {
+      return serverFetch<void>(
+      {url: `/api/v1/posts/${postId}`, method: 'DELETE'
     },
       );
     }
@@ -34,53 +52,37 @@ import { serverFetch } from '../../../../lib/api-client';
     },
       );
     }
-  export const getAllPosts = (
-    params?: GetAllPostsParams,
+  export const getAllPostCards = (
+    params?: GetAllPostCardsParams,
  ) => {
-      return serverFetch<PostWithBookmarkResponse[]>(
+      return serverFetch<PagedResponsePostCardResponse>(
       {url: `/api/v1/posts`, method: 'GET',
         params
     },
       );
     }
   export const createPost = (
-    createPostRequest: CreatePostRequest,
+    postRequest: PostRequest,
  ) => {
       return serverFetch<PostResponse>(
       {url: `/api/v1/posts`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
-      data: createPostRequest
-    },
-      );
-    }
-  export const getPostById = (
-    id: string,
- ) => {
-      return serverFetch<PostWithBookmarkResponse>(
-      {url: `/api/v1/posts/${id}`, method: 'GET'
-    },
-      );
-    }
-  export const deletePost = (
-    id: string,
- ) => {
-      return serverFetch<void>(
-      {url: `/api/v1/posts/${id}`, method: 'DELETE'
+      data: postRequest
     },
       );
     }
   export const getDrafts = (
     
  ) => {
-      return serverFetch<PostResponse[]>(
+      return serverFetch<PostCardResponse[]>(
       {url: `/api/v1/posts/drafts`, method: 'GET'
     },
       );
     }
-  export type UpdatePostResult = NonNullable<Awaited<ReturnType<typeof updatePost>>>
-export type ToggleLikeResult = NonNullable<Awaited<ReturnType<typeof toggleLike>>>
-export type GetAllPostsResult = NonNullable<Awaited<ReturnType<typeof getAllPosts>>>
-export type CreatePostResult = NonNullable<Awaited<ReturnType<typeof createPost>>>
-export type GetPostByIdResult = NonNullable<Awaited<ReturnType<typeof getPostById>>>
+  export type GetPostByIdResult = NonNullable<Awaited<ReturnType<typeof getPostById>>>
+export type UpdatePostResult = NonNullable<Awaited<ReturnType<typeof updatePost>>>
 export type DeletePostResult = NonNullable<Awaited<ReturnType<typeof deletePost>>>
+export type ToggleLikeResult = NonNullable<Awaited<ReturnType<typeof toggleLike>>>
+export type GetAllPostCardsResult = NonNullable<Awaited<ReturnType<typeof getAllPostCards>>>
+export type CreatePostResult = NonNullable<Awaited<ReturnType<typeof createPost>>>
 export type GetDraftsResult = NonNullable<Awaited<ReturnType<typeof getDrafts>>>

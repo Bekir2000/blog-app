@@ -29,16 +29,194 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  CreatePostRequest,
-  GetAllPostsParams,
-  PostResponse,
-  PostWithBookmarkResponse
+  GetAllPostCardsParams,
+  PagedResponsePostCardResponse,
+  PostCardResponse,
+  PostDetailResponse,
+  PostRequest,
+  PostResponse
 } from '../../model';
 
 import { clientFetch } from '../../../../lib/api-client';
 
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+
+
+export type getPostByIdResponse200 = {
+  data: PostDetailResponse
+  status: 200
+}
+    
+export type getPostByIdResponseSuccess = (getPostByIdResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getPostByIdResponse = (getPostByIdResponseSuccess)
+
+export const getGetPostByIdUrl = (postId: string,) => {
+
+
+  
+
+  return `/api/v1/posts/${postId}`
+}
+
+export const getPostById = async (postId: string, options?: RequestInit): Promise<getPostByIdResponse> => {
+  
+  return clientFetch<getPostByIdResponse>(getGetPostByIdUrl(postId),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+
+
+export const getGetPostByIdInfiniteQueryKey = (postId?: string,) => {
+    return [
+    'infinite', `/api/v1/posts/${postId}`
+    ] as const;
+    }
+
+export const getGetPostByIdQueryKey = (postId?: string,) => {
+    return [
+    `/api/v1/posts/${postId}`
+    ] as const;
+    }
+
+    
+export const getGetPostByIdInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getPostById>>>, TError = unknown>(postId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPostByIdInfiniteQueryKey(postId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPostById>>> = ({ signal }) => getPostById(postId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(postId), ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPostByIdInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getPostById>>>
+export type GetPostByIdInfiniteQueryError = unknown
+
+
+export function useGetPostByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPostById>>>, TError = unknown>(
+ postId: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPostById>>,
+          TError,
+          Awaited<ReturnType<typeof getPostById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof clientFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPostByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPostById>>>, TError = unknown>(
+ postId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPostById>>,
+          TError,
+          Awaited<ReturnType<typeof getPostById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof clientFetch>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPostByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPostById>>>, TError = unknown>(
+ postId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+ , queryClient?: QueryClient
+  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetPostByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPostById>>>, TError = unknown>(
+ postId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+ , queryClient?: QueryClient 
+ ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetPostByIdInfiniteQueryOptions(postId,options)
+
+  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+
+export const getGetPostByIdQueryOptions = <TData = Awaited<ReturnType<typeof getPostById>>, TError = unknown>(postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPostByIdQueryKey(postId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPostById>>> = ({ signal }) => getPostById(postId, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(postId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPostByIdQueryResult = NonNullable<Awaited<ReturnType<typeof getPostById>>>
+export type GetPostByIdQueryError = unknown
+
+
+export function useGetPostById<TData = Awaited<ReturnType<typeof getPostById>>, TError = unknown>(
+ postId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPostById>>,
+          TError,
+          Awaited<ReturnType<typeof getPostById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof clientFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPostById<TData = Awaited<ReturnType<typeof getPostById>>, TError = unknown>(
+ postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPostById>>,
+          TError,
+          Awaited<ReturnType<typeof getPostById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof clientFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPostById<TData = Awaited<ReturnType<typeof getPostById>>, TError = unknown>(
+ postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetPostById<TData = Awaited<ReturnType<typeof getPostById>>, TError = unknown>(
+ postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetPostByIdQueryOptions(postId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
 
 
 
@@ -63,7 +241,7 @@ export const getUpdatePostUrl = (postId: string,) => {
 }
 
 export const updatePost = async (postId: string,
-    createPostRequest: CreatePostRequest, options?: RequestInit): Promise<updatePostResponse> => {
+    postRequest: PostRequest, options?: RequestInit): Promise<updatePostResponse> => {
   
   return clientFetch<updatePostResponse>(getUpdatePostUrl(postId),
   {      
@@ -71,7 +249,7 @@ export const updatePost = async (postId: string,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      createPostRequest,)
+      postRequest,)
   }
 );}
 
@@ -79,8 +257,8 @@ export const updatePost = async (postId: string,
 
 
 export const getUpdatePostMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePost>>, TError,{postId: string;data: CreatePostRequest}, TContext>, request?: SecondParameter<typeof clientFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updatePost>>, TError,{postId: string;data: CreatePostRequest}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePost>>, TError,{postId: string;data: PostRequest}, TContext>, request?: SecondParameter<typeof clientFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePost>>, TError,{postId: string;data: PostRequest}, TContext> => {
 
 const mutationKey = ['updatePost'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -92,7 +270,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePost>>, {postId: string;data: CreatePostRequest}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePost>>, {postId: string;data: PostRequest}> = (props) => {
           const {postId,data} = props ?? {};
 
           return  updatePost(postId,data,requestOptions)
@@ -104,19 +282,95 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UpdatePostMutationResult = NonNullable<Awaited<ReturnType<typeof updatePost>>>
-    export type UpdatePostMutationBody = CreatePostRequest
+    export type UpdatePostMutationBody = PostRequest
     export type UpdatePostMutationError = unknown
 
     export const useUpdatePost = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePost>>, TError,{postId: string;data: CreatePostRequest}, TContext>, request?: SecondParameter<typeof clientFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePost>>, TError,{postId: string;data: PostRequest}, TContext>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof updatePost>>,
         TError,
-        {postId: string;data: CreatePostRequest},
+        {postId: string;data: PostRequest},
         TContext
       > => {
 
       const mutationOptions = getUpdatePostMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type deletePostResponse200 = {
+  data: void
+  status: 200
+}
+    
+export type deletePostResponseSuccess = (deletePostResponse200) & {
+  headers: Headers;
+};
+;
+
+export type deletePostResponse = (deletePostResponseSuccess)
+
+export const getDeletePostUrl = (postId: string,) => {
+
+
+  
+
+  return `/api/v1/posts/${postId}`
+}
+
+export const deletePost = async (postId: string, options?: RequestInit): Promise<deletePostResponse> => {
+  
+  return clientFetch<deletePostResponse>(getDeletePostUrl(postId),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getDeletePostMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePost>>, TError,{postId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deletePost>>, TError,{postId: string}, TContext> => {
+
+const mutationKey = ['deletePost'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deletePost>>, {postId: string}> = (props) => {
+          const {postId} = props ?? {};
+
+          return  deletePost(postId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeletePostMutationResult = NonNullable<Awaited<ReturnType<typeof deletePost>>>
+    
+    export type DeletePostMutationError = unknown
+
+    export const useDeletePost = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePost>>, TError,{postId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deletePost>>,
+        TError,
+        {postId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeletePostMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }
@@ -196,19 +450,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
       return useMutation(mutationOptions, queryClient);
     }
-    export type getAllPostsResponse200 = {
-  data: PostWithBookmarkResponse[]
+    export type getAllPostCardsResponse200 = {
+  data: PagedResponsePostCardResponse
   status: 200
 }
     
-export type getAllPostsResponseSuccess = (getAllPostsResponse200) & {
+export type getAllPostCardsResponseSuccess = (getAllPostCardsResponse200) & {
   headers: Headers;
 };
 ;
 
-export type getAllPostsResponse = (getAllPostsResponseSuccess)
+export type getAllPostCardsResponse = (getAllPostCardsResponseSuccess)
 
-export const getGetAllPostsUrl = (params?: GetAllPostsParams,) => {
+export const getGetAllPostCardsUrl = (params?: GetAllPostCardsParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -223,9 +477,9 @@ export const getGetAllPostsUrl = (params?: GetAllPostsParams,) => {
   return stringifiedParams.length > 0 ? `/api/v1/posts?${stringifiedParams}` : `/api/v1/posts`
 }
 
-export const getAllPosts = async (params?: GetAllPostsParams, options?: RequestInit): Promise<getAllPostsResponse> => {
+export const getAllPostCards = async (params?: GetAllPostCardsParams, options?: RequestInit): Promise<getAllPostCardsResponse> => {
   
-  return clientFetch<getAllPostsResponse>(getGetAllPostsUrl(params),
+  return clientFetch<getAllPostCardsResponse>(getGetAllPostCardsUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -238,72 +492,72 @@ export const getAllPosts = async (params?: GetAllPostsParams, options?: RequestI
 
 
 
-export const getGetAllPostsInfiniteQueryKey = (params?: GetAllPostsParams,) => {
+export const getGetAllPostCardsInfiniteQueryKey = (params?: GetAllPostCardsParams,) => {
     return [
     'infinite', `/api/v1/posts`, ...(params ? [params]: [])
     ] as const;
     }
 
-export const getGetAllPostsQueryKey = (params?: GetAllPostsParams,) => {
+export const getGetAllPostCardsQueryKey = (params?: GetAllPostCardsParams,) => {
     return [
     `/api/v1/posts`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getGetAllPostsInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getAllPosts>>, GetAllPostsParams['page']>, TError = unknown>(params?: GetAllPostsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPosts>>, TError, TData, QueryKey, GetAllPostsParams['page']>>, request?: SecondParameter<typeof clientFetch>}
+export const getGetAllPostCardsInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getAllPostCards>>, GetAllPostCardsParams['page']>, TError = unknown>(params?: GetAllPostCardsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPostCards>>, TError, TData, QueryKey, GetAllPostCardsParams['page']>>, request?: SecondParameter<typeof clientFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetAllPostsInfiniteQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getGetAllPostCardsInfiniteQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAllPosts>>, QueryKey, GetAllPostsParams['page']> = ({ signal, pageParam }) => getAllPosts({...params, 'page': pageParam || params?.['page']}, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAllPostCards>>, QueryKey, GetAllPostCardsParams['page']> = ({ signal, pageParam }) => getAllPostCards({...params, 'page': pageParam || params?.['page']}, { signal, ...requestOptions });
 
       
 
       
 
-   return  { queryKey, queryFn, ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPosts>>, TError, TData, QueryKey, GetAllPostsParams['page']> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPostCards>>, TError, TData, QueryKey, GetAllPostCardsParams['page']> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetAllPostsInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getAllPosts>>>
-export type GetAllPostsInfiniteQueryError = unknown
+export type GetAllPostCardsInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getAllPostCards>>>
+export type GetAllPostCardsInfiniteQueryError = unknown
 
 
-export function useGetAllPostsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllPosts>>, GetAllPostsParams['page']>, TError = unknown>(
- params: undefined |  GetAllPostsParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPosts>>, TError, TData, QueryKey, GetAllPostsParams['page']>> & Pick<
+export function useGetAllPostCardsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllPostCards>>, GetAllPostCardsParams['page']>, TError = unknown>(
+ params: undefined |  GetAllPostCardsParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPostCards>>, TError, TData, QueryKey, GetAllPostCardsParams['page']>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getAllPosts>>,
+          Awaited<ReturnType<typeof getAllPostCards>>,
           TError,
-          Awaited<ReturnType<typeof getAllPosts>>, QueryKey
+          Awaited<ReturnType<typeof getAllPostCards>>, QueryKey
         > , 'initialData'
       >, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetAllPostsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllPosts>>, GetAllPostsParams['page']>, TError = unknown>(
- params?: GetAllPostsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPosts>>, TError, TData, QueryKey, GetAllPostsParams['page']>> & Pick<
+export function useGetAllPostCardsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllPostCards>>, GetAllPostCardsParams['page']>, TError = unknown>(
+ params?: GetAllPostCardsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPostCards>>, TError, TData, QueryKey, GetAllPostCardsParams['page']>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getAllPosts>>,
+          Awaited<ReturnType<typeof getAllPostCards>>,
           TError,
-          Awaited<ReturnType<typeof getAllPosts>>, QueryKey
+          Awaited<ReturnType<typeof getAllPostCards>>, QueryKey
         > , 'initialData'
       >, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetAllPostsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllPosts>>, GetAllPostsParams['page']>, TError = unknown>(
- params?: GetAllPostsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPosts>>, TError, TData, QueryKey, GetAllPostsParams['page']>>, request?: SecondParameter<typeof clientFetch>}
+export function useGetAllPostCardsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllPostCards>>, GetAllPostCardsParams['page']>, TError = unknown>(
+ params?: GetAllPostCardsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPostCards>>, TError, TData, QueryKey, GetAllPostCardsParams['page']>>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetAllPostsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllPosts>>, GetAllPostsParams['page']>, TError = unknown>(
- params?: GetAllPostsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPosts>>, TError, TData, QueryKey, GetAllPostsParams['page']>>, request?: SecondParameter<typeof clientFetch>}
+export function useGetAllPostCardsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllPostCards>>, GetAllPostCardsParams['page']>, TError = unknown>(
+ params?: GetAllPostCardsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllPostCards>>, TError, TData, QueryKey, GetAllPostCardsParams['page']>>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient 
  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetAllPostsInfiniteQueryOptions(params,options)
+  const queryOptions = getGetAllPostCardsInfiniteQueryOptions(params,options)
 
   const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -315,59 +569,59 @@ export function useGetAllPostsInfinite<TData = InfiniteData<Awaited<ReturnType<t
 
 
 
-export const getGetAllPostsQueryOptions = <TData = Awaited<ReturnType<typeof getAllPosts>>, TError = unknown>(params?: GetAllPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllPosts>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+export const getGetAllPostCardsQueryOptions = <TData = Awaited<ReturnType<typeof getAllPostCards>>, TError = unknown>(params?: GetAllPostCardsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllPostCards>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetAllPostsQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getGetAllPostCardsQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAllPosts>>> = ({ signal }) => getAllPosts(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAllPostCards>>> = ({ signal }) => getAllPostCards(params, { signal, ...requestOptions });
 
       
 
       
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAllPosts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAllPostCards>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetAllPostsQueryResult = NonNullable<Awaited<ReturnType<typeof getAllPosts>>>
-export type GetAllPostsQueryError = unknown
+export type GetAllPostCardsQueryResult = NonNullable<Awaited<ReturnType<typeof getAllPostCards>>>
+export type GetAllPostCardsQueryError = unknown
 
 
-export function useGetAllPosts<TData = Awaited<ReturnType<typeof getAllPosts>>, TError = unknown>(
- params: undefined |  GetAllPostsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllPosts>>, TError, TData>> & Pick<
+export function useGetAllPostCards<TData = Awaited<ReturnType<typeof getAllPostCards>>, TError = unknown>(
+ params: undefined |  GetAllPostCardsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllPostCards>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getAllPosts>>,
+          Awaited<ReturnType<typeof getAllPostCards>>,
           TError,
-          Awaited<ReturnType<typeof getAllPosts>>
+          Awaited<ReturnType<typeof getAllPostCards>>
         > , 'initialData'
       >, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetAllPosts<TData = Awaited<ReturnType<typeof getAllPosts>>, TError = unknown>(
- params?: GetAllPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllPosts>>, TError, TData>> & Pick<
+export function useGetAllPostCards<TData = Awaited<ReturnType<typeof getAllPostCards>>, TError = unknown>(
+ params?: GetAllPostCardsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllPostCards>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getAllPosts>>,
+          Awaited<ReturnType<typeof getAllPostCards>>,
           TError,
-          Awaited<ReturnType<typeof getAllPosts>>
+          Awaited<ReturnType<typeof getAllPostCards>>
         > , 'initialData'
       >, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetAllPosts<TData = Awaited<ReturnType<typeof getAllPosts>>, TError = unknown>(
- params?: GetAllPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllPosts>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+export function useGetAllPostCards<TData = Awaited<ReturnType<typeof getAllPostCards>>, TError = unknown>(
+ params?: GetAllPostCardsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllPostCards>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetAllPosts<TData = Awaited<ReturnType<typeof getAllPosts>>, TError = unknown>(
- params?: GetAllPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllPosts>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+export function useGetAllPostCards<TData = Awaited<ReturnType<typeof getAllPostCards>>, TError = unknown>(
+ params?: GetAllPostCardsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllPostCards>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetAllPostsQueryOptions(params,options)
+  const queryOptions = getGetAllPostCardsQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -399,7 +653,7 @@ export const getCreatePostUrl = () => {
   return `/api/v1/posts`
 }
 
-export const createPost = async (createPostRequest: CreatePostRequest, options?: RequestInit): Promise<createPostResponse> => {
+export const createPost = async (postRequest: PostRequest, options?: RequestInit): Promise<createPostResponse> => {
   
   return clientFetch<createPostResponse>(getCreatePostUrl(),
   {      
@@ -407,7 +661,7 @@ export const createPost = async (createPostRequest: CreatePostRequest, options?:
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      createPostRequest,)
+      postRequest,)
   }
 );}
 
@@ -415,8 +669,8 @@ export const createPost = async (createPostRequest: CreatePostRequest, options?:
 
 
 export const getCreatePostMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPost>>, TError,{data: CreatePostRequest}, TContext>, request?: SecondParameter<typeof clientFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createPost>>, TError,{data: CreatePostRequest}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPost>>, TError,{data: PostRequest}, TContext>, request?: SecondParameter<typeof clientFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPost>>, TError,{data: PostRequest}, TContext> => {
 
 const mutationKey = ['createPost'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -428,7 +682,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPost>>, {data: CreatePostRequest}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPost>>, {data: PostRequest}> = (props) => {
           const {data} = props ?? {};
 
           return  createPost(data,requestOptions)
@@ -440,15 +694,15 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type CreatePostMutationResult = NonNullable<Awaited<ReturnType<typeof createPost>>>
-    export type CreatePostMutationBody = CreatePostRequest
+    export type CreatePostMutationBody = PostRequest
     export type CreatePostMutationError = unknown
 
     export const useCreatePost = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPost>>, TError,{data: CreatePostRequest}, TContext>, request?: SecondParameter<typeof clientFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPost>>, TError,{data: PostRequest}, TContext>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof createPost>>,
         TError,
-        {data: CreatePostRequest},
+        {data: PostRequest},
         TContext
       > => {
 
@@ -456,260 +710,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
       return useMutation(mutationOptions, queryClient);
     }
-    export type getPostByIdResponse200 = {
-  data: PostWithBookmarkResponse
-  status: 200
-}
-    
-export type getPostByIdResponseSuccess = (getPostByIdResponse200) & {
-  headers: Headers;
-};
-;
-
-export type getPostByIdResponse = (getPostByIdResponseSuccess)
-
-export const getGetPostByIdUrl = (id: string,) => {
-
-
-  
-
-  return `/api/v1/posts/${id}`
-}
-
-export const getPostById = async (id: string, options?: RequestInit): Promise<getPostByIdResponse> => {
-  
-  return clientFetch<getPostByIdResponse>(getGetPostByIdUrl(id),
-  {      
-    ...options,
-    method: 'GET'
-    
-    
-  }
-);}
-
-
-
-
-
-export const getGetPostByIdInfiniteQueryKey = (id?: string,) => {
-    return [
-    'infinite', `/api/v1/posts/${id}`
-    ] as const;
-    }
-
-export const getGetPostByIdQueryKey = (id?: string,) => {
-    return [
-    `/api/v1/posts/${id}`
-    ] as const;
-    }
-
-    
-export const getGetPostByIdInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getPostById>>>, TError = unknown>(id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetPostByIdInfiniteQueryKey(id);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPostById>>> = ({ signal }) => getPostById(id, { signal, ...requestOptions });
-
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetPostByIdInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getPostById>>>
-export type GetPostByIdInfiniteQueryError = unknown
-
-
-export function useGetPostByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPostById>>>, TError = unknown>(
- id: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getPostById>>,
-          TError,
-          Awaited<ReturnType<typeof getPostById>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof clientFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetPostByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPostById>>>, TError = unknown>(
- id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getPostById>>,
-          TError,
-          Awaited<ReturnType<typeof getPostById>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof clientFetch>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetPostByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPostById>>>, TError = unknown>(
- id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
- , queryClient?: QueryClient
-  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
-export function useGetPostByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPostById>>>, TError = unknown>(
- id: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
- , queryClient?: QueryClient 
- ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetPostByIdInfiniteQueryOptions(id,options)
-
-  const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
-
-export const getGetPostByIdQueryOptions = <TData = Awaited<ReturnType<typeof getPostById>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetPostByIdQueryKey(id);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPostById>>> = ({ signal }) => getPostById(id, { signal, ...requestOptions });
-
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
-}
-
-export type GetPostByIdQueryResult = NonNullable<Awaited<ReturnType<typeof getPostById>>>
-export type GetPostByIdQueryError = unknown
-
-
-export function useGetPostById<TData = Awaited<ReturnType<typeof getPostById>>, TError = unknown>(
- id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>> & Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getPostById>>,
-          TError,
-          Awaited<ReturnType<typeof getPostById>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof clientFetch>}
- , queryClient?: QueryClient
-  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetPostById<TData = Awaited<ReturnType<typeof getPostById>>, TError = unknown>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>> & Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getPostById>>,
-          TError,
-          Awaited<ReturnType<typeof getPostById>>
-        > , 'initialData'
-      >, request?: SecondParameter<typeof clientFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetPostById<TData = Awaited<ReturnType<typeof getPostById>>, TError = unknown>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
- , queryClient?: QueryClient
-  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-
-export function useGetPostById<TData = Awaited<ReturnType<typeof getPostById>>, TError = unknown>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
- , queryClient?: QueryClient 
- ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
-
-  const queryOptions = getGetPostByIdQueryOptions(id,options)
-
-  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
-
-export type deletePostResponse200 = {
-  data: void
-  status: 200
-}
-    
-export type deletePostResponseSuccess = (deletePostResponse200) & {
-  headers: Headers;
-};
-;
-
-export type deletePostResponse = (deletePostResponseSuccess)
-
-export const getDeletePostUrl = (id: string,) => {
-
-
-  
-
-  return `/api/v1/posts/${id}`
-}
-
-export const deletePost = async (id: string, options?: RequestInit): Promise<deletePostResponse> => {
-  
-  return clientFetch<deletePostResponse>(getDeletePostUrl(id),
-  {      
-    ...options,
-    method: 'DELETE'
-    
-    
-  }
-);}
-
-
-
-
-export const getDeletePostMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePost>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof deletePost>>, TError,{id: string}, TContext> => {
-
-const mutationKey = ['deletePost'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-      
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deletePost>>, {id: string}> = (props) => {
-          const {id} = props ?? {};
-
-          return  deletePost(id,requestOptions)
-        }
-
-        
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type DeletePostMutationResult = NonNullable<Awaited<ReturnType<typeof deletePost>>>
-    
-    export type DeletePostMutationError = unknown
-
-    export const useDeletePost = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePost>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof deletePost>>,
-        TError,
-        {id: string},
-        TContext
-      > => {
-
-      const mutationOptions = getDeletePostMutationOptions(options);
-
-      return useMutation(mutationOptions, queryClient);
-    }
     export type getDraftsResponse200 = {
-  data: PostResponse[]
+  data: PostCardResponse[]
   status: 200
 }
     
