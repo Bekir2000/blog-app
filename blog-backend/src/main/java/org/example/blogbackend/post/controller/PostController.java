@@ -42,11 +42,12 @@ public class PostController {
     public ResponseEntity<PagedResponse<PostCardResponse>> getAllPostCards(
             @RequestParam(required = false) UUID categoryId,
             @RequestParam(required = false) UUID tagId,
-            @PageableDefault(size = 5, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size,
             @AuthenticationPrincipal BlogUserDetails userDetails) {
 
         UUID userId = (userDetails != null) ? userDetails.getUserId() : null;
-
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         return ResponseEntity.ok(
                 postService.getPostCards(userId, categoryId, tagId, pageable)
         );
