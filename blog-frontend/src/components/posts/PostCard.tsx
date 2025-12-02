@@ -1,4 +1,4 @@
-import { PostWithBookmarkResponse, UserResponse } from "@/api/generated/model";
+import { PostCardResponse, UserResponse } from "@/api/generated/model";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Card,
@@ -13,20 +13,18 @@ import Link from "next/link"; // <--- 1. Import Link
 import { PostActions } from "./PostActions";
 
 export function PostCard({
-  postWithBookMark,
+  postCard,
   currentUser,
 }: {
-  postWithBookMark: PostWithBookmarkResponse;
+  postCard: PostCardResponse;
   currentUser: UserResponse | null;
 }) {
-  const post = postWithBookMark?.post;
-
-  if (!post) {
+  if (!postCard) {
     return null;
   }
 
-  const isBookmarked = postWithBookMark.isBookmarked;
-  const postUrl = `/posts/${post.id}`; // <--- 2. Define the URL
+  const isBookmarked = postCard.isBookmarked;
+  const postUrl = `/posts/${postCard.id}`; // <--- 2. Define the URL
 
   return (
     <Card className="max-w-3xl min-w-10 shadow-md transition-shadow hover:shadow-lg">
@@ -35,15 +33,15 @@ export function PostCard({
         <div className="text-sm flex flex-row items-center gap-2 mb-3">
           <Avatar className="h-6 w-6">
             <AvatarImage
-              src={post.author?.profileImageUrl ?? undefined}
-              alt={post.author?.firstName}
+              src={postCard.author?.profileImageUrl ?? undefined}
+              alt={postCard.author?.firstName}
             />
             <AvatarFallback className="text-[10px]">
-              {post.author?.username?.[0] ?? "?"}
+              {postCard.author?.username?.[0] ?? "?"}
             </AvatarFallback>
           </Avatar>
           <div className="text-xs font-medium text-gray-700">
-            {post.author?.firstName} {post.author?.lastName}
+            {postCard.author?.firstName} {postCard.author?.lastName}
           </div>
         </div>
 
@@ -54,20 +52,20 @@ export function PostCard({
         >
           <div className="flex-1">
             <CardTitle className="text-xl font-bold leading-snug group-hover:text-gray-700 transition-colors">
-              {post.title}
+              {postCard.title}
             </CardTitle>
             <CardDescription className="mt-2 line-clamp-2">
               {" "}
               {/* line-clamp limits text to 2 lines */}
-              {post.description}
+              {postCard.description}
             </CardDescription>
           </div>
 
           <div className="w-[160px] h-[120px] shrink-0">
-            {post.imageUrl && (
+            {postCard.imageUrl && (
               <Image
-                src={post.imageUrl}
-                alt={post.title ?? ""}
+                src={postCard.imageUrl}
+                alt={postCard.title ?? ""}
                 width={160}
                 height={120}
                 className="h-full w-full rounded-md object-cover"
@@ -82,19 +80,20 @@ export function PostCard({
         <div className="flex items-center gap-6">
           <span className="flex items-center gap-1 text-xs">
             <Calendar className="w-3.5 h-3.5" />{" "}
-            {post.createdAt ? post.createdAt.split("T")[0] : ""}
+            {postCard.createdAt ? postCard.createdAt.split("T")[0] : ""}
           </span>
           <span className="flex items-center gap-1 text-xs">
-            <ThumbsUp className="w-3.5 h-3.5" /> {post.likes || 0}
+            <ThumbsUp className="w-3.5 h-3.5" /> {postCard.likes || 0}
           </span>
           <span className="flex items-center gap-1 text-xs">
-            <MessageCircle className="w-3.5 h-3.5" /> {post.commentsCount || 0}
+            <MessageCircle className="w-3.5 h-3.5" />{" "}
+            {postCard.commentsCount || 0}
           </span>
         </div>
 
-        {post.id ? (
+        {postCard.id ? (
           <PostActions
-            postId={post.id}
+            postId={postCard.id}
             currentUser={currentUser}
             isBookmarked={isBookmarked}
           />

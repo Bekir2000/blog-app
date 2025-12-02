@@ -1,6 +1,6 @@
 "use client";
 
-import { PostWithBookmarkResponse, UserResponse } from "@/api/generated/model";
+import { PostDetailResponse, UserResponse } from "@/api/generated/model";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns"; // Recommended for date formatting
@@ -15,17 +15,11 @@ import {
 import Image from "next/image";
 
 interface PostDetailProps {
-  postWithBookmark: PostWithBookmarkResponse | null;
+  post: PostDetailResponse | null;
   currentUser?: UserResponse | null;
 }
 
-export function PostDetail({ postWithBookmark, currentUser }: PostDetailProps) {
-  if (!postWithBookmark) return null;
-
-  // Medium uses "Serif" for body text.
-  // Ensure you have a font configured or rely on the browser default.
-  const post = postWithBookmark.post;
-
+export function PostDetail({ post, currentUser }: PostDetailProps) {
   if (!post) return null;
 
   return (

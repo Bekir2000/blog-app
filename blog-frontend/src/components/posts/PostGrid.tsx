@@ -1,101 +1,124 @@
 "use client";
 
-import { useGetAllPostsInfinite } from "@/api/generated/client/post-controller/post-controller";
-import { PostWithBookmarkResponse, UserResponse } from "@/api/generated/model";
-import { useEffect } from "react";
+import {
+  getAllPostCards,
+  useGetAllPostCardsInfinite,
+} from "@/api/generated/client/post-controller/post-controller";
+import { PostCardResponse, UserResponse } from "@/api/generated/model";
+import { useEffect, useMemo } from "react";
 import { useInView } from "react-intersection-observer";
 import { PostCard } from "./PostCard";
 import { PostSkeleton } from "./PostSkeleton";
 
 interface PostsGridProps {
-  initialPosts: PostWithBookmarkResponse[] | null;
+  initialPosts: PostCardResponse[] | null;
   currentUser: UserResponse | null;
 }
 
 export function PostsGrid({ initialPosts, currentUser }: PostsGridProps) {
   const { ref, inView } = useInView({
     threshold: 0,
-    rootMargin: "1200px", // Prefetch when 2 screens away from bottom
+    rootMargin: "600px", // Adjusted for smoother prefetching
   });
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useGetAllPostsInfinite(
-      // 1. API Params: Must match the size used in FeedTabs (5)
+    useGetAllPostCardsInfinite(
+      // Base Params (static)
       { size: 5 },
-      // 2. React Query Options
       {
         query: {
-          queryKey: ["posts"],
+          queryKey: ["posts", "infinite"],
 
-          initialData: {
-            pages: [
-              {
-                data: initialPosts || [],
-                status: 200,
-                headers: {} as any,
-              },
-            ],
-            pageParams: [0],
+          // 1. IMPORTANT: Map pageParam to API call
+          queryFn: async ({ pageParam = 0 }) => {
+            return getAllPostCards({
+              page: Number(pageParam),
+              size: 5,
+            });
           },
 
-          // Logic to calculate next page index
-          getNextPageParam: (lastPage, allPages) => {
-            // Access .data because lastPage is the wrapper object
-            const posts = lastPage?.data;
+          initialPageParam: 0,
 
-            // If no posts, or fewer than page size, we are done
-            if (!posts || posts.length === 0 || posts.length < 5) {
+          // 2. IMPORTANT: Mock the full Axios + Spring Boot response structure
+          initialData: initialPosts
+            ? {
+                pages: [
+                  {
+                    status: 200,
+                    headers: {} as any,
+                    // Mocking the PagedResponse structure from Spring
+                    data: {
+                      content: initialPosts,
+                      page: 0,
+                      size: 5,
+                      last: initialPosts.length < 5, // Infer 'last' based on size
+                      totalElements: 0, // Not needed for infinite scroll
+                      totalPages: 0, // Not needed for infinite scroll
+                    } as any,
+                  },
+                ],
+                pageParams: [0],
+              }
+            : undefined,
+
+          // 3. IMPORTANT: Calculate next page based on Spring Response
+          getNextPageParam: (lastPage) => {
+            const response = lastPage.data;
+
+            if (!response || response.isLast) {
               return undefined;
             }
 
-            // Otherwise, fetch next page
-            return allPages.length;
+            const currentPage = response.page ?? 0; // or response.number
+            return currentPage + 1;
           },
         },
       }
     );
 
   useEffect(() => {
-    // Fetch next page if in view and not currently loading
     if (inView && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
   }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Flatten pages into a single list
-  const allPosts = data?.pages.flatMap((page) => page.data) || [];
+  // 4. Flatten and Deduplicate Data
+  // Spring Boot offset pagination can cause duplicates if new posts are added
+  // while the user is scrolling. We filter by ID to be safe.
+  const allPosts = useMemo(() => {
+    const rawPosts =
+      data?.pages.flatMap((page) => page.data.content ?? []) || [];
+
+    const seen = new Set();
+    return rawPosts.filter((post) => {
+      if (!post || !post.id) return false;
+      const isDuplicate = seen.has(post.id);
+      seen.add(post.id);
+      return !isDuplicate;
+    });
+  }, [data]);
 
   return (
     <div className="gap-6 flex flex-col pb-10">
-      {allPosts.map((postWithBookMark) => {
-        if (!postWithBookMark?.post) return null;
-
-        const id = postWithBookMark.post.id;
-
+      {allPosts.map((post) => {
         return (
           <PostCard
-            key={id}
-            postWithBookMark={postWithBookMark}
+            key={post.id}
+            // Use 'post' or 'postCard' depending on your component props
+            postCard={post}
             currentUser={currentUser}
           />
         );
       })}
 
-      {/* Skeletons Loading State */}
-      {hasNextPage && (
+      {(isFetchingNextPage || hasNextPage) && (
         <div ref={ref} className="flex flex-col gap-6">
-          {(isFetchingNextPage || hasNextPage) && (
-            <>
-              {/* Render 5 skeletons to match page size */}
-              {Array.from({ length: 5 }).map((_, i) => (
-                <PostSkeleton key={i} />
-              ))}
-            </>
-          )}
+          {Array.from({ length: 5 }).map((_, i) => (
+            <PostSkeleton key={`skeleton-${i}`} />
+          ))}
         </div>
       )}
 
-      {/* End of Feed Message */}
       {!hasNextPage && allPosts.length > 0 && (
         <div className="text-center py-6 text-gray-400 text-sm">
           You've reached the end.

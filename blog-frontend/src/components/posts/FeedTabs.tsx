@@ -1,4 +1,4 @@
-import { getAllPosts } from "@/api/generated/server/post-controller/post-controller";
+import { getAllPostCards } from "@/api/generated/server/post-controller/post-controller";
 import { InfoTooltip } from "@/components/InfoTooltip";
 import { PostsGrid } from "@/components/posts/PostGrid";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,8 +7,9 @@ import { getUser } from "@/lib/auth";
 export async function FeedTabs() {
   // Fetch initial data (Page 0, Size 5)
   // This executes serverFetch directly on the backend
-  const postWithBookMarks = await getAllPosts({ page: 0, size: 5 });
-
+  const postsPage = await getAllPostCards({ page: 0, size: 5 });
+  console.log("Posts Page:", postsPage.page);
+  const postCards = postsPage.content ?? [];
   const currentUser = await getUser();
 
   return (
@@ -23,9 +24,8 @@ export async function FeedTabs() {
       </TabsList>
 
       <TabsContent value="foryou" className="pt-4">
-        <PostsGrid initialPosts={postWithBookMarks} currentUser={currentUser} />
+        <PostsGrid initialPosts={postCards} currentUser={currentUser} />
       </TabsContent>
-      {/* ... */}
     </Tabs>
   );
 }

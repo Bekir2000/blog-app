@@ -7,5 +7,5 @@ export default async function Page({ params }: { params: { id: string } }) {
   const post = await getPostById(postId);
   const user = await getUser();
 
-  return <PostDetail postWithBookmark={post} currentUser={user} />;
+  return <PostDetail post={post} currentUser={user} />;
 }
