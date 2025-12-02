@@ -1,0 +1,84 @@
+### 1. Create a New Post
+POST http://localhost:8080/api/v1/posts
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "title": "First Published Post",
+  "description": "Hello, this is a long description used for the card view.",
+  "content": "This is the content of my first post. It must be at least 10 characters long.",
+  "imageUrl": "https://picsum.photos/id/1/200/300",
+  "status": "PUBLISHED",
+  "category": {
+    "name": "First Category"
+  },
+  "tags": [
+    { "name": "First Tag" },
+    { "name": "Second Tag" }
+  ]
+}
+
+> {%
+    // Capture the Post ID for use in subsequent requests
+    client.global.set("postId", response.body.id);
+%}
+
+###
+
+### 2. Get Post Feed (Post Cards)
+# Returns lightweight objects (no content)
+GET http://localhost:8080/api/v1/posts
+Authorization: Bearer {{access_token}}
+
+> {%
+    // Capture the Post ID for use in subsequent requests
+    client.global.set("postId", response.body.content[0].id);
+%}
+
+###
+
+### 3. Get Post Feed with Paging & Filtering
+GET http://localhost:8080/api/v1/posts?page=0&size=5&sort=createdAt,desc
+Authorization: Bearer {{access_token}}
+
+###
+
+### 4. Get Post Details (Full Content)
+# Returns the full object with content, isBookmarked, and followingAuthor flags
+GET http://localhost:8080/api/v1/posts/{{postId}}
+Authorization: Bearer {{access_token}}
+
+###
+
+### 5. Update Post
+PUT http://localhost:8080/api/v1/posts/{{postId}}
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "title": "First Updated Published Post",
+  "description": "This description has been updated.",
+  "content": "This is the content of my first post. It must be at least 10 characters long.",
+  "imageUrl": "https://picsum.photos/id/2/200/300",
+  "status": "PUBLISHED",
+  "category": {
+    "name": "First Category"
+  },
+  "tags": [
+    { "name": "First Tag" },
+    { "name": "Updated Second Tag" },
+    { "name": "New Tag" }
+  ]
+}
+
+###
+
+### 6. Toggle Like (Optional)
+PUT http://localhost:8080/api/v1/posts/{{postId}}/like
+Authorization: Bearer {{access_token}}
+
+###
+
+### 7. Delete Post
+DELETE http://localhost:8080/api/v1/posts/{{postId}}
+Authorization: Bearer {{access_token}}

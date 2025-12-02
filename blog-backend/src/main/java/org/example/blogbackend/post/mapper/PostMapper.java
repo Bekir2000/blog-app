@@ -26,5 +26,7 @@ public interface PostMapper {
     @Mapping(target = "followingAuthor", source = "isFollowingAuthor")
     PostDetailResponse toPostDetailResponse(Post post, Boolean isBookmarked, Boolean isFollowingAuthor);
 
+    @Mapping(target = "category", ignore = true)
+    @Mapping(target = "tags", ignore = true)
     void updatePostFromRequest(PostRequest request, @MappingTarget Post post);
 }

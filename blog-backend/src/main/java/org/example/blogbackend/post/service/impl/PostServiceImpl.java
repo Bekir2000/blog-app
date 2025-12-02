@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.blogbackend.category.model.dto.request.CreateCategoryRequest;
 import org.example.blogbackend.category.model.entity.Category;
 import org.example.blogbackend.category.repository.CategoryRepository;
+import org.example.blogbackend.category.service.CategoryService;
 import org.example.blogbackend.post.dto.request.PostRequest;
 import org.example.blogbackend.post.dto.response.PostCardResponse;
 import org.example.blogbackend.post.dto.response.PostDetailResponse;
@@ -18,6 +19,7 @@ import org.example.blogbackend.post.service.PostService;
 import org.example.blogbackend.tag.model.dto.request.CreateTagRequest;
 import org.example.blogbackend.tag.model.entity.Tag;
 import org.example.blogbackend.tag.repository.TagRepository;
+import org.example.blogbackend.tag.service.TagService;
 import org.example.blogbackend.user.model.entity.User;
 import org.example.blogbackend.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
@@ -27,7 +29,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -45,6 +46,8 @@ public class PostServiceImpl implements PostService {
     private final CategoryRepository categoryRepository;
     private final TagRepository tagRepository;
     private final UserRepository userRepository;
+    private final TagService tagService;
+    private final CategoryService categoryService;
     private final PostMapper postMapper;
 
     @Override
@@ -199,25 +202,23 @@ public class PostServiceImpl implements PostService {
         post.setReadingTime(readingTime);
     }
 
-    private void resolveCategory(Post post, CreateCategoryRequest categoryReq) {
-        // Only update if the request has a category ID and it's different from the current one
-        if (categoryReq == null || categoryReq.id() == null) return;
-
-        if (post.getCategory() == null || !categoryReq.id().equals(post.getCategory().getId())) {
-            Category newCategory = categoryRepository.findById(categoryReq.id())
-                    .orElseThrow(() -> new EntityNotFoundException("Category not found with ID: " + categoryReq.id()));
-            post.setCategory(newCategory);
-        }
+    private void resolveCategory(Post post, CreateCategoryRequest categoryRequest) {
+        String categoryName = categoryRequest.name();
+        Category category = categoryRepository.findByNameIgnoreCase(categoryName).orElse(
+                Category.builder().name(categoryName).build()
+        );
+        categoryRepository.save(category);
+        post.setCategory(category);
     }
 
-    private void resolveTags(Post post, Set<CreateTagRequest> tagsReq) {
-        if (tagsReq != null) {
-            Set<UUID> tagIds = tagsReq.stream()
-                    .map(CreateTagRequest::id)
-                    .collect(Collectors.toSet());
+    private void resolveTags(Post post, Set<CreateTagRequest> tagRequests) {
+        Set<String> tagNames = tagRequests.stream()
+                .map(CreateTagRequest::name)
+                .collect(Collectors.toSet());
 
-            // Fetch all tags in one query
-            Set<Tag> newTags = new HashSet<>(tagRepository.findAllById(tagIds));
+        if (post.getTags() != null && !post.getTags().isEmpty()) {
+            Set<Tag> newTags = tagRepository.findByNameNotIn(tagNames);
+            tagRepository.saveAll(newTags);
             post.setTags(newTags);
         }
     }
