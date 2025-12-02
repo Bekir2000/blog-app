@@ -1,20 +1,30 @@
 package org.example.blogbackend.post.mapper;
 
-import org.example.blogbackend.post.controller.dto.request.CreatePostRequest;
-import org.example.blogbackend.post.controller.dto.response.PostResponse;
-import org.example.blogbackend.post.controller.dto.response.PostWithBookmarkResponse;
+import org.example.blogbackend.post.dto.request.PostRequest;
+import org.example.blogbackend.post.dto.response.PostCardResponse;
+import org.example.blogbackend.post.dto.response.PostDetailResponse;
+import org.example.blogbackend.post.dto.response.PostResponse;
 import org.example.blogbackend.post.model.entity.Post;
-import org.example.blogbackend.post.service.dto.PostWithBookmark;
+import org.example.blogbackend.post.model.projection.PostCardView;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.ReportingPolicy;
 
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface PostMapper {
 
-    PostWithBookmarkResponse toPostWithBookmarkResponse(PostWithBookmark post);
-
     PostResponse toPostResponse(Post post);
 
-    Post toEntity(CreatePostRequest createPostRequest);
+    Post toEntity(PostRequest createPostRequest);
+
+    @Mapping(target = "isBookmarked", source = "isBookmarked")
+    PostCardResponse toPostCardResponse(PostCardView postCard, boolean isBookmarked);
+
+
+    @Mapping(target = "isBookmarked", source = "isBookmarked")
+    @Mapping(target = "followingAuthor", source = "isFollowingAuthor")
+    PostDetailResponse toPostDetailResponse(Post post, Boolean isBookmarked, Boolean isFollowingAuthor);
+
+    void updatePostFromRequest(PostRequest request, @MappingTarget Post post);
 }

@@ -1,8 +1,10 @@
 package org.example.blogbackend.post.service;
 
-import org.example.blogbackend.post.model.entity.Post;
-import org.example.blogbackend.post.service.dto.PostWithBookmark;
-import org.example.blogbackend.user.model.entity.User;
+import org.example.blogbackend.post.dto.request.PostRequest;
+import org.example.blogbackend.post.dto.response.PostCardResponse;
+import org.example.blogbackend.post.dto.response.PostDetailResponse;
+import org.example.blogbackend.post.dto.response.PostResponse;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
@@ -10,27 +12,17 @@ import java.util.UUID;
 
 public interface PostService {
 
-    PostWithBookmark getPostById(UUID id, UUID userId);
+    PostResponse createPost(PostRequest createPostRequest, UUID userId);
 
-    Post getPostById(UUID id);
+    PostDetailResponse getPostById(UUID postId, UUID userId);
 
-    /**
-     * Retrieves a paginated list of posts, optionally filtered by category or tag,
-     * and checks if they are bookmarked by the current user.
-     */
-    List<PostWithBookmark> getAllPosts(UUID categoryId, UUID tagId, UUID userId, Pageable pageable);
+    Page<PostCardResponse> getPostCards(UUID userId, UUID categoryId, UUID tagId, Pageable pageable);
 
-    List<Post> getDraftPosts(User author);
+    List<PostCardResponse> getDraftPosts(UUID userId);
 
-    Post createPost(Post postToCreate);
+    PostResponse updatePost(UUID postId, PostRequest request, UUID currentUserId);
 
-    Post updatePost(UUID id, Post postToUpdate);
+    void deletePost(UUID postId, UUID userId);
 
-    void deletePost(UUID id);
-
-    boolean existsPostById(UUID id);
-
-    Post toggleLike(UUID postId, User user);
-
-    Post savePost(Post post);
+    PostResponse toggleLike(UUID postId, UUID userId); // Changed return to DTO and input to UUID
 }

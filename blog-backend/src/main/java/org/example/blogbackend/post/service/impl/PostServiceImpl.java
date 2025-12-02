@@ -2,259 +2,223 @@ package org.example.blogbackend.post.service.impl;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.example.blogbackend.category.model.dto.request.CreateCategoryRequest;
 import org.example.blogbackend.category.model.entity.Category;
-import org.example.blogbackend.post.model.entity.Post;
-import org.example.blogbackend.post.service.PostService;
-import org.example.blogbackend.post.service.dto.PostWithBookmark;
-import org.example.blogbackend.tag.model.entity.Tag;
-import org.example.blogbackend.user.model.entity.User;
+import org.example.blogbackend.category.repository.CategoryRepository;
+import org.example.blogbackend.post.dto.request.PostRequest;
+import org.example.blogbackend.post.dto.response.PostCardResponse;
+import org.example.blogbackend.post.dto.response.PostDetailResponse;
+import org.example.blogbackend.post.dto.response.PostResponse;
+import org.example.blogbackend.post.mapper.PostMapper;
 import org.example.blogbackend.post.model.PostStatus;
+import org.example.blogbackend.post.model.entity.Post;
+import org.example.blogbackend.post.model.projection.PostCardView;
 import org.example.blogbackend.post.repository.PostRepository;
-import org.example.blogbackend.category.service.CategoryService;
-import org.example.blogbackend.tag.service.TagService;
+import org.example.blogbackend.post.service.PostService;
+import org.example.blogbackend.tag.model.dto.request.CreateTagRequest;
+import org.example.blogbackend.tag.model.entity.Tag;
+import org.example.blogbackend.tag.repository.TagRepository;
+import org.example.blogbackend.user.model.entity.User;
 import org.example.blogbackend.user.repository.UserRepository;
-import org.example.blogbackend.user.service.UserService;
-import org.springframework.data.domain.Pageable; // <--- Import added
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.IntStream;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class PostServiceImpl implements PostService {
 
     private static final int WORDS_PER_MINUTE = 200;
-    private static final String POST_NOT_FOUND_MESSAGE = "Post not found with ID: ";
+    private static final String POST_NOT_FOUND_MSG = "Post not found with ID: ";
+    private static final String USER_NOT_FOUND_MSG = "User not found with ID: ";
 
     private final PostRepository postRepository;
-    private final CategoryService categoryService;
-    private final TagService tagService;
-    private final UserService userService;
-
-    // =====================
-    // Public Methods
-    // =====================
+    private final CategoryRepository categoryRepository;
+    private final TagRepository tagRepository;
+    private final UserRepository userRepository;
+    private final PostMapper postMapper;
 
     @Override
-    @Transactional(readOnly = true)
-    public PostWithBookmark getPostById(UUID id, UUID userId) {
-        Post post = findPostByIdOrThrow(id);
-        boolean isBookmarked = userService.getPostBookmarkStatuses(userId, List.of(post.getId())).getFirst();
-        return new PostWithBookmark(post, isBookmarked);
+    @Transactional
+    public PostResponse createPost(PostRequest request, UUID userId) {
+        User author = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException(USER_NOT_FOUND_MSG + userId));
+
+        Post post = postMapper.toEntity(request);
+        post.setAuthor(author); // IMPORTANT: Set the author
+        post.setStatus(PostStatus.DRAFT); // Default to Draft (optional, depends on logic)
+
+        calculateAndSetReadingTime(post);
+        resolveCategory(post, request.category());
+        resolveTags(post, request.tags());
+
+        Post savedPost = postRepository.save(post);
+        return postMapper.toPostResponse(savedPost);
     }
 
     @Override
-    public Post getPostById(UUID id) {
-        return findPostByIdOrThrow(id);
-    }
-
-    @Override
     @Transactional(readOnly = true)
-    public List<PostWithBookmark> getAllPosts(UUID categoryId, UUID tagId, UUID userId, Pageable pageable) {
+    public PostDetailResponse getPostById(UUID postId, UUID userId) {
+        Post post = getPostEntity(postId);
 
-        List<Post> posts;
+        // Safely check logic (assuming if userId is provided, user exists)
+        boolean isBookmarked = false;
+        boolean isFollowingAuthor = false;
 
-        if (categoryId != null && tagId != null) {
-            posts = findPublishedPostsByCategoryAndTag(categoryId, tagId, pageable);
-        } else if (categoryId != null) {
-            posts = findPublishedPostsByCategory(categoryId, pageable);
-        } else if (tagId != null) {
-            posts = findPublishedPostsByTag(tagId, pageable);
-        } else {
-            posts = findAllPublishedPosts(pageable);
+        if (userId != null) {
+            isBookmarked = userRepository.isBookmarked(userId, post.getId());
+            // Check if current user is following the post author
+            isFollowingAuthor = userRepository.isFollowing(userId, post.getAuthor().getId());
         }
 
-        return attachBookmarks(posts, userId);
+        return postMapper.toPostDetailResponse(post, isBookmarked, isFollowingAuthor);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<Post> getDraftPosts(User user) {
-        return postRepository.findAllByAuthorAndStatus(user, PostStatus.DRAFT);
+    public Page<PostCardResponse> getPostCards(UUID userId, UUID categoryId, UUID tagId, Pageable pageable) {
+        Page<PostCardView> postCards = fetchPostCardViews(categoryId, tagId, pageable);
+
+        Set<UUID> postIds = postCards.getContent().stream()
+                .map(PostCardView::getId)
+                .collect(Collectors.toSet());
+
+        // Batch fetch bookmarks to avoid N+1 problem
+        Set<UUID> bookmarkedPostIds = (userId != null && !postIds.isEmpty())
+                ? userRepository.findBookmarkedPostIdsByUserIdAndPostIdIn(userId, postIds)
+                : Collections.emptySet();
+
+        return postCards.map(postCard ->
+                postMapper.toPostCardResponse(
+                        postCard,
+                        bookmarkedPostIds.contains(postCard.getId())
+                )
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PostCardResponse> getDraftPosts(UUID userId) {
+
+        List<PostCardView> drafts = postRepository.findProjectedByAuthor_IdAndStatus(userId, PostStatus.DRAFT);
+
+        // Convert to DTOs
+        return drafts.stream()
+                .map(post -> postMapper.toPostCardResponse(post, false)) // Drafts are likely not bookmarked
+                .toList();
     }
 
     @Override
     @Transactional
-    public Post createPost(Post post) {
-        validatePost(post);
-        calculateAndSetReadingTime(post);
-        resolveCategory(post);
-        resolveTags(post);
-        return postRepository.save(post);
+    public PostResponse updatePost(UUID postId, PostRequest request, UUID currentUserId) {
+        Post post = getPostEntity(postId);
+
+        validateAuthorOwnership(post, currentUserId);
+
+        postMapper.updatePostFromRequest(request, post);
+        calculateAndSetReadingTime(post); // Re-calculate if content changed
+        resolveCategory(post, request.category());
+        resolveTags(post, request.tags());
+
+        Post updatedPost = postRepository.save(post);
+        return postMapper.toPostResponse(updatedPost);
     }
 
     @Override
     @Transactional
-    public Post updatePost(UUID id, Post postUpdate) {
-        Post existingPost = findPostByIdOrThrow(id);
-        validatePost(postUpdate);
-        updatePostContent(existingPost, postUpdate);
-        updateCategoryIfChanged(existingPost, postUpdate);
-        updateTagsIfChanged(existingPost, postUpdate);
-        return postRepository.save(existingPost);
-    }
-
-    @Override
-    @Transactional
-    public void deletePost(UUID id) {
-        Post post = findPostByIdOrThrow(id);
+    public void deletePost(UUID postId, UUID userId) {
+        Post post = getPostEntity(postId);
+        validateAuthorOwnership(post, userId);
         postRepository.delete(post);
     }
 
     @Override
-    public boolean existsPostById(UUID id) {
-        return postRepository.existsById(id);
-    }
-
     @Transactional
-    public Post toggleLike(UUID postId, User user) {
-        Post post = findPostByIdOrThrow(postId);
+    public PostResponse toggleLike(UUID postId, UUID userId) {
+        Post post = getPostEntity(postId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException(USER_NOT_FOUND_MSG + userId));
+
+        // Assuming User entity has helper methods that manage the relationship (both sides)
         if (post.getLikedBy().contains(user)) {
-            user.unlikePost(post); // keeps both sides in sync
-            post.setLikes(post.getLikes() - 1);
+            user.unlikePost(post);
+            post.setLikes(Math.max(0, post.getLikes() - 1)); // Prevent negative likes
         } else {
-            user.likePost(post); // keeps both sides in sync
+            user.likePost(post);
             post.setLikes(post.getLikes() + 1);
         }
-        return postRepository.save(post);
+
+        Post savedPost = postRepository.save(post);
+        return postMapper.toPostResponse(savedPost);
     }
 
-    @Override
-    public Post savePost(Post post) {
-        postRepository.save(post);
-        return post;
+    // --- Helper Methods ---
+
+    private Post getPostEntity(UUID postId) {
+        return postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException(POST_NOT_FOUND_MSG + postId));
     }
 
-    // =====================
-    // Private Helper Methods
-    // =====================
-
-    private List<PostWithBookmark> attachBookmarks(List<Post> posts, UUID userId) {
-        if (posts == null || posts.isEmpty()) {
-            return Collections.emptyList();
+    private void validateAuthorOwnership(Post post, UUID userId) {
+        if (!post.getAuthor().getId().equals(userId)) {
+            throw new AccessDeniedException("You are not the author of this post");
         }
-        if (userId == null) {
-            return posts.stream()
-                    .map(post -> new PostWithBookmark(post, false))
-                    .toList();
-        }
-        List<UUID> postIds = posts.stream().map(Post::getId).toList();
-        List<Boolean> bookmarks = userService.getPostBookmarkStatuses(userId, postIds);
-        return IntStream.range(0, posts.size())
-                .mapToObj(i -> new PostWithBookmark(posts.get(i), bookmarks.get(i)))
-                .toList();
     }
 
-    private Post findPostByIdOrThrow(UUID id) {
-        return postRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException(POST_NOT_FOUND_MESSAGE + id));
-    }
-
-    private List<Post> findPublishedPostsByCategoryAndTag(UUID categoryId, UUID tagId, Pageable pageable) {
-        Category category = categoryService.getCategoryById(categoryId);
-        Tag tag = tagService.getTagById(tagId);
-        // Extracts the content list from the Page object
-        return postRepository.findAllByStatusAndCategoryAndTagsContaining(
-                PostStatus.PUBLISHED, category, tag, pageable).getContent();
-    }
-
-    private List<Post> findPublishedPostsByCategory(UUID categoryId, Pageable pageable) {
-        Category category = categoryService.getCategoryById(categoryId);
-        return postRepository.findAllByStatusAndCategory(
-                PostStatus.PUBLISHED, category, pageable).getContent();
-    }
-
-    private List<Post> findPublishedPostsByTag(UUID tagId, Pageable pageable) {
-        Tag tag = tagService.getTagById(tagId);
-        return postRepository.findAllByStatusAndTagsContaining(
-                PostStatus.PUBLISHED, tag, pageable).getContent();
-    }
-
-    private List<Post> findAllPublishedPosts(Pageable pageable) {
-        return postRepository.findAllByStatus(PostStatus.PUBLISHED, pageable).getContent();
-    }
-
-    private void validatePost(Post post) {
-        if (post.getTitle() == null || post.getTitle().trim().isEmpty()) {
-            throw new IllegalArgumentException("Post title cannot be empty");
-        }
-        if (post.getContent() == null || post.getContent().trim().isEmpty()) {
-            throw new IllegalArgumentException("Post content cannot be empty");
-        }
-        if (post.getDescription() == null || post.getDescription().trim().isEmpty()) {
-            throw new IllegalArgumentException("Post description cannot be empty");
-        }
-        if (post.getCategory() == null) {
-            throw new IllegalArgumentException("Post category cannot be null");
-        }
-        if (post.getStatus() == null) {
-            throw new IllegalArgumentException("Post status cannot be null");
+    private Page<PostCardView> fetchPostCardViews(UUID categoryId, UUID tagId, Pageable pageable) {
+        if (categoryId != null && tagId != null) {
+            return postRepository.findProjectedByStatusAndCategory_IdAndTags_Id(
+                    PostStatus.PUBLISHED, categoryId, tagId, pageable);
+        } else if (categoryId != null) {
+            return postRepository.findProjectedByStatusAndCategory_Id(
+                    PostStatus.PUBLISHED, categoryId, pageable);
+        } else if (tagId != null) {
+            return postRepository.findProjectedByStatusAndTags_Id(
+                    PostStatus.PUBLISHED, tagId, pageable);
+        } else {
+            return postRepository.findProjectedByStatus(PostStatus.PUBLISHED, pageable);
         }
     }
 
     private void calculateAndSetReadingTime(Post post) {
+        if (post.getContent() == null) {
+            post.setReadingTime(0);
+            return;
+        }
         int wordCount = post.getContent().trim().split("\\s+").length;
         int readingTime = (int) Math.ceil((double) wordCount / WORDS_PER_MINUTE);
         post.setReadingTime(readingTime);
     }
 
-    private void resolveCategory(Post post) {
-        Category category = categoryService.findOrCreateCategory(post.getCategory());
-        post.setCategory(category);
-    }
+    private void resolveCategory(Post post, CreateCategoryRequest categoryReq) {
+        // Only update if the request has a category ID and it's different from the current one
+        if (categoryReq == null || categoryReq.id() == null) return;
 
-    private void resolveTags(Post post) {
-        if (post.getTags() != null && !post.getTags().isEmpty()) {
-            Set<Tag> resolvedTags = tagService.findOrCreateTagsIn(post.getTags());
-            post.setTags(resolvedTags);
+        if (post.getCategory() == null || !categoryReq.id().equals(post.getCategory().getId())) {
+            Category newCategory = categoryRepository.findById(categoryReq.id())
+                    .orElseThrow(() -> new EntityNotFoundException("Category not found with ID: " + categoryReq.id()));
+            post.setCategory(newCategory);
         }
     }
 
-    private void updatePostContent(Post existingPost, Post updatedPost) {
-        existingPost.setTitle(updatedPost.getTitle());
-        existingPost.setContent(updatedPost.getContent());
-        existingPost.setDescription(updatedPost.getDescription());
-        existingPost.setStatus(updatedPost.getStatus());
-        calculateAndSetReadingTime(existingPost);
-    }
+    private void resolveTags(Post post, Set<CreateTagRequest> tagsReq) {
+        if (tagsReq != null) {
+            Set<UUID> tagIds = tagsReq.stream()
+                    .map(CreateTagRequest::id)
+                    .collect(Collectors.toSet());
 
-    private void updateCategoryIfChanged(Post existingPost, Post updatedPost) {
-        Category existingCategory = existingPost.getCategory();
-        Category updatedCategory = updatedPost.getCategory();
-
-        if (!existingCategory.getName().equals(updatedCategory.getName())) {
-            Category resolvedCategory = categoryService.findOrCreateCategory(updatedCategory);
-            existingPost.setCategory(resolvedCategory);
+            // Fetch all tags in one query
+            Set<Tag> newTags = new HashSet<>(tagRepository.findAllById(tagIds));
+            post.setTags(newTags);
         }
-    }
-
-    private void updateTagsIfChanged(Post existingPost, Post updatedPost) {
-        Set<Tag> existingTags = existingPost.getTags();
-        Set<Tag> updatedTags = updatedPost.getTags();
-
-        if (updatedTags == null || updatedTags.isEmpty()) {
-            existingPost.setTags(Set.of());
-            return;
-        }
-
-        if (!areTagSetsEqual(existingTags, updatedTags)) {
-            Set<Tag> resolvedTags = tagService.findOrCreateTagsIn(updatedTags);
-            existingPost.setTags(resolvedTags);
-        }
-    }
-
-    private boolean areTagSetsEqual(Set<Tag> set1, Set<Tag> set2) {
-        if (set1 == null || set2 == null) return false;
-        if (set1.size() != set2.size()) return false;
-
-        return set1.stream()
-                .map(Tag::getName)
-                .allMatch(name -> set2.stream()
-                        .anyMatch(tag -> tag.getName().equals(name)));
     }
 }

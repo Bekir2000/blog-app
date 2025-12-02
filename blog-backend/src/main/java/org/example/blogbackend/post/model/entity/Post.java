@@ -54,6 +54,7 @@ public class Post {
      * Orphan removal ensures comments removed from the set are deleted from DB.
      */
     @OneToMany(mappedBy = "post", orphanRemoval = true)
+    @Builder.Default
     private Set<Comment> comments = new HashSet<>();
 
     private String imageUrl;
@@ -84,6 +85,7 @@ public class Post {
             joinColumns = @JoinColumn(name = "post_id"),
             inverseJoinColumns = @JoinColumn(name = "user_id")
     )
+    @Builder.Default
     private Set<User> likedBy = new HashSet<>();
     
     public int getLikeCount() {
@@ -105,6 +107,15 @@ public class Post {
 
     @PreUpdate
     protected void onUpdate() {
+        this.updatedAt = Instant.now();
+    }
+
+    void update(Post post){
+        this.title = post.getTitle();
+        this.content = post.getContent();
+        this.description = post.getDescription();
+        this.imageUrl = post.getImageUrl();
+        this.status = post.getStatus();
         this.updatedAt = Instant.now();
     }
 }

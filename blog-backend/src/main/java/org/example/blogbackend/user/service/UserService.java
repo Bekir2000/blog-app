@@ -1,7 +1,6 @@
 package org.example.blogbackend.user.service;
 
 import org.example.blogbackend.auth.model.dto.request.RegisterRequest;
-import org.example.blogbackend.user.model.dto.response.UserResponse;
 import org.example.blogbackend.user.model.entity.User;
 
 import java.util.List;
@@ -13,7 +12,7 @@ public interface UserService {
     // Existing methods
     void register(RegisterRequest req);
     User getById(UUID id);
-    List<Boolean> getPostBookmarkStatuses(UUID userId, List<UUID> postIds);
+    List<Boolean> getPostBookmarkStatuses(UUID userId, Set<UUID> postIds);
     void createBookmark(UUID postId, UUID userId);
     void deleteBookmark(UUID postId, UUID userId);
 

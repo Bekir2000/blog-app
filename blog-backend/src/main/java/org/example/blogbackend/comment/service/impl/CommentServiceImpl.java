@@ -6,6 +6,7 @@ import org.example.blogbackend.comment.repository.CommentRepository;
 import org.example.blogbackend.comment.service.CommentService;
 import org.example.blogbackend.comment.model.entity.Comment;
 import org.example.blogbackend.post.model.entity.Post;
+import org.example.blogbackend.post.repository.PostRepository;
 import org.example.blogbackend.post.service.PostService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,13 +24,13 @@ public class CommentServiceImpl implements CommentService {
     private static final String INVALID_ID = "ID cannot be null";
 
     private final CommentRepository commentRepository;
-    private final PostService postService;
+    private final PostRepository postRepository;
 
     @Override
     public List<Comment> getCommentsByPostId(UUID postId) {
         validateId(postId, "Post ID");
-        // Ensure the post exists
-        if(!postService.existsPostById(postId)) {
+
+        if(!postRepository.existsById(postId)) {
             throw new EntityNotFoundException(String.format(POST_NOT_FOUND, postId));
         }
         return commentRepository.findAllByPostId(postId);
@@ -48,14 +49,13 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public Comment createComment(UUID postId, Comment comment) {
-        validateId(postId, "Post ID");
-        validateComment(comment);
 
-        Post post = postService.getPostById(postId);
-        post.setCommentsCount(post.getCommentsCount() + 1);
-        postService.savePost(post);
+        Post post = postRepository.getReferenceById(postId);
         comment.setPost(post);
-        return commentRepository.save(comment);
+        Comment savedComment = commentRepository.save(comment);
+        postRepository.incrementCommentsCount(postId);
+
+        return savedComment;
     }
 
     @Override
@@ -64,15 +64,14 @@ public class CommentServiceImpl implements CommentService {
         validateId(postId, "Post ID");
         validateId(commentId, "Comment ID");
 
-        Post post = postService.getPostById(postId);
-        post.setCommentsCount(post.getCommentsCount() - 1);
-        postService.savePost(post);
+        Comment comment = commentRepository.findById(commentId)
+                .filter(c -> c.getPost().getId().equals(postId))
+                .orElseThrow(() -> new EntityNotFoundException(
+                        String.format(COMMENT_NOT_FOUND, commentId, postId)
+                ));
 
-        if (!commentRepository.existsByIdAndPostId(commentId, postId)) {
-            throw new EntityNotFoundException(String.format(COMMENT_NOT_FOUND, commentId, postId));
-        }
-
-        commentRepository.deleteById(commentId);
+        commentRepository.delete(comment);
+        postRepository.decrementCommentsCount(postId);
     }
 
     @Override
@@ -84,7 +83,6 @@ public class CommentServiceImpl implements CommentService {
 
         Comment existingComment = getCommentById(postId, commentId);
         existingComment.setContent(comment.getContent());
-        // Consider adding other fields like lastModifiedDate if needed
 
         return commentRepository.save(existingComment);
     }

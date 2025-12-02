@@ -2,7 +2,7 @@ package org.example.blogbackend.user.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.blogbackend.common.security.BlogUserDetails;
-import org.example.blogbackend.post.controller.dto.response.PostResponse;
+import org.example.blogbackend.post.dto.response.PostResponse;
 import org.example.blogbackend.post.mapper.PostMapper;
 import org.example.blogbackend.user.mapper.UserMapper;
 import org.example.blogbackend.user.model.dto.CreateBookmarkRequest;

@@ -87,8 +87,8 @@ public class UserServiceImpl implements UserService {
     // --- BOOKMARK LOGIC ---
 
     @Override
-    public List<Boolean> getPostBookmarkStatuses(UUID userId, List<UUID> postIds) {
-        List<UUID> bookmarked = userRepository.findBookmarkedPostIdsByUserIdAndPostIdIn(userId, postIds);
+    public List<Boolean> getPostBookmarkStatuses(UUID userId, Set<UUID> postIds) {
+        Set<UUID> bookmarked = userRepository.findBookmarkedPostIdsByUserIdAndPostIdIn(userId, postIds);
         return postIds.stream().map(bookmarked::contains).toList();
     }
 

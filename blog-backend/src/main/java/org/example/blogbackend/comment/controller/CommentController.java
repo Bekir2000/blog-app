@@ -84,7 +84,6 @@ public class CommentController {
                                               @PathVariable UUID commentId) {
 
         commentService.deleteComment(postId, commentId);
-
         return ResponseEntity.noContent().build();
     }
 }

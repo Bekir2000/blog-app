@@ -2,22 +2,18 @@ package org.example.blogbackend.post.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.example.blogbackend.post.controller.dto.response.PostWithBookmarkResponse;
-import org.example.blogbackend.post.mapper.PostMapper;
-import org.example.blogbackend.post.controller.dto.request.CreatePostRequest;
-import org.example.blogbackend.post.controller.dto.response.PostResponse;
-import org.example.blogbackend.post.model.entity.Post;
-import org.example.blogbackend.post.service.dto.PostWithBookmark;
-import org.example.blogbackend.user.model.entity.User;
 import org.example.blogbackend.common.security.BlogUserDetails;
+import org.example.blogbackend.post.dto.request.PostRequest;
+import org.example.blogbackend.post.dto.response.PostCardResponse;
+import org.example.blogbackend.post.dto.response.PostDetailResponse;
+import org.example.blogbackend.post.dto.response.PostResponse;
 import org.example.blogbackend.post.service.PostService;
-import org.example.blogbackend.user.service.UserService;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,99 +26,76 @@ import java.util.UUID;
 public class PostController {
 
     private final PostService postService;
-    private final UserService userService;
 
-    private final PostMapper postMapper;
+    @GetMapping("/{postId}")
+    public ResponseEntity<PostDetailResponse> getPostById(
+            @PathVariable UUID postId,
+            @AuthenticationPrincipal BlogUserDetails userDetails) {
 
+        UUID userId = (userDetails != null) ? userDetails.getUserId() : null;
+        return ResponseEntity.ok(postService.getPostById(postId, userId));
+    }
 
     @GetMapping
-    public ResponseEntity<List<PostWithBookmarkResponse>> getAllPosts(
+    public ResponseEntity<Page<PostCardResponse>> getAllPostCards(
             @RequestParam(required = false) UUID categoryId,
             @RequestParam(required = false) UUID tagId,
-            // 1. Add Pagination Params (Default: page 0, size 10)
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size,
-            @AuthenticationPrincipal BlogUserDetails blogUserDetails) {
+            @AuthenticationPrincipal BlogUserDetails userDetails) {
 
-        UUID userId = (blogUserDetails != null) ? blogUserDetails.getUserId() : null;
-
-        // 2. Create Pageable object (Sort by newest first usually)
+        UUID userId = (userDetails != null) ? userDetails.getUserId() : null;
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
-        // 3. Pass pageable to service
         return ResponseEntity.ok(
-                postService.getAllPosts(categoryId, tagId, userId, pageable) // <--- Updated call
-                        .stream()
-                        .map(postMapper::toPostWithBookmarkResponse)
-                        .toList()
+                postService.getPostCards(userId, categoryId, tagId, pageable)
         );
     }
 
-    @GetMapping(path = "/{id}")
-    public ResponseEntity<PostWithBookmarkResponse> getPostById(@PathVariable UUID id, @AuthenticationPrincipal BlogUserDetails blogUserDetails) {
+    @GetMapping("/drafts")
+    public ResponseEntity<List<PostCardResponse>> getDrafts(
+            @AuthenticationPrincipal BlogUserDetails userDetails) {
 
-        UUID userId = (blogUserDetails != null)? blogUserDetails.getUserId() : null;
-        PostWithBookmark post = postService.getPostById(id, userId);
-        PostWithBookmarkResponse response = postMapper.toPostWithBookmarkResponse(post);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping(path = "/drafts")
-    public ResponseEntity<List<PostResponse>> getDrafts(@AuthenticationPrincipal BlogUserDetails blogUserDetails) {
-
-        User loggedInUser = userService.getById(blogUserDetails.getUserId());
-        List<Post> draftPosts = postService.getDraftPosts(loggedInUser);
-        List<PostResponse> response = draftPosts.stream().map(postMapper::toPostResponse).toList();
-
-        return ResponseEntity.ok(response);
+        // Service now returns DTOs directly
+        return ResponseEntity.ok(postService.getDraftPosts(userDetails.getUserId()));
     }
 
     @PostMapping
     public ResponseEntity<PostResponse> createPost(
-            @Valid @RequestBody CreatePostRequest postRequest,
-            @AuthenticationPrincipal BlogUserDetails blogUserDetails) {
+            @Valid @RequestBody PostRequest request,
+            @AuthenticationPrincipal BlogUserDetails userDetails) {
 
-        Post postToCreate = postMapper.toEntity(postRequest);
-
-        User author = userService.getById(blogUserDetails.getUserId());
-        postToCreate.setAuthor(author);
-
-        Post createdPost = postService.createPost(postToCreate);
-        PostResponse response = postMapper.toPostResponse(createdPost);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(postService.createPost(request, userDetails.getUserId()));
     }
 
-    @PutMapping(path = "/{postId}")
+    @PutMapping("/{postId}")
     public ResponseEntity<PostResponse> updatePost(
             @PathVariable UUID postId,
-            @Valid @RequestBody CreatePostRequest updatePostRequest,
-            @AuthenticationPrincipal BlogUserDetails blogUserDetails) {
+            @Valid @RequestBody PostRequest request,
+            @AuthenticationPrincipal BlogUserDetails userDetails) {
 
-        Post postToUpdate = postMapper.toEntity(updatePostRequest);
-
-        User author = userService.getById(blogUserDetails.getUserId());
-        postToUpdate.setAuthor(author);
-
-        Post updatedPost = postService.updatePost(postId, postToUpdate);
-        PostResponse response = postMapper.toPostResponse(updatedPost);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                postService.updatePost(postId, request, userDetails.getUserId())
+        );
     }
 
-    @DeleteMapping(path = "/{id}")
-    public ResponseEntity<Void> deletePost(@PathVariable UUID id) {
+    @DeleteMapping("/{postId}")
+    public ResponseEntity<Void> deletePost(
+            @PathVariable UUID postId,
+            @AuthenticationPrincipal BlogUserDetails userDetails) {
 
-        postService.deletePost(id);
+        postService.deletePost(postId, userDetails.getUserId());
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping(path = "/{postId}/like")
+    @PutMapping("/{postId}/like")
     public ResponseEntity<PostResponse> toggleLike(
             @PathVariable UUID postId,
-            @AuthenticationPrincipal BlogUserDetails blogUserDetails) {
+            @AuthenticationPrincipal BlogUserDetails userDetails) {
 
-        User user = userService.getById(blogUserDetails.getUserId());
-        Post post = postService.toggleLike(postId, user);
-        return ResponseEntity.ok(postMapper.toPostResponse(post));
+        return ResponseEntity.ok(
+                postService.toggleLike(postId, userDetails.getUserId())
+        );
     }
-
 }

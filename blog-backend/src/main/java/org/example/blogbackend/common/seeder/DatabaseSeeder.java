@@ -142,7 +142,7 @@ public class DatabaseSeeder {
                 .category(category)
                 .tags(Set.of(tag))
                 .likedBy(Set.of())
-                .createdAt(faker.date().past(30, TimeUnit.DAYS).toInstant())
+                .createdAt(faker.timeAndDate().past(30, TimeUnit.DAYS))
                 .updatedAt(Instant.now())
                 .build();
     }

@@ -1,13 +1,15 @@
 package org.example.blogbackend.post.repository;
 
-import org.example.blogbackend.category.model.entity.Category;
 import org.example.blogbackend.post.model.PostStatus;
 import org.example.blogbackend.post.model.entity.Post;
-import org.example.blogbackend.tag.model.entity.Tag;
+import org.example.blogbackend.post.model.projection.PostCardView;
 import org.example.blogbackend.user.model.entity.User;
-import org.springframework.data.domain.Page; // <--- NEW IMPORT
-import org.springframework.data.domain.Pageable; // <--- NEW IMPORT
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -16,30 +18,48 @@ import java.util.UUID;
 @Repository
 public interface PostRepository extends JpaRepository<Post, UUID> {
 
-    Page<Post> findAllByStatusAndCategoryAndTagsContaining(
+    // --- Feed Queries (Strictly Projections) ---
+
+    // 1. Filter by Category AND Tag
+    Page<PostCardView> findProjectedByStatusAndCategory_IdAndTags_Id(
             PostStatus status,
-            Category category,
-            Tag tag,
+            UUID categoryId,
+            UUID tagId,
             Pageable pageable
     );
 
-    Page<Post> findAllByStatusAndCategory(
+    // 2. Filter by Category only
+    Page<PostCardView> findProjectedByStatusAndCategory_Id(
             PostStatus status,
-            Category category,
+            UUID categoryId,
             Pageable pageable
     );
 
-    Page<Post> findAllByStatusAndTagsContaining(
+    // 3. Filter by Tag only
+    Page<PostCardView> findProjectedByStatusAndTags_Id(
             PostStatus status,
-            Tag tag,
+            UUID tagId,
             Pageable pageable
     );
 
-    Page<Post> findAllByStatus(
+    // 4. General Feed (No filters)
+    Page<PostCardView> findProjectedByStatus(
             PostStatus status,
             Pageable pageable
     );
 
-    // This remains List<Post> as drafts are usually displayed all at once.
-    List<Post> findAllByAuthorAndStatus(User author, PostStatus status);
+
+    // --- Admin / Author Queries ---
+
+    List<PostCardView> findProjectedByAuthor_IdAndStatus(UUID userId, PostStatus status);
+
+    // --- Comment Optimization ---
+
+    @Modifying
+    @Query("UPDATE Post p SET p.commentsCount = p.commentsCount + 1 WHERE p.id = :postId")
+    void incrementCommentsCount(@Param("postId") UUID postId);
+
+    @Modifying
+    @Query("UPDATE Post p SET p.commentsCount = p.commentsCount - 1 WHERE p.id = :postId AND p.commentsCount > 0")
+    void decrementCommentsCount(@Param("postId") UUID postId);
 }
