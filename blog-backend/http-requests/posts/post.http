@@ -45,7 +45,7 @@ Authorization: Bearer {{access_token}}
 
 ### 4. Get Post Details (Full Content)
 # Returns the full object with content, isBookmarked, and followingAuthor flags
-GET http://localhost:8080/api/v1/posts/{{postId}}
+GET http://localhost:8080/api/v1/posts/5ac2781d-c757-4e58-baef-4744f3bd086f
 Authorization: Bearer {{access_token}}
 
 ###
