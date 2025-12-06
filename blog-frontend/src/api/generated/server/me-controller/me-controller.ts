@@ -6,7 +6,8 @@
  */
 import type {
   CreateBookmarkRequest,
-  PostResponse,
+  GetBookmarkedPostsParams,
+  PagedResponsePostCardResponse,
   UserResponse
 } from '../../model';
 
@@ -31,10 +32,11 @@ import { serverFetch } from '../../../../lib/api-client';
       );
     }
   export const getBookmarkedPosts = (
-    
+    params?: GetBookmarkedPostsParams,
  ) => {
-      return serverFetch<PostResponse[]>(
-      {url: `/api/v1/me/bookmarks`, method: 'GET'
+      return serverFetch<PagedResponsePostCardResponse>(
+      {url: `/api/v1/me/bookmarks`, method: 'GET',
+        params
     },
       );
     }

@@ -62,4 +62,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     @Modifying
     @Query("UPDATE Post p SET p.commentsCount = p.commentsCount - 1 WHERE p.id = :postId AND p.commentsCount > 0")
     void decrementCommentsCount(@Param("postId") UUID postId);
+
+    @Query("SELECT p FROM User u JOIN u.bookmarkedPosts p WHERE u.id = :userId")
+    Page<PostCardView> findBookmarkedPostsByUserId(@Param("userId") UUID userId, Pageable pageable);
 }

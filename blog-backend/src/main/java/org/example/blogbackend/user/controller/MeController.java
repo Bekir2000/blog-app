@@ -2,13 +2,19 @@ package org.example.blogbackend.user.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.blogbackend.common.security.BlogUserDetails;
+import org.example.blogbackend.post.dto.response.PagedResponse;
+import org.example.blogbackend.post.dto.response.PostCardResponse;
 import org.example.blogbackend.post.dto.response.PostResponse;
 import org.example.blogbackend.post.mapper.PostMapper;
 import org.example.blogbackend.user.mapper.UserMapper;
 import org.example.blogbackend.user.model.dto.CreateBookmarkRequest;
 import org.example.blogbackend.user.model.dto.response.UserResponse;
 import org.example.blogbackend.user.model.entity.User;
+import org.example.blogbackend.user.service.BookmarkService;
 import org.example.blogbackend.user.service.UserService;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -23,7 +29,7 @@ import java.util.UUID;
 public class MeController {
     private final UserService userService;
     private final UserMapper userMapper;
-    private final PostMapper postMapper;
+    private final BookmarkService bookmarkService;
 
     @GetMapping
     public ResponseEntity<UserResponse> getProfile(@AuthenticationPrincipal BlogUserDetails userDetails) {
@@ -34,12 +40,14 @@ public class MeController {
     // --- BOOKMARK ENDPOINTS ---
 
     @GetMapping("/bookmarks")
-    public ResponseEntity<List<PostResponse>> getBookmarkedPosts(@AuthenticationPrincipal BlogUserDetails blogUserDetails) {
-        User user = userService.getById(blogUserDetails.getUserId());
+    public ResponseEntity<PagedResponse<PostCardResponse>> getBookmarkedPosts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size,
+            @AuthenticationPrincipal BlogUserDetails blogUserDetails
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         return ResponseEntity.ok(
-                user.getBookmarkedPosts().stream()
-                        .map(postMapper::toPostResponse)
-                        .toList()
+                bookmarkService.getBookmarksForUser(blogUserDetails.getUserId(), pageable)
         );
     }
 

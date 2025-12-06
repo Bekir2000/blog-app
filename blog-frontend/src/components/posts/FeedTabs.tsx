@@ -1,8 +1,8 @@
 import { getAllPostCards } from "@/api/generated/server/post-controller/post-controller";
 import { InfoTooltip } from "@/components/InfoTooltip";
-import { PostsGrid } from "@/components/posts/PostGrid";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getUser } from "@/lib/auth";
+import { HomeFeed } from "./HomeFeed";
 
 export async function FeedTabs() {
   // Fetch initial data (Page 0, Size 5)
@@ -24,7 +24,7 @@ export async function FeedTabs() {
       </TabsList>
 
       <TabsContent value="foryou" className="pt-4">
-        <PostsGrid initialPosts={postCards} currentUser={currentUser} />
+        <HomeFeed initialPosts={postCards} currentUser={currentUser} />
       </TabsContent>
     </Tabs>
   );

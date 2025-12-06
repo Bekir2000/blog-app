@@ -3,5 +3,5 @@ Content-Type: application/json
 Authorization: Bearer {{access_token}}
 
 {
-  "postId": "7223eb64-0af4-4c99-8964-8e1b858c7c8f"
+  "postId": "1eb72ccf-fb82-4eb7-9da9-9f4ae0d97d0a"
 }

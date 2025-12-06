@@ -14,6 +14,7 @@ export * from './createCategoryRequest';
 export * from './createCommentRequest';
 export * from './createTagRequest';
 export * from './getAllPostCardsParams';
+export * from './getBookmarkedPostsParams';
 export * from './loginRequest';
 export * from './pagedResponsePostCardResponse';
 export * from './postCardResponse';

@@ -38,7 +38,7 @@ const getAuthHeaders = async (
 
 const coreFetch = async <T>(
   endpoint: string,
-  options: FetchOptions = {}
+  options: any = {}
 ): Promise<ApiResponse<T>> => {
   // 2. EXTRACT PARAMS HERE
   const { data, headers: customHeaders, params, ...customConfig } = options;
@@ -48,6 +48,11 @@ const coreFetch = async <T>(
   let body: BodyInit | undefined;
   if (data) {
     body = JSON.stringify(data);
+    if (!headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
+    }
+  } else if (options.body) {
+    body = options.body;
     if (!headers.has("Content-Type")) {
       headers.set("Content-Type", "application/json");
     }
@@ -81,7 +86,10 @@ const coreFetch = async <T>(
     cache: customConfig.cache || "no-store",
   };
 
+  //console.log("Fetching URL:", cleanUrl);
+  //console.log("Fetch Config:", config);
   const response = await fetch(cleanUrl, config);
+  //console.log("Response:", response);
 
   if (!response.ok) {
     throw new Error(`API Error: ${response.status} ${response.statusText}`);
@@ -100,9 +108,11 @@ const coreFetch = async <T>(
 
 export const clientFetch = async <T>(
   url: string,
-  options?: FetchOptions
+  options?: any
 ): Promise<ApiResponse<T>> => {
   await new Promise((resolve) => setTimeout(resolve, 2000));
+  //console.log("Client Fetch URL:", url);
+  //console.log("Client Fetch Options:", options);
   return coreFetch<T>(url, options);
 };
 

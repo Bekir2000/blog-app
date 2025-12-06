@@ -1,11 +1,11 @@
 import { getBookmarkedPosts } from "@/api/generated/server/me-controller/me-controller";
-import { PostsGrid } from "@/components/posts/PostGrid";
+import { BookmarkFeed } from "@/components/me/BookmarkFeed";
 import { getUser } from "@/lib/auth";
 
 export default async function BookmarkPage() {
   try {
-    const user = await getUser();
-    if (!user) {
+    const currentUser = await getUser();
+    if (!currentUser) {
       return (
         <main className="flex justify-center p-6">
           <div className="w-full max-w-4xl">
@@ -15,23 +15,19 @@ export default async function BookmarkPage() {
         </main>
       );
     }
-    const posts = await getBookmarkedPosts();
+    const postPage = await getBookmarkedPosts();
+    const postCards = postPage.content || [];
 
     return (
       <main className="flex justify-center p-6">
         <div className="w-full max-w-4xl">
           <h1 className="text-2xl font-bold mb-4">My Bookmarks</h1>
-          {posts.length === 0 ? (
+          {postCards.length === 0 ? (
             <p className="text-gray-500">
               You haven’t bookmarked any posts yet.
             </p>
           ) : (
-            <PostsGrid
-              postWithBookMarks={posts.map((post) => ({
-                post,
-                isBookmarked: true,
-              }))}
-            />
+            <BookmarkFeed initialPosts={postCards} currentUser={currentUser} />
           )}
         </div>
       </main>
