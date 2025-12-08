@@ -1,5 +1,5 @@
 import { getPostById } from "@/api/generated/server/post-controller/post-controller";
-import { PostDetail } from "@/components/posts/PostDetail";
+import { PostDetail } from "@/components/post-detail/PostDetail";
 import { getUser } from "@/lib/auth";
 
 export default async function Page({ params }: { params: { id: string } }) {
