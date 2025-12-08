@@ -23,7 +23,7 @@ export default defineConfig({
     input: {
       target: "http://localhost:8080/v3/api-docs",
       filters: {
-        tags: ["post-controller", "me-controller"], // 👈 Only posts for client
+        tags: ["post-controller", "me-controller", "comment-controller"], // 👈 Only posts for client
       },
     },
     output: {

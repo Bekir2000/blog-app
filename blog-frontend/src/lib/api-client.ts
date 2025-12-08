@@ -1,11 +1,30 @@
 import { getAccessToken } from "./auth";
 
+// --- Custom Error Class ---
+// This allows us to pass the backend JSON to the UI
+export class ApiError extends Error {
+  response: {
+    data: any;
+    status: number;
+    statusText: string;
+  };
+
+  constructor(message: string, data: any, status: number, statusText: string) {
+    super(message);
+    this.name = "ApiError";
+    this.response = {
+      data,
+      status,
+      statusText,
+    };
+  }
+}
+
 // --- Types ---
 
 interface FetchOptions extends Omit<RequestInit, "body"> {
   headers?: HeadersInit;
   data?: unknown;
-  // 1. ADD THIS LINE: Allow params in the interface
   params?: Record<string, string | number | boolean | undefined | null>;
 }
 
@@ -40,7 +59,6 @@ const coreFetch = async <T>(
   endpoint: string,
   options: any = {}
 ): Promise<ApiResponse<T>> => {
-  // 2. EXTRACT PARAMS HERE
   const { data, headers: customHeaders, params, ...customConfig } = options;
 
   const headers = await getAuthHeaders(customHeaders);
@@ -61,20 +79,15 @@ const coreFetch = async <T>(
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
   let cleanUrl = `${baseUrl.replace(/\/$/, "")}/${endpoint.replace(/^\//, "")}`;
 
-  // 3. APPEND QUERY PARAMETERS HERE
   if (params) {
     const searchParams = new URLSearchParams();
-
     Object.entries(params).forEach(([key, value]) => {
-      // Filter out null/undefined so we don't send "?page=undefined"
       if (value !== undefined && value !== null) {
         searchParams.append(key, String(value));
       }
     });
-
     const queryString = searchParams.toString();
     if (queryString) {
-      // Check if URL already has '?', append accordingly
       cleanUrl += (cleanUrl.includes("?") ? "&" : "?") + queryString;
     }
   }
@@ -86,14 +99,23 @@ const coreFetch = async <T>(
     cache: customConfig.cache || "no-store",
   };
 
-  //console.log("Fetching URL:", cleanUrl);
-  //console.log("Fetch Config:", config);
   const response = await fetch(cleanUrl, config);
-  //console.log("Response:", response);
 
+  // --- CHANGED LOGIC START ---
   if (!response.ok) {
-    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    // 1. Try to parse the error body (JSON)
+    const errorBody = await getBody<any>(response).catch(() => null);
+
+    // 2. Throw our custom error with the data attached
+    throw new ApiError(
+      errorBody?.message ||
+        `API Error: ${response.status} ${response.statusText}`,
+      errorBody,
+      response.status,
+      response.statusText
+    );
   }
+  // --- CHANGED LOGIC END ---
 
   const responseData = await getBody<T>(response);
 
@@ -110,9 +132,13 @@ export const clientFetch = async <T>(
   url: string,
   options?: any
 ): Promise<ApiResponse<T>> => {
-  await new Promise((resolve) => setTimeout(resolve, 2000));
-  //console.log("Client Fetch URL:", url);
-  //console.log("Client Fetch Options:", options);
+  // Simulating delay is fine for dev, consider removing for prod
+  // await new Promise((resolve) => setTimeout(resolve, 2000));
+
+  // NOTE: Orval expects the return type to just be the data usually,
+  // but your coreFetch returns { data, status, headers }.
+  // If Orval behaves weirdly, you might need to return `response.data` here.
+  // For now, keeping your structure:
   return coreFetch<T>(url, options);
 };
 
@@ -120,7 +146,6 @@ export const serverFetch = async <T>(
   options: FetchOptions & { url: string }
 ): Promise<T> => {
   const { url, ...fetchOptions } = options;
-  // Now valid: fetchOptions contains 'params' and coreFetch will handle it
   const response = await coreFetch<T>(url, fetchOptions);
   return response.data;
 };

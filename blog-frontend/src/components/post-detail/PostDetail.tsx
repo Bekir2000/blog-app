@@ -2,12 +2,15 @@
 
 import { PostDetailResponse, UserResponse } from "@/api/generated/model";
 // Hooks
-import { usePostBookmark } from "@/hooks/usePostBookmark"; // <--- Import new hook
+import { usePostBookmark } from "@/hooks/usePostBookmark";
 import { usePostFollow } from "@/hooks/usePostFollow";
 import { usePostLike } from "@/hooks/usePostLike";
 
 // Sub-components
-import { PostActionBar } from "./PostActionBar"; // <--- Import new component
+// Ensure this path matches where you saved PostComments.tsx.
+// If it's in the same folder as PostDetail, use "./PostComments"
+import { PostComments } from "./comments/PostComments";
+import { PostActionBar } from "./PostActionBar";
 import { PostAuthorMeta } from "./PostAuthorMeta";
 import { PostContent } from "./PostContent";
 import { PostHeader } from "./PostHeader";
@@ -30,16 +33,26 @@ export function PostDetail({ post, currentUser }: PostDetailProps) {
     initialIsFollowing: post?.followingAuthor,
   });
 
+  // 2. Bookmark Logic
   const { isBookmarked, isBookmarkLoading, toggleBookmark } = usePostBookmark({
     postId: post?.id ?? "",
-    initialIsBookmarked: post?.isBookmarked ?? false, // <--- Correct
+    initialIsBookmarked: post?.isBookmarked ?? false,
   });
 
+  // 3. Like Logic
   const { isLiked, likeCount, handleToggleLike } = usePostLike({
     postId: post?.id ?? "",
-    initialIsLiked: post?.isLiked ?? false, // Ensure your model has isLiked
+    initialIsLiked: post?.isLiked ?? false,
     initialLikeCount: post?.likes ?? 0,
   });
+
+  // 4. Scroll to Comments Handler
+  const handleScrollToComments = () => {
+    const element = document.getElementById("comments");
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   if (!post) return null;
 
@@ -47,6 +60,7 @@ export function PostDetail({ post, currentUser }: PostDetailProps) {
     <article className="min-h-screen bg-white dark:bg-zinc-950">
       <div className="mx-auto max-w-[680px] px-6 py-10 md:py-14">
         <PostHeader title={post.title} description={post.description} />
+
         <PostAuthorMeta
           author={post.author}
           createdAt={post.createdAt}
@@ -58,18 +72,19 @@ export function PostDetail({ post, currentUser }: PostDetailProps) {
         />
 
         <PostActionBar
-          likes={likeCount} // <--- Pass the DYNAMIC count
+          likes={likeCount}
           comments={post.commentsCount || 0}
           isBookmarked={isBookmarked}
-          isLiked={isLiked} // <--- Pass the DYNAMIC state
-          isLoading={isBookmarkLoading} // We mostly care about bookmark loading blocking the generic action
+          isLiked={isLiked}
+          isLoading={isBookmarkLoading}
           onToggleBookmark={toggleBookmark}
-          onToggleLike={handleToggleLike} // <--- Pass the handler
+          onToggleLike={handleToggleLike}
+          onCommentClick={handleScrollToComments} // <--- Pass the scroll handler here
         />
 
         <PostContent post={post} />
 
-        {/* Footer Tags / More from author etc... (retained from previous steps) */}
+        {/* Tags */}
         {post.tags && post.tags.length > 0 && (
           <div className="mt-14 mb-10 flex flex-wrap gap-2">
             {post.tags.map((tag) => (
@@ -82,6 +97,14 @@ export function PostDetail({ post, currentUser }: PostDetailProps) {
             ))}
           </div>
         )}
+
+        {/* --- COMMENTS SECTION --- */}
+        {/* Placed INSIDE the max-w container so it stays centered */}
+        <PostComments
+          postId={post.id!}
+          currentUser={currentUser}
+          commentsCount={post.commentsCount}
+        />
       </div>
     </article>
   );
