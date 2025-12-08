@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -65,4 +66,31 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
 
     @Query("SELECT p FROM User u JOIN u.bookmarkedPosts p WHERE u.id = :userId")
     Page<PostCardView> findBookmarkedPostsByUserId(@Param("userId") UUID userId, Pageable pageable);
+
+    // 1. Correct Table Name: posts_liked_by
+    @Query(value = "SELECT COUNT(*) > 0 FROM posts_liked_by WHERE post_id = :postId AND user_id = :userId", nativeQuery = true)
+    boolean existsByPostIdAndUserId(@Param("postId") UUID postId, @Param("userId") UUID userId);
+
+    // 2. Correct Table Name: posts_liked_by
+    @Modifying
+    @Transactional
+    @Query(value = "INSERT INTO posts_liked_by (post_id, user_id) VALUES (:postId, :userId)", nativeQuery = true)
+    void addLike(@Param("postId") UUID postId, @Param("userId") UUID userId);
+
+    // 3. Correct Table Name: posts_liked_by
+    @Modifying
+    @Transactional
+    @Query(value = "DELETE FROM posts_liked_by WHERE post_id = :postId AND user_id = :userId", nativeQuery = true)
+    void removeLike(@Param("postId") UUID postId, @Param("userId") UUID userId);
+
+    // 4. Counters (These stay the same as they target the 'posts' table directly)
+    @Modifying
+    @Transactional
+    @Query("UPDATE Post p SET p.likes = p.likes + 1 WHERE p.id = :postId")
+    void incrementLikes(@Param("postId") UUID postId);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE Post p SET p.likes = p.likes - 1 WHERE p.id = :postId AND p.likes > 0")
+    void decrementLikes(@Param("postId") UUID postId);
 }

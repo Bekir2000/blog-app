@@ -26,5 +26,6 @@ export interface PostDetailResponse {
   updatedAt?: string;
   content?: string;
   followingAuthor?: boolean;
+  isLiked?: boolean;
   status?: PostDetailResponseStatus;
 }

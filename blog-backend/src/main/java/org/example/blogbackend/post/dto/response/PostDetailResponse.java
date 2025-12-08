@@ -16,6 +16,8 @@ public class PostDetailResponse extends PostCardResponse {
     // Extra user-context specific to reading the full article
     private Boolean followingAuthor;
 
+    private Boolean isLiked;
+
     // Status is usually relevant when the author views their own post details
     private PostStatus status;
 }

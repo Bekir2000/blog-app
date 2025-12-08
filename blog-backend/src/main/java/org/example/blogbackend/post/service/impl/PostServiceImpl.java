@@ -74,17 +74,23 @@ public class PostServiceImpl implements PostService {
     public PostDetailResponse getPostById(UUID postId, UUID userId) {
         Post post = getPostEntity(postId);
 
-        // Safely check logic (assuming if userId is provided, user exists)
         boolean isBookmarked = false;
         boolean isFollowingAuthor = false;
+        boolean isLiked = false;
 
+        // Only check these states if a user is logged in
         if (userId != null) {
+            // 1. Check Bookmark
             isBookmarked = userRepository.isBookmarked(userId, post.getId());
-            // Check if current user is following the post author
+
+            // 2. Check Following (Target is the post author)
             isFollowingAuthor = userRepository.isFollowing(userId, post.getAuthor().getId());
+
+            // 3. Check Like (NEW)
+            isLiked = userRepository.isLiked(userId, post.getId());
         }
 
-        return postMapper.toPostDetailResponse(post, isBookmarked, isFollowingAuthor);
+        return postMapper.toPostDetailResponse(post, isBookmarked, isFollowingAuthor, isLiked);
     }
 
     @Override
@@ -150,21 +156,43 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public PostResponse toggleLike(UUID postId, UUID userId) {
-        Post post = getPostEntity(postId);
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException(USER_NOT_FOUND_MSG + userId));
+        // 1. Check if user exists (Cheap select)
+        if (!userRepository.existsById(userId)) {
+            throw new EntityNotFoundException(USER_NOT_FOUND_MSG + userId);
+        }
 
-        // Assuming User entity has helper methods that manage the relationship (both sides)
-        if (post.getLikedBy().contains(user)) {
-            user.unlikePost(post);
-            post.setLikes(Math.max(0, post.getLikes() - 1)); // Prevent negative likes
+        // 2. Check if the Post exists (Cheap select)
+        // We fetch it because we need to return the updated data at the end anyway
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("Post not found"));
+
+        // 3. Check relationship status efficiently (Returns single boolean, no lists loaded)
+        boolean isLiked = postRepository.existsByPostIdAndUserId(postId, userId);
+
+        if (isLiked) {
+            // --- UNLIKE ---
+            // Remove direct link
+            postRepository.removeLike(postId, userId);
+            // Atomic decrement
+            postRepository.decrementLikes(postId);
+
+            // Update local object for response (optional, keeps UI in sync without refetch)
+            post.setLikes(Math.max(0, post.getLikes() - 1));
         } else {
-            user.likePost(post);
+            // --- LIKE ---
+            // Add direct link
+            postRepository.addLike(postId, userId);
+            // Atomic increment
+            postRepository.incrementLikes(postId);
+
+            // Update local object for response
             post.setLikes(post.getLikes() + 1);
         }
 
-        Post savedPost = postRepository.save(post);
-        return postMapper.toPostResponse(savedPost);
+        // 4. Return response
+        // Notice we pass 'isLiked' manually because the 'post' entity might not be
+        // strictly aware of the native query changes yet within this transaction.
+        return postMapper.toPostResponse(post);
     }
 
     // --- Helper Methods ---

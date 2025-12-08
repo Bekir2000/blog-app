@@ -26,7 +26,8 @@ public interface PostMapper {
 
     @Mapping(target = "isBookmarked", source = "isBookmarked")
     @Mapping(target = "followingAuthor", source = "isFollowingAuthor")
-    PostDetailResponse toPostDetailResponse(Post post, Boolean isBookmarked, Boolean isFollowingAuthor);
+    @Mapping(target = "isLiked", source = "isLiked")
+    PostDetailResponse toPostDetailResponse(Post post, Boolean isBookmarked, Boolean isFollowingAuthor, Boolean isLiked);
 
     @Mapping(target = "category", ignore = true)
     @Mapping(target = "tags", ignore = true)

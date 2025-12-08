@@ -4,6 +4,7 @@ import { PostDetailResponse, UserResponse } from "@/api/generated/model";
 // Hooks
 import { usePostBookmark } from "@/hooks/usePostBookmark"; // <--- Import new hook
 import { usePostFollow } from "@/hooks/usePostFollow";
+import { usePostLike } from "@/hooks/usePostLike";
 
 // Sub-components
 import { PostActionBar } from "./PostActionBar"; // <--- Import new component
@@ -34,6 +35,12 @@ export function PostDetail({ post, currentUser }: PostDetailProps) {
     initialIsBookmarked: post?.isBookmarked ?? false, // <--- Correct
   });
 
+  const { isLiked, likeCount, handleToggleLike } = usePostLike({
+    postId: post?.id ?? "",
+    initialIsLiked: post?.isLiked ?? false, // Ensure your model has isLiked
+    initialLikeCount: post?.likes ?? 0,
+  });
+
   if (!post) return null;
 
   return (
@@ -51,11 +58,13 @@ export function PostDetail({ post, currentUser }: PostDetailProps) {
         />
 
         <PostActionBar
-          likes={post.likes || 0}
+          likes={likeCount} // <--- Pass the DYNAMIC count
           comments={post.commentsCount || 0}
-          isBookmarked={isBookmarked} // <--- Uses the local state from the hook
-          isLoading={isBookmarkLoading}
+          isBookmarked={isBookmarked}
+          isLiked={isLiked} // <--- Pass the DYNAMIC state
+          isLoading={isBookmarkLoading} // We mostly care about bookmark loading blocking the generic action
           onToggleBookmark={toggleBookmark}
+          onToggleLike={handleToggleLike} // <--- Pass the handler
         />
 
         <PostContent post={post} />

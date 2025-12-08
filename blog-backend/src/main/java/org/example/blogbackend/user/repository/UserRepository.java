@@ -51,4 +51,13 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             "FROM User u JOIN u.bookmarkedPosts p " +
             "WHERE u.id = :userId AND p.id = :postId")
     boolean isBookmarked(@Param("userId") UUID userId, @Param("postId") UUID postId);
+
+    // 3. NEW: Check if user liked a post
+    @Query("""
+        SELECT CASE WHEN COUNT(p) > 0 THEN TRUE ELSE FALSE END
+        FROM User u
+        JOIN u.likedPosts p
+        WHERE u.id = :userId AND p.id = :postId
+    """)
+    boolean isLiked(@Param("userId") UUID userId, @Param("postId") UUID postId);
 }
