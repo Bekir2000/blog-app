@@ -3,6 +3,7 @@
 import {
   getGetAllCommentsInfiniteQueryKey,
   useCreateComment,
+  useDeleteComment, // 👈 Import this
   useGetAllCommentsInfinite,
 } from "@/api/generated/client/comment-controller/comment-controller";
 import { CreateCommentRequest } from "@/api/generated/model";
@@ -54,11 +55,25 @@ export function usePostComments({ postId }: UsePostCommentsProps) {
       },
     });
 
-  // 👇 UPDATED: Accepts optional parentCommentId
+  // 3. Delete Comment Mutation 👇 (NEW)
+  const { mutateAsync: deleteCommentAsync, isPending: isDeleting } =
+    useDeleteComment({
+      mutation: {
+        onSuccess: () => {
+          // Refresh list to remove the deleted comment
+          queryClient.invalidateQueries({
+            queryKey: getGetAllCommentsInfiniteQueryKey(postId),
+          });
+        },
+      },
+    });
+
+  // --- Helpers ---
+
   const addComment = async (content: string, parentCommentId?: string) => {
     const payload: CreateCommentRequest = {
       content,
-      parentCommentId, // Sent to backend to link reply
+      parentCommentId,
     };
     return createCommentAsync({
       postId,
@@ -66,7 +81,15 @@ export function usePostComments({ postId }: UsePostCommentsProps) {
     });
   };
 
-  // 3. Flatten pages
+  // 👇 Wrapper for delete
+  const handleDelete = async (commentId: string) => {
+    return deleteCommentAsync({
+      postId,
+      commentId,
+    });
+  };
+
+  // 4. Flatten pages
   const comments =
     data?.pages.flatMap((pageResponse) => pageResponse.data.content || []) ||
     [];
@@ -76,7 +99,9 @@ export function usePostComments({ postId }: UsePostCommentsProps) {
     isLoading,
     isError,
     isCreating,
+    isDeleting, // 👈 Exported loading state
     addComment,
+    handleDelete, // 👈 Exported function
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,

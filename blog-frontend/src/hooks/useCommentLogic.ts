@@ -3,7 +3,6 @@
 import { useToggleLike1 } from "@/api/generated/client/comment-controller/comment-controller";
 import { useState } from "react";
 
-// Hook 1: Handles Liking
 export function useCommentLike({
   commentId,
   postId,
@@ -25,7 +24,6 @@ export function useCommentLike({
     const previousLiked = isLiked;
     const newIsLiked = !isLiked;
 
-    // Optimistic Update
     setIsLiked(newIsLiked);
     setLikesCount((prev) => (newIsLiked ? prev + 1 : prev - 1));
 
@@ -33,7 +31,6 @@ export function useCommentLike({
       { postId, commentId },
       {
         onError: () => {
-          // Revert if API fails
           setIsLiked(previousLiked);
           setLikesCount((prev) => (previousLiked ? prev + 1 : prev - 1));
         },
@@ -44,7 +41,6 @@ export function useCommentLike({
   return { isLiked, likesCount, handleLike };
 }
 
-// Hook 2: Handles Replying
 export function useReplyForm({
   commentId,
   onReplySubmit,

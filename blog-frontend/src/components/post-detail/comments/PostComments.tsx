@@ -28,8 +28,11 @@ export function PostComments({
   const {
     comments,
     isLoading,
+    isError,
     isCreating,
+    isDeleting, // 👈 Exported loading state
     addComment,
+    handleDelete, // 👈 Exported function
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -88,6 +91,7 @@ export function PostComments({
                 onReplySubmit={(content, parentId) =>
                   addComment(content, parentId)
                 }
+                onDelete={handleDelete}
               />
             ))}
 
