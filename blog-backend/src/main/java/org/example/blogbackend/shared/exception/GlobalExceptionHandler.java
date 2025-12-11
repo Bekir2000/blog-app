@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -16,6 +17,22 @@ import java.util.List;
 @ControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
+    // --- NEW: Handle Security Access Denied (403) ---
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiErrorResponse> handleAccessDeniedException(AccessDeniedException ex) {
+        ApiErrorResponse error = ApiErrorResponse
+                .builder()
+                .status(HttpStatus.FORBIDDEN.value())
+                .message(ex.getMessage()) // e.g. "You are not authorized to modify this comment"
+                .build();
+
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(error);
+    }
+
+    // --- Existing Handlers ---
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleException(Exception ex) {
@@ -49,7 +66,7 @@ public class GlobalExceptionHandler {
         ApiErrorResponse error = ApiErrorResponse
                 .builder()
                 .status(HttpStatus.CONFLICT.value())
-                .message(ex.getMessage()) // show only for development, not for production
+                .message(ex.getMessage())
                 .build();
 
         return ResponseEntity
@@ -62,7 +79,7 @@ public class GlobalExceptionHandler {
         ApiErrorResponse error = ApiErrorResponse
                 .builder()
                 .status(HttpStatus.UNAUTHORIZED.value())
-                .message(ex.getMessage()) // show only for development, not for production
+                .message(ex.getMessage())
                 .build();
 
         return ResponseEntity
@@ -75,7 +92,7 @@ public class GlobalExceptionHandler {
         ApiErrorResponse error = ApiErrorResponse
                 .builder()
                 .status(HttpStatus.NOT_FOUND.value())
-                .message(ex.getMessage()) // show only for development, not for production
+                .message(ex.getMessage())
                 .build();
 
         return ResponseEntity
@@ -102,5 +119,4 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
-
 }
