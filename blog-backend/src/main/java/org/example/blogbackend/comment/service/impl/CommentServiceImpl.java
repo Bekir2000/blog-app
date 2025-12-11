@@ -79,7 +79,6 @@ public class CommentServiceImpl implements CommentService {
         return pageMapper.toPagedResponse(commentPage.map(commentMapper::toCommentResponse));
     }
 
-    // ... (rest of the methods: toggleLike, update, delete remain exactly the same)
     @Override
     @Transactional
     public void toggleLike(UUID commentId, UUID userId) {
