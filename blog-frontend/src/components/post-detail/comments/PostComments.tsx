@@ -1,6 +1,6 @@
 "use client";
 
-import { UserResponse } from "@/api/generated/model";
+import { CommentResponse, UserResponse } from "@/api/generated/model";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
@@ -15,6 +15,9 @@ interface PostCommentsProps {
   postId: string;
   currentUser?: UserResponse | null;
   commentsCount?: number;
+}
+export interface CommentWithChildren extends CommentResponse {
+  replies?: CommentWithChildren[];
 }
 
 export function PostComments({
@@ -45,7 +48,7 @@ export function PostComments({
     }
   }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const displayCount = comments.length > 0 ? comments.length : commentsCount;
+  const displayCount = commentsCount;
 
   return (
     <section className="mt-12 space-y-8" id="comments">
@@ -79,7 +82,7 @@ export function PostComments({
               <CommentItem
                 key={comment.id}
                 postId={postId}
-                comment={comment}
+                comment={comment as CommentWithChildren}
                 currentUserId={currentUser?.id}
                 // 👇 Handle Nested Replies here
                 onReplySubmit={(content, parentId) =>

@@ -1,9 +1,5 @@
 "use client";
 
-import { useToggleLike1 } from "@/api/generated/client/comment-controller/comment-controller";
-import { CommentResponse } from "@/api/generated/model";
-import { useState } from "react";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,23 +8,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  AlertCircle,
-  Flag,
-  Loader2,
-  MessageSquare,
-  MoreHorizontal,
-  SendHorizonal,
-  ThumbsUp,
-  Trash2,
-} from "lucide-react";
+import { Flag, MoreHorizontal, Trash2 } from "lucide-react";
+import { useState } from "react";
 
-interface CommentWithChildren extends CommentResponse {
+import { CommentResponse } from "@/api/generated/model";
+import { useCommentLike } from "@/hooks/useCommentLogic";
+import { CommentActions } from "./CommentActions";
+import { CommentReplyForm } from "./CommentReplyForm";
+
+export interface CommentWithChildren extends CommentResponse {
   replies?: CommentWithChildren[];
 }
 
-interface CommentItemProps {
+export interface CommentItemProps {
   comment: CommentWithChildren;
   postId: string;
   currentUserId?: string;
@@ -43,16 +35,15 @@ export function CommentItem({
   onDelete,
   onReplySubmit,
 }: CommentItemProps) {
-  const { mutate: toggleLike } = useToggleLike1();
-
-  const [isLiked, setIsLiked] = useState(comment.likedByCurrentUser || false);
-  const [likesCount, setLikesCount] = useState(comment.likesCount || 0);
-
-  // Reply State
   const [isReplying, setIsReplying] = useState(false);
-  const [replyContent, setReplyContent] = useState("");
-  const [isSubmittingReply, setIsSubmittingReply] = useState(false);
-  const [replyError, setReplyError] = useState<string | null>(null);
+
+  // Use the abstracted Like Logic
+  const { isLiked, likesCount, handleLike } = useCommentLike({
+    commentId: comment.id,
+    postId,
+    initialLiked: comment.likedByCurrentUser || false,
+    initialCount: comment.likesCount || 0,
+  });
 
   if (!comment.author || !comment.id) return null;
 
@@ -64,71 +55,9 @@ export function CommentItem({
   const initials = (author.firstName?.[0] || "") + (author.lastName?.[0] || "");
   const isOwnComment = currentUserId === author.id;
 
-  // --- Logic ---
-  const isValidLength =
-    replyContent.length >= 10 && replyContent.length <= 2000;
-
-  const handleLike = () => {
-    if (!comment.id) return;
-    const newIsLiked = !isLiked;
-    setIsLiked(newIsLiked);
-    setLikesCount((prev) => (newIsLiked ? prev + 1 : prev - 1));
-
-    toggleLike(
-      { postId, commentId: comment.id },
-      {
-        onError: () => {
-          setIsLiked(!newIsLiked);
-          setLikesCount((prev) => (!newIsLiked ? prev + 1 : prev - 1));
-        },
-      }
-    );
-  };
-
-  const handleReplySubmit = async () => {
-    // Client-side validation check
-    if (!isValidLength || !comment.id || !onReplySubmit) return;
-
-    setIsSubmittingReply(true);
-    setReplyError(null);
-
-    try {
-      await onReplySubmit(replyContent, comment.id);
-      setIsReplying(false);
-      setReplyContent("");
-    } catch (error: any) {
-      console.error("Reply failed", error);
-      const backendError = error.response?.data || error.body;
-      const validationErrors =
-        backendError?.errors || backendError?.fieldErrors;
-
-      if (Array.isArray(validationErrors)) {
-        const contentError = validationErrors.find(
-          (err: any) => err.field === "content"
-        );
-        if (contentError) {
-          setReplyError(contentError.message);
-          setIsSubmittingReply(false);
-          return;
-        }
-      }
-      setReplyError(
-        backendError?.detail || backendError?.message || "Something went wrong."
-      );
-    } finally {
-      setIsSubmittingReply(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-      handleReplySubmit();
-    }
-  };
-
   return (
     <div className="flex flex-col gap-3">
-      {/* 1. Main Comment Row */}
+      {/* 1. Main Comment Content */}
       <div className="group flex gap-3 items-start">
         <Avatar className="h-8 w-8 border border-border/50">
           <AvatarImage src={author.profileImageUrl || ""} alt={fullName} />
@@ -173,111 +102,23 @@ export function CommentItem({
             {comment.content || ""}
           </p>
 
-          <div className="flex items-center gap-4 pt-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLike}
-              className={`h-6 px-1.5 text-xs hover:bg-transparent ${
-                isLiked ? "text-blue-600" : "text-muted-foreground"
-              }`}
-            >
-              <ThumbsUp
-                className={`mr-1.5 h-3 w-3 ${isLiked ? "fill-current" : ""}`}
-              />
-              {likesCount > 0 ? likesCount : "Like"}
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setIsReplying(!isReplying);
-                setReplyError(null);
-              }}
-              className="h-6 px-1.5 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
-            >
-              <MessageSquare className="mr-1.5 h-3 w-3" />
-              Reply
-            </Button>
-          </div>
+          <CommentActions
+            likesCount={likesCount}
+            isLiked={isLiked}
+            onLike={handleLike}
+            onReplyClick={() => setIsReplying((prev) => !prev)}
+          />
         </div>
       </div>
 
-      {/* 2. Inline Reply Form (MATCHING MAIN FORM STYLE) */}
+      {/* 2. Inline Reply Form */}
       {isReplying && (
-        <div className="ml-11 flex gap-3 items-start animate-in fade-in slide-in-from-top-2">
-          <div className="flex-1 space-y-2">
-            <Textarea
-              value={replyContent}
-              onChange={(e) => {
-                setReplyContent(e.target.value);
-                if (replyError) setReplyError(null);
-              }}
-              onKeyDown={handleKeyDown}
-              placeholder={`Replying to ${fullName}...`}
-              disabled={isSubmittingReply}
-              // 👇 Dynamic Styling: Red border if error, generic focus ring otherwise
-              className={`min-h-[80px] text-sm resize-none bg-background focus-visible:ring-1 ${
-                replyError
-                  ? "border-destructive focus-visible:ring-destructive"
-                  : ""
-              }`}
-              autoFocus
-            />
-
-            {/* 👇 Status Bar (Error Left, Counter/Buttons Right) */}
-            <div className="flex items-center justify-between">
-              {/* Validation Message */}
-              <div className="text-xs min-h-[20px]">
-                {replyError ? (
-                  <span className="flex items-center text-destructive font-medium animate-in fade-in slide-in-from-left-1">
-                    <AlertCircle className="mr-1 h-3 w-3" />
-                    {replyError}
-                  </span>
-                ) : (
-                  // Character Counter
-                  <span
-                    className={`transition-colors ${
-                      replyContent.length > 0 && replyContent.length < 10
-                        ? "text-orange-500"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {replyContent.length}/2000
-                  </span>
-                )}
-              </div>
-
-              {/* Buttons */}
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsReplying(false)}
-                  disabled={isSubmittingReply}
-                  className="h-8 text-xs"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  className="h-8 text-xs"
-                  disabled={!isValidLength || isSubmittingReply}
-                  variant={replyError ? "destructive" : "default"} // Turns red on error retry
-                  onClick={handleReplySubmit}
-                >
-                  {isSubmittingReply ? (
-                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                  ) : (
-                    <SendHorizonal className="mr-2 h-3 w-3" />
-                  )}
-                  Reply
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <CommentReplyForm
+          replyToName={fullName}
+          commentId={comment.id}
+          onReplySubmit={onReplySubmit}
+          onCancel={() => setIsReplying(false)}
+        />
       )}
 
       {/* 3. Recursive Replies */}
