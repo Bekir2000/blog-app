@@ -53,4 +53,8 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
     @Modifying
     @Query(value = "DELETE FROM comment_likes WHERE comment_id = :commentId AND user_id = :userId", nativeQuery = true)
     void removeLike(@Param("commentId") UUID commentId, @Param("userId") UUID userId);
+
+    // 👇 NEW: Check ALL comments for this post
+    @Query("SELECT c.id FROM Comment c JOIN c.likedBy user WHERE c.post.id = :postId AND user.id = :userId")
+    Set<UUID> findLikedCommentIdsByPostId(@Param("postId") UUID postId, @Param("userId") UUID userId);
 }

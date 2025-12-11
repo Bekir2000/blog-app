@@ -41,12 +41,14 @@ public class CommentServiceImpl implements CommentService {
         Page<Comment> rootPage = commentRepository.findRootComments(postId, pageable);
         List<Comment> rootComments = rootPage.getContent();
 
-        // Check likes for visible comments
+        // 2. Batch Optimization: Find ALL likes by this user on this POST
         Set<UUID> likedCommentIds = new HashSet<>();
-        if (userId != null && !rootComments.isEmpty()) {
-            likedCommentIds = commentRepository.findLikedCommentIds(rootComments, userId);
+        if (userId != null) {
+            // This ensures we capture likes for both Roots AND Nested Replies
+            likedCommentIds = commentRepository.findLikedCommentIdsByPostId(postId, userId);
         }
 
+        // 3. Map Recursively
         final Set<UUID> finalLikedIds = likedCommentIds;
         List<CommentResponse> responseList = rootComments.stream()
                 .map(c -> mapToResponseRecursive(c, finalLikedIds))

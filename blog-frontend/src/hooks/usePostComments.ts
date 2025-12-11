@@ -1,9 +1,9 @@
 "use client";
 
 import {
-  getGetAllCommentsInfiniteQueryKey, // The generated infinite hook
+  getGetAllCommentsInfiniteQueryKey,
   useCreateComment,
-  useGetAllCommentsInfinite, // The generated infinite hook
+  useGetAllCommentsInfinite,
 } from "@/api/generated/client/comment-controller/comment-controller";
 import { CreateCommentRequest } from "@/api/generated/model";
 import { useQueryClient } from "@tanstack/react-query";
@@ -15,7 +15,7 @@ interface UsePostCommentsProps {
 export function usePostComments({ postId }: UsePostCommentsProps) {
   const queryClient = useQueryClient();
 
-  // 1. Use the generated Infinite Hook
+  // 1. Fetch Comments (Infinite Scroll for Root Level)
   const {
     data,
     fetchNextPage,
@@ -24,24 +24,17 @@ export function usePostComments({ postId }: UsePostCommentsProps) {
     isLoading,
     isError,
   } = useGetAllCommentsInfinite(
-    // Arg 1: postId
     postId,
-    // Arg 2: Params (Page is handled automatically by pageParam, just set size/sort)
     {
       size: 10,
       sort: ["createdAt,desc"],
     },
-    // Arg 3: React Query Options
     {
       query: {
         initialPageParam: 0,
-        // The 'lastPage' here is the full Axios response object ({ data, status, headers })
         getNextPageParam: (lastPageResponse) => {
           const { isLast, page } = lastPageResponse.data;
-
           if (isLast) return undefined;
-
-          // Return the next page number
           return (page ?? 0) + 1;
         },
       },
@@ -53,7 +46,7 @@ export function usePostComments({ postId }: UsePostCommentsProps) {
     useCreateComment({
       mutation: {
         onSuccess: () => {
-          // Invalidate the specific infinite query key to refresh the list
+          // Refresh list to show new comment (root or nested)
           queryClient.invalidateQueries({
             queryKey: getGetAllCommentsInfiniteQueryKey(postId),
           });
@@ -61,17 +54,19 @@ export function usePostComments({ postId }: UsePostCommentsProps) {
       },
     });
 
-  const addComment = async (content: string) => {
-    const payload: CreateCommentRequest = { content };
+  // 👇 UPDATED: Accepts optional parentCommentId
+  const addComment = async (content: string, parentCommentId?: string) => {
+    const payload: CreateCommentRequest = {
+      content,
+      parentCommentId, // Sent to backend to link reply
+    };
     return createCommentAsync({
       postId,
       data: payload,
     });
   };
 
-  // 3. Flatten the pages
-  // Note: Orval wraps the response in an object containing { data, status, etc. }
-  // So we access page.data.content
+  // 3. Flatten pages
   const comments =
     data?.pages.flatMap((pageResponse) => pageResponse.data.content || []) ||
     [];

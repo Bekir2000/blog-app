@@ -10,11 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, Loader2, SendHorizonal } from "lucide-react";
 
-// 1. Zod Schema (Matches Backend DTO)
+// 1. Zod Schema
 const commentSchema = z.object({
   content: z
     .string()
-    .min(10, "Comment must be at least 10 characters.") // Client-side check
+    .min(10, "Comment must be at least 10 characters.")
     .max(2000, "Comment cannot exceed 2000 characters."),
 });
 
@@ -22,7 +22,6 @@ type CommentFormValues = z.infer<typeof commentSchema>;
 
 interface CommentFormProps {
   currentUser?: UserResponse | null;
-  // Note: onSubmit now returns a Promise
   onSubmit: (content: string) => Promise<any>;
   isSubmitting: boolean;
 }
@@ -37,7 +36,7 @@ export function CommentForm({
     handleSubmit,
     reset,
     watch,
-    setError, // Used to set Server Errors manually
+    setError,
     formState: { errors, isValid },
   } = useForm<CommentFormValues>({
     resolver: zodResolver(commentSchema),
@@ -45,7 +44,6 @@ export function CommentForm({
     mode: "onChange",
   });
 
-  // Helper for User Avatar
   const fullName = currentUser
     ? `${currentUser.firstName} ${currentUser.lastName}`.trim() ||
       currentUser.username
@@ -56,40 +54,45 @@ export function CommentForm({
 
   const currentContent = watch("content") || "";
 
-  // 2. The Submit Handler
+  // 👇 FIXED SUBMIT HANDLER
   const onFormSubmit = async (data: CommentFormValues) => {
     try {
-      // Await the API call
       await onSubmit(data.content);
-      reset(); // Only clear form if API succeeds
+      reset();
     } catch (error: any) {
-      console.log("🔥 FULL ERROR OBJECT:", error);
-      console.log("response:", error.response);
-      console.log("data:", error.response?.data);
-      // 3. Catch Server Validation Errors
+      console.log("🔥 Comment Submission Error:", error);
+
+      // 1. Extract the data object from your custom ApiError
       const backendError = error.response?.data;
 
-      if (backendError?.fieldErrors) {
-        // Find the error specifically for "content"
-        const contentError = backendError.fieldErrors.find(
+      // 2. Check for Validation Errors (Problem Details 'errors' OR Legacy 'fieldErrors')
+      const validationErrors =
+        backendError?.errors || backendError?.fieldErrors;
+
+      if (Array.isArray(validationErrors)) {
+        // Find the specific error for the "content" field
+        const contentError = validationErrors.find(
           (err: any) => err.field === "content"
         );
 
         if (contentError) {
-          // 4. Manually trigger the RED error state on the input
+          // 3. Set the error manually on the input field
           setError("content", {
             type: "server",
-            message: contentError.message, // e.g., "Content must be between 10..."
+            message: contentError.message, // "Content must be between 10..."
           });
+          return; // Stop here so we don't set a generic error
         }
-      } else {
-        // Fallback for generic 500 errors
-        setError("content", {
-          type: "server",
-          message:
-            backendError?.message || "Something went wrong. Please try again.",
-        });
       }
+
+      // 4. Fallback for generic 400/500 errors
+      setError("content", {
+        type: "server",
+        message:
+          backendError?.detail ||
+          backendError?.message ||
+          "Something went wrong. Please try again.",
+      });
     }
   };
 
@@ -127,7 +130,7 @@ export function CommentForm({
           placeholder="What are your thoughts?"
           disabled={isSubmitting}
           onKeyDown={handleKeyDown}
-          // The border turns red automatically if errors.content exists (either from Zod OR Server)
+          // Highlight border red if error exists
           className={`min-h-[100px] resize-none bg-background focus-visible:ring-1 text-sm ${
             errors.content
               ? "border-destructive focus-visible:ring-destructive"

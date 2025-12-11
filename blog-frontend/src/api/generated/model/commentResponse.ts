@@ -13,5 +13,6 @@ export interface CommentResponse {
   postId?: string;
   likesCount?: number;
   replyCount?: number;
+  likedByCurrentUser?: boolean;
   replies?: unknown[];
 }

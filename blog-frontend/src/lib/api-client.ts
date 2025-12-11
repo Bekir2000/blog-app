@@ -1,7 +1,6 @@
 import { getAccessToken } from "./auth";
 
 // --- Custom Error Class ---
-// This allows us to pass the backend JSON to the UI
 export class ApiError extends Error {
   response: {
     data: any;
@@ -21,7 +20,6 @@ export class ApiError extends Error {
 }
 
 // --- Types ---
-
 interface FetchOptions extends Omit<RequestInit, "body"> {
   headers?: HeadersInit;
   data?: unknown;
@@ -38,9 +36,21 @@ interface ApiResponse<T> {
 
 const getBody = async <T>(c: Response): Promise<T> => {
   if (c.status === 204) return null as T;
+
   const contentType = c.headers.get("content-type");
-  if (contentType?.includes("application/json")) return c.json();
+
+  // 👇 FIX 1: Robust JSON detection
+  // Spring Boot errors often use "application/problem+json", which might have been missed
+  if (
+    contentType &&
+    (contentType.includes("application/json") ||
+      contentType.includes("application/problem+json"))
+  ) {
+    return c.json();
+  }
+
   if (contentType?.includes("application/pdf")) return c.blob() as unknown as T;
+
   return c.text() as unknown as T;
 };
 
@@ -101,21 +111,31 @@ const coreFetch = async <T>(
 
   const response = await fetch(cleanUrl, config);
 
-  // --- CHANGED LOGIC START ---
   if (!response.ok) {
-    // 1. Try to parse the error body (JSON)
-    const errorBody = await getBody<any>(response).catch(() => null);
+    // 1. Try to get the body
+    let errorBody = await getBody<any>(response).catch(() => null);
+
+    // 👇 FIX 2: Safety Net
+    // If headers were missing or weird, 'getBody' might have returned a string.
+    // We try to parse it as JSON here so the UI receives a real Object.
+    if (typeof errorBody === "string") {
+      try {
+        errorBody = JSON.parse(errorBody);
+      } catch (e) {
+        // If it's really just a string (e.g. "Unauthorized"), keep it as is.
+      }
+    }
 
     // 2. Throw our custom error with the data attached
     throw new ApiError(
-      errorBody?.message ||
-        `API Error: ${response.status} ${response.statusText}`,
+      errorBody?.detail ||
+        errorBody?.message ||
+        `API Error: ${response.status}`,
       errorBody,
       response.status,
       response.statusText
     );
   }
-  // --- CHANGED LOGIC END ---
 
   const responseData = await getBody<T>(response);
 
@@ -132,13 +152,6 @@ export const clientFetch = async <T>(
   url: string,
   options?: any
 ): Promise<ApiResponse<T>> => {
-  // Simulating delay is fine for dev, consider removing for prod
-  // await new Promise((resolve) => setTimeout(resolve, 2000));
-
-  // NOTE: Orval expects the return type to just be the data usually,
-  // but your coreFetch returns { data, status, headers }.
-  // If Orval behaves weirdly, you might need to return `response.data` here.
-  // For now, keeping your structure:
   return coreFetch<T>(url, options);
 };
 

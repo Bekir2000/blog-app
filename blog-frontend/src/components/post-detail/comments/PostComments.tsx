@@ -3,10 +3,11 @@
 import { UserResponse } from "@/api/generated/model";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { usePostComments } from "@/hooks/usePostComments";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
-import { useInView } from "react-intersection-observer"; // 👈 Import this
+import { useInView } from "react-intersection-observer";
+
+import { usePostComments } from "@/hooks/usePostComments";
 import { CommentForm } from "./CommentForm";
 import { CommentItem } from "./CommentItem";
 
@@ -26,7 +27,6 @@ export function PostComments({
     isLoading,
     isCreating,
     addComment,
-    // 👇 Destructure the new infinite scroll props
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -34,21 +34,17 @@ export function PostComments({
     postId,
   });
 
-  // 👇 Setup the "sensor"
-  // When 'ref' appears on screen, 'inView' becomes true
   const { ref, inView } = useInView({
     threshold: 0,
-    rootMargin: "100px", // Load when user is 100px away from bottom
+    rootMargin: "100px",
   });
 
-  // 👇 Trigger fetch automatically
   useEffect(() => {
     if (inView && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
   }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Use the real length if comments are loaded, otherwise fallback to prop
   const displayCount = comments.length > 0 ? comments.length : commentsCount;
 
   return (
@@ -59,15 +55,15 @@ export function PostComments({
         Comments ({displayCount})
       </h3>
 
+      {/* Main Form: Submits ROOT comments (parentId undefined) */}
       <CommentForm
         currentUser={currentUser}
-        onSubmit={addComment}
+        onSubmit={(content) => addComment(content)}
         isSubmitting={isCreating}
       />
 
       <div className="space-y-6">
         {isLoading ? (
-          // Loading Skeletons
           Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="flex gap-4">
               <Skeleton className="h-9 w-9 rounded-full" />
@@ -79,17 +75,19 @@ export function PostComments({
           ))
         ) : comments.length > 0 ? (
           <>
-            {/* Render List */}
             {comments.map((comment) => (
               <CommentItem
                 key={comment.id}
-                postId={postId} // 👈 Pass postId down needed for Likes
+                postId={postId}
                 comment={comment}
                 currentUserId={currentUser?.id}
+                // 👇 Handle Nested Replies here
+                onReplySubmit={(content, parentId) =>
+                  addComment(content, parentId)
+                }
               />
             ))}
 
-            {/* 👇 The Infinite Scroll Sensor / Loader */}
             <div ref={ref} className="flex justify-center py-4 min-h-[50px]">
               {isFetchingNextPage && (
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
