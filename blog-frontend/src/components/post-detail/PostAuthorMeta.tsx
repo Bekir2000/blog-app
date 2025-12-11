@@ -1,8 +1,13 @@
+"use client";
+
 import { PostDetailResponse } from "@/api/generated/model";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { MoreHorizontal, PlayCircle, Share2 } from "lucide-react";
+import { MoreHorizontal, PlayCircle } from "lucide-react";
+
+// Import your new component
+import { PostShareMenu } from "./PostShareMenu";
 
 interface PostAuthorMetaProps {
   author: PostDetailResponse["author"];
@@ -12,6 +17,7 @@ interface PostAuthorMetaProps {
   isLoading: boolean;
   isOwnPost: boolean;
   onToggleFollow: () => void;
+  postTitle?: string;
 }
 
 export function PostAuthorMeta({
@@ -22,31 +28,36 @@ export function PostAuthorMeta({
   isLoading,
   isOwnPost,
   onToggleFollow,
+  postTitle,
 }: PostAuthorMetaProps) {
   return (
     <div className="mb-8 flex items-center justify-between">
+      {/* LEFT: Author Profile & Meta */}
       <div className="flex items-center gap-3">
-        <Avatar className="h-10 w-10 cursor-pointer">
-          <AvatarImage src={author?.profileImageUrl} />
-          <AvatarFallback>{author?.username?.[0]}</AvatarFallback>
+        <Avatar className="h-10 w-10 cursor-pointer border border-border/50">
+          <AvatarImage src={author?.profileImageUrl} alt={author?.username} />
+          <AvatarFallback className="text-xs bg-muted text-muted-foreground font-medium">
+            {author?.username?.[0]?.toUpperCase() || "?"}
+          </AvatarFallback>
         </Avatar>
+
         <div className="flex flex-col text-sm">
+          {/* Top Row: Name + Follow Button */}
           <div className="flex items-center gap-2">
-            <span className="font-medium text-gray-900 dark:text-gray-100">
+            <span className="font-semibold text-foreground">
               {author?.firstName} {author?.lastName}
             </span>
 
-            {/* Follow Button Logic */}
             {!isOwnPost && (
               <>
-                <span className="text-gray-400">·</span>
+                <span className="text-muted-foreground">·</span>
                 <button
                   type="button"
                   onClick={onToggleFollow}
                   disabled={isLoading}
-                  className={`font-medium hover:underline disabled:opacity-50 transition-colors ${
+                  className={`font-medium text-xs hover:underline disabled:opacity-50 transition-colors ${
                     isFollowing
-                      ? "text-red-500 hover:text-red-600"
+                      ? "text-muted-foreground hover:text-foreground"
                       : "text-green-600 hover:text-green-700"
                   }`}
                 >
@@ -56,24 +67,35 @@ export function PostAuthorMeta({
             )}
           </div>
 
-          <div className="flex items-center gap-1 text-gray-500">
-            <span>{readingTime} min read</span>
+          {/* Bottom Row: Date + Read Time */}
+          <div className="flex items-center gap-1 text-muted-foreground text-xs">
+            <span>{readingTime || 1} min read</span>
             <span>·</span>
             <span>
-              {createdAt ? format(new Date(createdAt), "MMM d, yyyy") : ""}
+              {createdAt
+                ? format(new Date(createdAt), "MMM d, yyyy")
+                : "Just now"}
             </span>
-            <span className="ml-2 cursor-pointer hover:text-gray-800">
+            <span
+              className="ml-2 cursor-pointer hover:text-foreground transition-colors"
+              title="Listen to post"
+            >
               <PlayCircle className="w-4 h-4" />
             </span>
           </div>
         </div>
       </div>
 
-      <div className="flex gap-2">
-        <Button variant="ghost" size="icon" className="text-gray-500">
-          <Share2 className="w-5 h-5" />
-        </Button>
-        <Button variant="ghost" size="icon" className="text-gray-500">
+      {/* RIGHT: Actions */}
+      <div className="flex gap-1">
+        {/* 👇 Used here */}
+        <PostShareMenu postTitle={postTitle} />
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-muted-foreground hover:text-foreground hover:bg-muted"
+        >
           <MoreHorizontal className="w-5 h-5" />
         </Button>
       </div>
