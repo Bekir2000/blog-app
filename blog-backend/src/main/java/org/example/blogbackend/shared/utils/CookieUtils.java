@@ -1,4 +1,4 @@
-package org.example.blogbackend.common.utils;
+package org.example.blogbackend.shared.utils;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

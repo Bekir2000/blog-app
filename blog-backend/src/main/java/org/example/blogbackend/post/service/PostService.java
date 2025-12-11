@@ -1,11 +1,10 @@
 package org.example.blogbackend.post.service;
 
 import org.example.blogbackend.post.dto.request.PostRequest;
-import org.example.blogbackend.post.dto.response.PagedResponse;
+import org.example.blogbackend.shared.dto.PagedResponse;
 import org.example.blogbackend.post.dto.response.PostCardResponse;
 import org.example.blogbackend.post.dto.response.PostDetailResponse;
 import org.example.blogbackend.post.dto.response.PostResponse;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;

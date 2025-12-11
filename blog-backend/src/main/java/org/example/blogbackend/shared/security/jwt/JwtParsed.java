@@ -1,4 +1,4 @@
-package org.example.blogbackend.common.security.jwt;
+package org.example.blogbackend.shared.security.jwt;
 
 import lombok.*;
 

@@ -1,12 +1,10 @@
-package org.example.blogbackend.common.config;
+package org.example.blogbackend.shared.config;
 
 import jakarta.servlet.http.HttpServletResponse;
-import org.example.blogbackend.user.model.entity.User;
 import org.example.blogbackend.user.repository.UserRepository;
-import org.example.blogbackend.common.security.BlogUserDetailsService;
-import org.example.blogbackend.common.security.JwtAuthenticationFilter;
-import org.example.blogbackend.common.security.jwt.JwtUtil;
-import org.example.blogbackend.user.service.UserService;
+import org.example.blogbackend.shared.security.BlogUserDetailsService;
+import org.example.blogbackend.shared.security.JwtAuthenticationFilter;
+import org.example.blogbackend.shared.security.jwt.JwtUtil;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

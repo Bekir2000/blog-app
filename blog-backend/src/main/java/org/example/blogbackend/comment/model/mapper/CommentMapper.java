@@ -10,8 +10,7 @@ import org.mapstruct.ReportingPolicy;
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface CommentMapper {
 
-    Comment toEntity(CreateCommentRequest createCommentRequest);
+    Comment toComment(CreateCommentRequest createCommentRequest);
+    CommentResponse toCommentResponse(Comment comment);
 
-    @Mapping(source = "post.id", target = "postId")
-    CommentResponse toDto(Comment comment);
 }

@@ -1,4 +1,4 @@
-package org.example.blogbackend.common.exception;
+package org.example.blogbackend.shared.exception;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

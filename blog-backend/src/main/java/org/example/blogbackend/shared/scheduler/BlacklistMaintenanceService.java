@@ -1,4 +1,4 @@
-package org.example.blogbackend.scheduler;
+package org.example.blogbackend.shared.scheduler;
 
 import lombok.RequiredArgsConstructor;
 import org.example.blogbackend.auth.repository.BlacklistedRefreshTokenRepository;

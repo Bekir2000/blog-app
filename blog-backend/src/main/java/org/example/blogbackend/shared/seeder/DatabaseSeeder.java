@@ -1,4 +1,4 @@
-package org.example.blogbackend.common.seeder;
+package org.example.blogbackend.shared.seeder;
 
 import net.datafaker.Faker;
 import org.example.blogbackend.category.model.entity.Category;

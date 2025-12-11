@@ -1,11 +1,11 @@
-package org.example.blogbackend.common.security.jwt;
+package org.example.blogbackend.shared.security.jwt;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.security.Keys;
-import org.example.blogbackend.common.config.JwtProperties;
+import org.example.blogbackend.shared.config.JwtProperties;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;

@@ -7,7 +7,7 @@ import org.example.blogbackend.category.model.entity.Category;
 import org.example.blogbackend.category.repository.CategoryRepository;
 import org.example.blogbackend.category.service.CategoryService;
 import org.example.blogbackend.post.dto.request.PostRequest;
-import org.example.blogbackend.post.dto.response.PagedResponse;
+import org.example.blogbackend.shared.dto.PagedResponse;
 import org.example.blogbackend.post.dto.response.PostCardResponse;
 import org.example.blogbackend.post.dto.response.PostDetailResponse;
 import org.example.blogbackend.post.dto.response.PostResponse;
@@ -17,6 +17,7 @@ import org.example.blogbackend.post.model.entity.Post;
 import org.example.blogbackend.post.model.projection.PostCardView;
 import org.example.blogbackend.post.repository.PostRepository;
 import org.example.blogbackend.post.service.PostService;
+import org.example.blogbackend.shared.mapper.PageMapper;
 import org.example.blogbackend.tag.model.dto.request.CreateTagRequest;
 import org.example.blogbackend.tag.model.entity.Tag;
 import org.example.blogbackend.tag.repository.TagRepository;
@@ -50,6 +51,7 @@ public class PostServiceImpl implements PostService {
     private final TagService tagService;
     private final CategoryService categoryService;
     private final PostMapper postMapper;
+    private final PageMapper pageMapper;
 
     @Override
     @Transactional
@@ -114,7 +116,7 @@ public class PostServiceImpl implements PostService {
                 )
         );
 
-        return postMapper.toPagedResponse(responsePage);
+        return pageMapper.toPagedResponse(responsePage);
     }
 
     @Override

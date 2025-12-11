@@ -5,19 +5,15 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.example.blogbackend.auth.model.dto.request.RefreshRequest;
 import org.example.blogbackend.auth.service.AuthService;
-import org.example.blogbackend.user.model.dto.response.UserResponse;
 import org.example.blogbackend.user.mapper.UserMapper;
 import org.example.blogbackend.auth.model.dto.request.LoginRequest;
 import org.example.blogbackend.auth.model.dto.request.RegisterRequest;
 import org.example.blogbackend.auth.model.dto.response.AuthResponse;
-import org.example.blogbackend.user.model.entity.User;
-import org.example.blogbackend.common.security.BlogUserDetails;
-import org.example.blogbackend.common.security.jwt.JwtParsed;
-import org.example.blogbackend.common.security.jwt.RefreshCookieService;
+import org.example.blogbackend.shared.security.jwt.JwtParsed;
+import org.example.blogbackend.shared.security.jwt.RefreshCookieService;
 import org.example.blogbackend.user.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController

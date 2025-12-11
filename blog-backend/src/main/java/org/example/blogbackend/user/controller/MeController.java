@@ -1,11 +1,9 @@
 package org.example.blogbackend.user.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.example.blogbackend.common.security.BlogUserDetails;
-import org.example.blogbackend.post.dto.response.PagedResponse;
+import org.example.blogbackend.shared.security.BlogUserDetails;
+import org.example.blogbackend.shared.dto.PagedResponse;
 import org.example.blogbackend.post.dto.response.PostCardResponse;
-import org.example.blogbackend.post.dto.response.PostResponse;
-import org.example.blogbackend.post.mapper.PostMapper;
 import org.example.blogbackend.user.mapper.UserMapper;
 import org.example.blogbackend.user.model.dto.CreateBookmarkRequest;
 import org.example.blogbackend.user.model.dto.response.UserResponse;

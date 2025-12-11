@@ -1,4 +1,4 @@
-package org.example.blogbackend.common.exception;
+package org.example.blogbackend.shared.exception;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;

@@ -1,15 +1,12 @@
-package org.example.blogbackend.common.config;
+package org.example.blogbackend.shared.config;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Positive;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.validator.constraints.time.DurationMin;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 
 @Getter
 @Setter

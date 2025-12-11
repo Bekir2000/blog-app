@@ -1,6 +1,6 @@
 package org.example.blogbackend.user.service;
 
-import org.example.blogbackend.post.dto.response.PagedResponse;
+import org.example.blogbackend.shared.dto.PagedResponse;
 import org.example.blogbackend.post.dto.response.PostCardResponse;
 import org.springframework.data.domain.Pageable;
 

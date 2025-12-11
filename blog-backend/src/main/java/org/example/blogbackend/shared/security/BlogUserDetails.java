@@ -1,4 +1,4 @@
-package org.example.blogbackend.common.security;
+package org.example.blogbackend.shared.security;
 
 import lombok.Builder;
 import lombok.Getter;

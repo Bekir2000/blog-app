@@ -1,11 +1,12 @@
 package org.example.blogbackend.user.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import org.example.blogbackend.post.dto.response.PagedResponse;
+import org.example.blogbackend.shared.dto.PagedResponse;
 import org.example.blogbackend.post.dto.response.PostCardResponse;
 import org.example.blogbackend.post.mapper.PostMapper;
 import org.example.blogbackend.post.model.projection.PostCardView;
 import org.example.blogbackend.post.repository.PostRepository;
+import org.example.blogbackend.shared.mapper.PageMapper;
 import org.example.blogbackend.user.service.BookmarkService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +21,7 @@ public class bookmarkServiceImpl implements BookmarkService {
 
     private final PostRepository postRepository;
     private final PostMapper postMapper;
+    private final PageMapper pageMapper;
 
     @Transactional(readOnly = true)
     public PagedResponse<PostCardResponse> getBookmarksForUser(UUID userId, Pageable pageable) {
@@ -28,6 +30,6 @@ public class bookmarkServiceImpl implements BookmarkService {
         Page<PostCardResponse> responsePage = postsPage
                 .map(post -> postMapper.toPostCardResponse(post, true));
 
-        return postMapper.toPagedResponse(responsePage);
+        return pageMapper.toPagedResponse(responsePage);
     }
 }

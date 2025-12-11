@@ -1,7 +1,7 @@
 package org.example.blogbackend.auth.service;
 
 import org.example.blogbackend.auth.model.dto.request.RegisterRequest;
-import org.example.blogbackend.common.security.jwt.JwtParsed;
+import org.example.blogbackend.shared.security.jwt.JwtParsed;
 
 public interface AuthService {
 

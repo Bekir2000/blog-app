@@ -1,4 +1,4 @@
-package org.example.blogbackend.post.dto.response;
+package org.example.blogbackend.shared.dto;
 
 import java.util.List;
 

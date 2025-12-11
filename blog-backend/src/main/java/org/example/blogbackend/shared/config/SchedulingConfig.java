@@ -1,4 +1,4 @@
-package org.example.blogbackend.common.config;
+package org.example.blogbackend.shared.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;

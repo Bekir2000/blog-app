@@ -1,10 +1,10 @@
-package org.example.blogbackend.common.security.jwt;
+package org.example.blogbackend.shared.security.jwt;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.example.blogbackend.common.config.RefreshCookieProperties;
-import org.example.blogbackend.common.utils.CookieUtils;
+import org.example.blogbackend.shared.config.RefreshCookieProperties;
+import org.example.blogbackend.shared.utils.CookieUtils;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;

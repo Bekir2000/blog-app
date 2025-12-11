@@ -1,4 +1,4 @@
-package org.example.blogbackend.common.security;
+package org.example.blogbackend.shared.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -6,9 +6,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.blogbackend.common.security.jwt.JwtParsed;
-import org.example.blogbackend.common.security.jwt.JwtTokenType;
-import org.example.blogbackend.common.security.jwt.JwtUtil;
+import org.example.blogbackend.shared.security.jwt.JwtParsed;
+import org.example.blogbackend.shared.security.jwt.JwtTokenType;
+import org.example.blogbackend.shared.security.jwt.JwtUtil;
 import org.example.blogbackend.user.repository.UserRepository; // <--- 1. Import Repo
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;

@@ -1,7 +1,6 @@
 package org.example.blogbackend.user.service;
 
 import org.example.blogbackend.auth.model.dto.request.RegisterRequest;
-import org.example.blogbackend.post.dto.response.PagedResponse;
 import org.example.blogbackend.user.model.entity.User;
 
 import java.util.List;

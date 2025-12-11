@@ -1,7 +1,7 @@
 package org.example.blogbackend.post.mapper;
 
 import org.example.blogbackend.post.dto.request.PostRequest;
-import org.example.blogbackend.post.dto.response.PagedResponse;
+import org.example.blogbackend.shared.dto.PagedResponse;
 import org.example.blogbackend.post.dto.response.PostCardResponse;
 import org.example.blogbackend.post.dto.response.PostDetailResponse;
 import org.example.blogbackend.post.dto.response.PostResponse;
@@ -33,18 +33,4 @@ public interface PostMapper {
     @Mapping(target = "tags", ignore = true)
     void updatePostFromRequest(PostRequest request, @MappingTarget Post post);
 
-    // This generic method handles any type of Page<T>
-    default <T> PagedResponse<T> toPagedResponse(Page<T> page) {
-        if (page == null) {
-            return null;
-        }
-        return new PagedResponse<>(
-                page.getContent(),
-                page.getNumber(),
-                page.getSize(),
-                page.getTotalElements(),
-                page.getTotalPages(),
-                page.isLast()
-        );
-    }
 }
