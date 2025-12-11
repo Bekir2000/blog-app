@@ -26,7 +26,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CommentServiceImpl implements CommentService {
 
-    private static final String COMMENT_NOT_FOUND = "Comment with ID %s not found for post %s";
+    private static final String COMMENT_NOT_FOUND = "Comment with ID %s not found";
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
@@ -37,7 +37,6 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public CommentResponse createComment(UUID postId, UUID userId, CreateCommentRequest request) {
-        // Efficient: creates a reference proxy without a DB hit
         Post post = postRepository.getReferenceById(postId);
         User author = userRepository.getReferenceById(userId);
 
@@ -45,35 +44,62 @@ public class CommentServiceImpl implements CommentService {
         comment.setPost(post);
         comment.setAuthor(author);
 
-        Comment savedComment = commentRepository.save(comment);
+        // --- UNLIMITED NESTING LOGIC ---
+        if (request.parentCommentId() != null) {
+            // 1. We just need to ensure the parent exists.
+            // Using getReferenceById is faster (no DB select), but if the ID is invalid,
+            // it will crash on save.
+            // Better to use existsById for a polite error, OR just findById if you want to be safe.
+            if (!commentRepository.existsById(request.parentCommentId())) {
+                throw new EntityNotFoundException("Parent comment not found");
+            }
 
-        // Ensure this method uses a custom @Modifying @Query in the Repo for atomicity
+            // 2. Link the comment to its parent
+            Comment parentProxy = commentRepository.getReferenceById(request.parentCommentId());
+            comment.setParent(parentProxy);
+        }
+        // -------------------------------
+
+        Comment savedComment = commentRepository.save(comment);
         postRepository.incrementCommentsCount(postId);
 
         return commentMapper.toCommentResponse(savedComment);
     }
 
     @Override
-    @Transactional(readOnly = true) // Performance: optimizations for read-only
+    @Transactional(readOnly = true)
     public PagedResponse<CommentResponse> getCommentsByPostId(UUID postId, Pageable pageable) {
-        // Optimization: Removed 'postRepository.existsById(postId)'.
-        // If the post doesn't exist, we just return an empty page of comments.
-        // This saves 1 database round-trip per request.
-
-        // Critical: Ensure commentRepository.findAllByPostId uses "JOIN FETCH c.author"
-        // to avoid the N+1 Select problem.
-        Page<Comment> commentPage = commentRepository.findAllByPostId(postId, pageable);
+        // This query fetches the "Roots" (Level 0).
+        // The Mapper will then call ".getReplies()".
+        // Because of @BatchSize(size=20) in your Entity:
+        // - Hibernate will fetch Level 1 for ALL loaded roots in 1 query.
+        // - Then Level 2 in 1 query... and so on.
+        Page<Comment> commentPage = commentRepository.findAllRootCommentsByPostId(postId, pageable);
 
         return pageMapper.toPagedResponse(commentPage.map(commentMapper::toCommentResponse));
+    }
+
+    // ... (rest of the methods: toggleLike, update, delete remain exactly the same)
+    @Override
+    @Transactional
+    public void toggleLike(UUID commentId, UUID userId) {
+        if (!commentRepository.existsById(commentId)) {
+            throw new EntityNotFoundException(String.format(COMMENT_NOT_FOUND, commentId));
+        }
+        if (commentRepository.existsLikeByCommentIdAndUserId(commentId, userId)) {
+            commentRepository.removeLike(commentId, userId);
+            commentRepository.decrementLikes(commentId);
+        } else {
+            commentRepository.addLike(commentId, userId);
+            commentRepository.incrementLikes(commentId);
+        }
     }
 
     @Override
     @Transactional(readOnly = true)
     public CommentResponse getCommentById(UUID postId, UUID commentId) {
         Comment comment = commentRepository.findByIdAndPostId(commentId, postId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        String.format(COMMENT_NOT_FOUND, commentId, postId)));
-
+                .orElseThrow(() -> new EntityNotFoundException(String.format(COMMENT_NOT_FOUND, commentId)));
         return commentMapper.toCommentResponse(comment);
     }
 
@@ -81,16 +107,10 @@ public class CommentServiceImpl implements CommentService {
     @Transactional
     public CommentResponse updateComment(UUID postId, UUID commentId, UUID userId, CreateCommentRequest request) {
         Comment comment = commentRepository.findByIdAndPostId(commentId, postId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        String.format(COMMENT_NOT_FOUND, commentId, postId)));
+                .orElseThrow(() -> new EntityNotFoundException(String.format(COMMENT_NOT_FOUND, commentId)));
 
-        // Security: Check ownership
         validateOwnership(comment, userId);
-
-        // Logic: Directly update the entity.
-        // Hibernate "Dirty Checking" will automatically save changes at the end of the transaction.
         comment.setContent(request.content());
-
         return commentMapper.toCommentResponse(comment);
     }
 
@@ -98,21 +118,13 @@ public class CommentServiceImpl implements CommentService {
     @Transactional
     public void deleteComment(UUID postId, UUID commentId, UUID userId) {
         Comment comment = commentRepository.findByIdAndPostId(commentId, postId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        String.format(COMMENT_NOT_FOUND, commentId, postId)));
+                .orElseThrow(() -> new EntityNotFoundException(String.format(COMMENT_NOT_FOUND, commentId)));
 
-        // Security: Check ownership
         validateOwnership(comment, userId);
-
         commentRepository.delete(comment);
-
-        // Ensure this uses @Modifying in Repo
         postRepository.decrementCommentsCount(postId);
     }
 
-    /**
-     * Helper method to ensure only the author can modify their comment.
-     */
     private void validateOwnership(Comment comment, UUID userId) {
         if (!comment.getAuthor().getId().equals(userId)) {
             throw new AccessDeniedException("You are not authorized to modify this comment");

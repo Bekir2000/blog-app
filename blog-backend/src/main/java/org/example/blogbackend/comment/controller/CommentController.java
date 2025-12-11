@@ -84,4 +84,14 @@ public class CommentController {
         commentService.deleteComment(postId, commentId, userDetails.getUserId()); // Pass User ID for ownership check
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping(path = "/{commentId}/like")
+    public ResponseEntity<Void> toggleLike(
+            @PathVariable UUID postId,
+            @PathVariable UUID commentId,
+            @AuthenticationPrincipal BlogUserDetails userDetails) {
+
+        commentService.toggleLike(commentId, userDetails.getUserId());
+        return ResponseEntity.ok().build();
+    }
 }

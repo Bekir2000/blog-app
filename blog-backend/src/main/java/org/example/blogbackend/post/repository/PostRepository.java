@@ -60,7 +60,7 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
      * Query optimization: Joins from Post -> User to utilize the PostCardView projection efficiently.
      * Assumes a generic ManyToMany or mapped relationship exists.
      */
-    @Query("SELECT p FROM Post p JOIN p.bookmarkedByUsers u WHERE u.id = :userId")
+    @Query("SELECT p FROM User u JOIN u.bookmarkedPosts p WHERE u.id = :userId")
     Page<PostCardView> findBookmarkedPostsByUserId(@Param("userId") UUID userId, Pageable pageable);
 
     // ========================================================================

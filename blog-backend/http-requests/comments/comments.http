@@ -1,0 +1,82 @@
+### Variables
+@host = localhost:8080
+
+# ==========================================
+# 1. CREATE ROOT COMMENT
+# ==========================================
+POST http://{{host}}/api/v1/posts/{{postId}}/comments
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "content": "This is a root level comment (Level 0)."
+}
+
+> {%
+    client.global.set("rootCommentId", response.body.id);
+    client.log("Root Comment ID: " + response.body.id);
+%}
+
+###
+
+# ==========================================
+# 2. CREATE REPLY (Nested Comment)
+# ==========================================
+POST http://{{host}}/api/v1/posts/{{postId}}/comments
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "content": "This is a reply to the root comment (Level 1).",
+  "parentCommentId": "{{rootCommentId}}"
+}
+
+> {%
+    client.global.set("replyCommentId", response.body.id);
+    client.log("Reply Comment ID: " + response.body.id);
+%}
+
+###
+
+# ==========================================
+# 3. GET ALL COMMENTS (Feed)
+# ==========================================
+GET http://{{host}}/api/v1/posts/{{postId}}/comments?page=0&size=10
+Authorization: Bearer {{access_token}}
+
+###
+
+# ==========================================
+# 4. TOGGLE LIKE ON ROOT COMMENT
+# ==========================================
+POST http://{{host}}/api/v1/posts/{{postId}}/comments/{{rootCommentId}}/like
+Authorization: Bearer {{access_token}}
+
+###
+
+# ==========================================
+# 5. GET SINGLE COMMENT
+# ==========================================
+GET http://{{host}}/api/v1/posts/{{postId}}/comments/{{rootCommentId}}
+Authorization: Bearer {{access_token}}
+
+###
+
+# ==========================================
+# 6. UPDATE COMMENT
+# ==========================================
+PUT http://{{host}}/api/v1/posts/{{postId}}/comments/{{rootCommentId}}
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "content": "Updated content: This comment has been edited."
+}
+
+###
+
+# ==========================================
+# 7. DELETE COMMENT
+# ==========================================
+DELETE http://{{host}}/api/v1/posts/{{postId}}/comments/{{rootCommentId}}
+Authorization: Bearer {{access_token}}

@@ -11,6 +11,7 @@ import java.util.UUID;
 
 public interface CommentService {
     CommentResponse createComment(UUID postId, UUID userId, CreateCommentRequest createCommentRequest);
+    void toggleLike(UUID commentId, UUID userId);
     CommentResponse getCommentById(UUID postId, UUID id);
     PagedResponse<CommentResponse> getCommentsByPostId(UUID postId, Pageable pageable);
     CommentResponse updateComment(UUID postId, UUID commentId, UUID userId, CreateCommentRequest request);
