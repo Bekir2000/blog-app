@@ -30,7 +30,9 @@ import type {
 
 import type {
   CommentResponse,
-  CreateCommentRequest
+  CreateCommentRequest,
+  GetAllCommentsParams,
+  PagedResponseCommentResponse
 } from '../../model';
 
 import { clientFetch } from '../../../../lib/api-client';
@@ -389,7 +391,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(mutationOptions, queryClient);
     }
     export type getAllCommentsResponse200 = {
-  data: CommentResponse[]
+  data: PagedResponseCommentResponse
   status: 200
 }
     
@@ -400,17 +402,26 @@ export type getAllCommentsResponseSuccess = (getAllCommentsResponse200) & {
 
 export type getAllCommentsResponse = (getAllCommentsResponseSuccess)
 
-export const getGetAllCommentsUrl = (postId: string,) => {
+export const getGetAllCommentsUrl = (postId: string,
+    params?: GetAllCommentsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/posts/${postId}/comments`
+  return stringifiedParams.length > 0 ? `/api/v1/posts/${postId}/comments?${stringifiedParams}` : `/api/v1/posts/${postId}/comments`
 }
 
-export const getAllComments = async (postId: string, options?: RequestInit): Promise<getAllCommentsResponse> => {
+export const getAllComments = async (postId: string,
+    params?: GetAllCommentsParams, options?: RequestInit): Promise<getAllCommentsResponse> => {
   
-  return clientFetch<getAllCommentsResponse>(getGetAllCommentsUrl(postId),
+  return clientFetch<getAllCommentsResponse>(getGetAllCommentsUrl(postId,params),
   {      
     ...options,
     method: 'GET'
@@ -423,72 +434,79 @@ export const getAllComments = async (postId: string, options?: RequestInit): Pro
 
 
 
-export const getGetAllCommentsInfiniteQueryKey = (postId?: string,) => {
+export const getGetAllCommentsInfiniteQueryKey = (postId?: string,
+    params?: GetAllCommentsParams,) => {
     return [
-    'infinite', `/api/v1/posts/${postId}/comments`
+    'infinite', `/api/v1/posts/${postId}/comments`, ...(params ? [params]: [])
     ] as const;
     }
 
-export const getGetAllCommentsQueryKey = (postId?: string,) => {
+export const getGetAllCommentsQueryKey = (postId?: string,
+    params?: GetAllCommentsParams,) => {
     return [
-    `/api/v1/posts/${postId}/comments`
+    `/api/v1/posts/${postId}/comments`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getGetAllCommentsInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getAllComments>>>, TError = unknown>(postId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+export const getGetAllCommentsInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getAllComments>>, GetAllCommentsParams['page']>, TError = unknown>(postId: string,
+    params?: GetAllCommentsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData, QueryKey, GetAllCommentsParams['page']>>, request?: SecondParameter<typeof clientFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetAllCommentsInfiniteQueryKey(postId);
+  const queryKey =  queryOptions?.queryKey ?? getGetAllCommentsInfiniteQueryKey(postId,params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAllComments>>> = ({ signal }) => getAllComments(postId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAllComments>>, QueryKey, GetAllCommentsParams['page']> = ({ signal, pageParam }) => getAllComments(postId,{...params, 'page': pageParam || params?.['page']}, { signal, ...requestOptions });
 
       
 
       
 
-   return  { queryKey, queryFn, enabled: !!(postId), ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: !!(postId), ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData, QueryKey, GetAllCommentsParams['page']> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
 export type GetAllCommentsInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getAllComments>>>
 export type GetAllCommentsInfiniteQueryError = unknown
 
 
-export function useGetAllCommentsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllComments>>>, TError = unknown>(
- postId: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData>> & Pick<
+export function useGetAllCommentsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllComments>>, GetAllCommentsParams['page']>, TError = unknown>(
+ postId: string,
+    params: undefined |  GetAllCommentsParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData, QueryKey, GetAllCommentsParams['page']>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getAllComments>>,
           TError,
-          Awaited<ReturnType<typeof getAllComments>>
+          Awaited<ReturnType<typeof getAllComments>>, QueryKey
         > , 'initialData'
       >, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetAllCommentsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllComments>>>, TError = unknown>(
- postId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData>> & Pick<
+export function useGetAllCommentsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllComments>>, GetAllCommentsParams['page']>, TError = unknown>(
+ postId: string,
+    params?: GetAllCommentsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData, QueryKey, GetAllCommentsParams['page']>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getAllComments>>,
           TError,
-          Awaited<ReturnType<typeof getAllComments>>
+          Awaited<ReturnType<typeof getAllComments>>, QueryKey
         > , 'initialData'
       >, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetAllCommentsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllComments>>>, TError = unknown>(
- postId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+export function useGetAllCommentsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllComments>>, GetAllCommentsParams['page']>, TError = unknown>(
+ postId: string,
+    params?: GetAllCommentsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData, QueryKey, GetAllCommentsParams['page']>>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetAllCommentsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllComments>>>, TError = unknown>(
- postId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+export function useGetAllCommentsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getAllComments>>, GetAllCommentsParams['page']>, TError = unknown>(
+ postId: string,
+    params?: GetAllCommentsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData, QueryKey, GetAllCommentsParams['page']>>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient 
  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetAllCommentsInfiniteQueryOptions(postId,options)
+  const queryOptions = getGetAllCommentsInfiniteQueryOptions(postId,params,options)
 
   const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -500,16 +518,17 @@ export function useGetAllCommentsInfinite<TData = InfiniteData<Awaited<ReturnTyp
 
 
 
-export const getGetAllCommentsQueryOptions = <TData = Awaited<ReturnType<typeof getAllComments>>, TError = unknown>(postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+export const getGetAllCommentsQueryOptions = <TData = Awaited<ReturnType<typeof getAllComments>>, TError = unknown>(postId: string,
+    params?: GetAllCommentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetAllCommentsQueryKey(postId);
+  const queryKey =  queryOptions?.queryKey ?? getGetAllCommentsQueryKey(postId,params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAllComments>>> = ({ signal }) => getAllComments(postId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAllComments>>> = ({ signal }) => getAllComments(postId,params, { signal, ...requestOptions });
 
       
 
@@ -523,7 +542,8 @@ export type GetAllCommentsQueryError = unknown
 
 
 export function useGetAllComments<TData = Awaited<ReturnType<typeof getAllComments>>, TError = unknown>(
- postId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData>> & Pick<
+ postId: string,
+    params: undefined |  GetAllCommentsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getAllComments>>,
           TError,
@@ -533,7 +553,8 @@ export function useGetAllComments<TData = Awaited<ReturnType<typeof getAllCommen
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetAllComments<TData = Awaited<ReturnType<typeof getAllComments>>, TError = unknown>(
- postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData>> & Pick<
+ postId: string,
+    params?: GetAllCommentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getAllComments>>,
           TError,
@@ -543,16 +564,18 @@ export function useGetAllComments<TData = Awaited<ReturnType<typeof getAllCommen
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetAllComments<TData = Awaited<ReturnType<typeof getAllComments>>, TError = unknown>(
- postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+ postId: string,
+    params?: GetAllCommentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
 export function useGetAllComments<TData = Awaited<ReturnType<typeof getAllComments>>, TError = unknown>(
- postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+ postId: string,
+    params?: GetAllCommentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAllComments>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetAllCommentsQueryOptions(postId,options)
+  const queryOptions = getGetAllCommentsQueryOptions(postId,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -639,6 +662,84 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
 
       const mutationOptions = getCreateCommentMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type toggleLike1Response200 = {
+  data: void
+  status: 200
+}
+    
+export type toggleLike1ResponseSuccess = (toggleLike1Response200) & {
+  headers: Headers;
+};
+;
+
+export type toggleLike1Response = (toggleLike1ResponseSuccess)
+
+export const getToggleLike1Url = (postId: string,
+    commentId: string,) => {
+
+
+  
+
+  return `/api/v1/posts/${postId}/comments/${commentId}/like`
+}
+
+export const toggleLike1 = async (postId: string,
+    commentId: string, options?: RequestInit): Promise<toggleLike1Response> => {
+  
+  return clientFetch<toggleLike1Response>(getToggleLike1Url(postId,commentId),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getToggleLike1MutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof toggleLike1>>, TError,{postId: string;commentId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof toggleLike1>>, TError,{postId: string;commentId: string}, TContext> => {
+
+const mutationKey = ['toggleLike1'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof toggleLike1>>, {postId: string;commentId: string}> = (props) => {
+          const {postId,commentId} = props ?? {};
+
+          return  toggleLike1(postId,commentId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ToggleLike1MutationResult = NonNullable<Awaited<ReturnType<typeof toggleLike1>>>
+    
+    export type ToggleLike1MutationError = unknown
+
+    export const useToggleLike1 = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof toggleLike1>>, TError,{postId: string;commentId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof toggleLike1>>,
+        TError,
+        {postId: string;commentId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getToggleLike1MutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

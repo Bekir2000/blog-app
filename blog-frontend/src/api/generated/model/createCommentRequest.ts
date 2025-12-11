@@ -11,4 +11,5 @@ export interface CreateCommentRequest {
    * @maxLength 2000
    */
   content: string;
+  parentCommentId?: string;
 }

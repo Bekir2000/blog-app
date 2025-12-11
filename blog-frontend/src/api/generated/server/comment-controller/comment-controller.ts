@@ -6,7 +6,9 @@
  */
 import type {
   CommentResponse,
-  CreateCommentRequest
+  CreateCommentRequest,
+  GetAllCommentsParams,
+  PagedResponseCommentResponse
 } from '../../model';
 
 import { serverFetch } from '../../../../lib/api-client';
@@ -45,9 +47,11 @@ import { serverFetch } from '../../../../lib/api-client';
     }
   export const getAllComments = (
     postId: string,
+    params?: GetAllCommentsParams,
  ) => {
-      return serverFetch<CommentResponse[]>(
-      {url: `/api/v1/posts/${postId}/comments`, method: 'GET'
+      return serverFetch<PagedResponseCommentResponse>(
+      {url: `/api/v1/posts/${postId}/comments`, method: 'GET',
+        params
     },
       );
     }
@@ -62,8 +66,18 @@ import { serverFetch } from '../../../../lib/api-client';
     },
       );
     }
+  export const toggleLike1 = (
+    postId: string,
+    commentId: string,
+ ) => {
+      return serverFetch<void>(
+      {url: `/api/v1/posts/${postId}/comments/${commentId}/like`, method: 'POST'
+    },
+      );
+    }
   export type GetCommentByIdResult = NonNullable<Awaited<ReturnType<typeof getCommentById>>>
 export type UpdateCommentResult = NonNullable<Awaited<ReturnType<typeof updateComment>>>
 export type DeleteCommentResult = NonNullable<Awaited<ReturnType<typeof deleteComment>>>
 export type GetAllCommentsResult = NonNullable<Awaited<ReturnType<typeof getAllComments>>>
 export type CreateCommentResult = NonNullable<Awaited<ReturnType<typeof createComment>>>
+export type ToggleLike1Result = NonNullable<Awaited<ReturnType<typeof toggleLike1>>>

@@ -14,7 +14,8 @@ public interface CommentMapper {
 
     // 1. Map Entity -> Response
     @Mapping(target = "replyCount", expression = "java(comment.getReplies() != null ? comment.getReplies().size() : 0)")
-    CommentResponse toCommentResponse(Comment comment);
+    @Mapping(target = "likedByCurrentUser", source = "isLiked")
+    CommentResponse toCommentResponse(Comment comment, Boolean isLiked);
 
     // 2. Map List<Entity> -> List<Response>
     List<CommentResponse> toCommentResponseList(List<Comment> comments);

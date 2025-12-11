@@ -1,9 +1,11 @@
+"use client";
+
 import {
-  getGetAllCommentsQueryKey,
+  getGetAllCommentsInfiniteQueryKey, // The generated infinite hook
   useCreateComment,
-  useGetAllComments,
+  useGetAllCommentsInfinite, // The generated infinite hook
 } from "@/api/generated/client/comment-controller/comment-controller";
-import { CommentResponse, CreateCommentRequest } from "@/api/generated/model";
+import { CreateCommentRequest } from "@/api/generated/model";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface UsePostCommentsProps {
@@ -13,22 +15,52 @@ interface UsePostCommentsProps {
 export function usePostComments({ postId }: UsePostCommentsProps) {
   const queryClient = useQueryClient();
 
-  const { data: commentsData, isLoading, isError } = useGetAllComments(postId);
+  // 1. Use the generated Infinite Hook
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+  } = useGetAllCommentsInfinite(
+    // Arg 1: postId
+    postId,
+    // Arg 2: Params (Page is handled automatically by pageParam, just set size/sort)
+    {
+      size: 10,
+      sort: ["createdAt,desc"],
+    },
+    // Arg 3: React Query Options
+    {
+      query: {
+        initialPageParam: 0,
+        // The 'lastPage' here is the full Axios response object ({ data, status, headers })
+        getNextPageParam: (lastPageResponse) => {
+          const { isLast, page } = lastPageResponse.data;
 
-  // 1. Use mutateAsync to expose the Promise
+          if (isLast) return undefined;
+
+          // Return the next page number
+          return (page ?? 0) + 1;
+        },
+      },
+    }
+  );
+
+  // 2. Create Comment Mutation
   const { mutateAsync: createCommentAsync, isPending: isCreating } =
     useCreateComment({
       mutation: {
         onSuccess: () => {
-          // Refetch comments immediately on success
+          // Invalidate the specific infinite query key to refresh the list
           queryClient.invalidateQueries({
-            queryKey: getGetAllCommentsQueryKey(postId),
+            queryKey: getGetAllCommentsInfiniteQueryKey(postId),
           });
         },
       },
     });
 
-  // 2. Return the Promise so the Form component can 'await' it and 'catch' errors
   const addComment = async (content: string) => {
     const payload: CreateCommentRequest = { content };
     return createCommentAsync({
@@ -37,7 +69,12 @@ export function usePostComments({ postId }: UsePostCommentsProps) {
     });
   };
 
-  const comments: CommentResponse[] = commentsData?.data || [];
+  // 3. Flatten the pages
+  // Note: Orval wraps the response in an object containing { data, status, etc. }
+  // So we access page.data.content
+  const comments =
+    data?.pages.flatMap((pageResponse) => pageResponse.data.content || []) ||
+    [];
 
   return {
     comments,
@@ -45,5 +82,8 @@ export function usePostComments({ postId }: UsePostCommentsProps) {
     isError,
     isCreating,
     addComment,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
   };
 }

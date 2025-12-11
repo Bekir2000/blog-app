@@ -49,12 +49,17 @@ public class CommentController {
     public ResponseEntity<PagedResponse<CommentResponse>> getAllComments(
             @PathVariable UUID postId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) { // Default size 5 is often too small for comments
+            @RequestParam(defaultValue = "10") int size,
+            // 👇 Capture the user (might be null if user is a guest)
+            @AuthenticationPrincipal BlogUserDetails userDetails) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
+        // Handle Guest vs Logged-in logic here (extract ID safely)
+        UUID userId = (userDetails != null) ? userDetails.getUserId() : null;
+
         return ResponseEntity.ok(
-                commentService.getCommentsByPostId(postId, pageable)
+                commentService.getCommentsByPostId(postId, userId, pageable)
         );
     }
 
@@ -65,12 +70,11 @@ public class CommentController {
             @Valid @RequestBody CreateCommentRequest createCommentRequest,
             @AuthenticationPrincipal BlogUserDetails userDetails) {
 
-        // Changed status to 200 OK (Standard for updates)
         return ResponseEntity.ok(
                 commentService.updateComment(
                         postId,
                         commentId,
-                        userDetails.getUserId(), // Pass User ID for ownership check
+                        userDetails.getUserId(),
                         createCommentRequest
                 )
         );
@@ -81,7 +85,7 @@ public class CommentController {
                                               @PathVariable UUID commentId,
                                               @AuthenticationPrincipal BlogUserDetails userDetails) {
 
-        commentService.deleteComment(postId, commentId, userDetails.getUserId()); // Pass User ID for ownership check
+        commentService.deleteComment(postId, commentId, userDetails.getUserId());
         return ResponseEntity.noContent().build();
     }
 

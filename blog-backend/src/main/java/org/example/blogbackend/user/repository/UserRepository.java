@@ -60,4 +60,17 @@ public interface UserRepository extends JpaRepository<User, UUID> {
         WHERE u.id = :userId AND p.id = :postId
     """)
     boolean isLiked(@Param("userId") UUID userId, @Param("postId") UUID postId);
+
+    @Query(
+            value = """
+        SELECT EXISTS(
+            SELECT 1 
+            FROM comment_likes 
+            WHERE user_id = :userId 
+            AND comment_id = :commentId
+        )
+    """,
+            nativeQuery = true
+    )
+    boolean isCommentLiked(@Param("userId") UUID userId, @Param("commentId") UUID commentId);
 }

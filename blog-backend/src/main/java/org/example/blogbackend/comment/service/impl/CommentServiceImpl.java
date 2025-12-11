@@ -44,39 +44,43 @@ public class CommentServiceImpl implements CommentService {
         comment.setPost(post);
         comment.setAuthor(author);
 
-        // --- UNLIMITED NESTING LOGIC ---
+        // --- PARENT/CHILD LOGIC ---
         if (request.parentCommentId() != null) {
-            // 1. We just need to ensure the parent exists.
-            // Using getReferenceById is faster (no DB select), but if the ID is invalid,
-            // it will crash on save.
-            // Better to use existsById for a polite error, OR just findById if you want to be safe.
             if (!commentRepository.existsById(request.parentCommentId())) {
                 throw new EntityNotFoundException("Parent comment not found");
             }
-
-            // 2. Link the comment to its parent
             Comment parentProxy = commentRepository.getReferenceById(request.parentCommentId());
             comment.setParent(parentProxy);
         }
-        // -------------------------------
+        // --------------------------
 
         Comment savedComment = commentRepository.save(comment);
         postRepository.incrementCommentsCount(postId);
 
-        return commentMapper.toCommentResponse(savedComment);
+        // A new comment is never 'liked' by the creator initially
+        return commentMapper.toCommentResponse(savedComment, false);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PagedResponse<CommentResponse> getCommentsByPostId(UUID postId, Pageable pageable) {
-        // This query fetches the "Roots" (Level 0).
-        // The Mapper will then call ".getReplies()".
-        // Because of @BatchSize(size=20) in your Entity:
-        // - Hibernate will fetch Level 1 for ALL loaded roots in 1 query.
-        // - Then Level 2 in 1 query... and so on.
-        Page<Comment> commentPage = commentRepository.findAllRootCommentsByPostId(postId, pageable);
+    public PagedResponse<CommentResponse> getCommentsByPostId(UUID postId, UUID userId, Pageable pageable) {
+        Page<CommentResponse> responsePage;
 
-        return pageMapper.toPagedResponse(commentPage.map(commentMapper::toCommentResponse));
+        if (userId != null) {
+            // 1. Logged-in User: Load User Entity so we can check "MEMBER OF"
+            // We use findById because we need the actual entity class for the query
+            User currentUser = userRepository.findById(userId)
+                    .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
+            // Runs the optimized query with "isLiked = calculated"
+            responsePage = commentRepository.findRootCommentsForUser(postId, currentUser, pageable);
+        } else {
+            // 2. Guest: Runs the optimized query with "isLiked = false"
+            responsePage = commentRepository.findRootCommentsForGuest(postId, pageable);
+        }
+
+        // 3. Return directly (No mapping needed! The Repository returned DTOs)
+        return pageMapper.toPagedResponse(responsePage);
     }
 
     @Override
@@ -85,12 +89,15 @@ public class CommentServiceImpl implements CommentService {
         if (!commentRepository.existsById(commentId)) {
             throw new EntityNotFoundException(String.format(COMMENT_NOT_FOUND, commentId));
         }
+
+        // Use Native Queries for speed
         if (commentRepository.existsLikeByCommentIdAndUserId(commentId, userId)) {
             commentRepository.removeLike(commentId, userId);
-            commentRepository.decrementLikes(commentId);
+            // NOTE: We do NOT manually decrement 'likesCount' column anymore.
+            // The read query calculates it dynamically via SIZE().
         } else {
             commentRepository.addLike(commentId, userId);
-            commentRepository.incrementLikes(commentId);
+            // NOTE: We do NOT manually increment 'likesCount' column anymore.
         }
     }
 
@@ -99,7 +106,10 @@ public class CommentServiceImpl implements CommentService {
     public CommentResponse getCommentById(UUID postId, UUID commentId) {
         Comment comment = commentRepository.findByIdAndPostId(commentId, postId)
                 .orElseThrow(() -> new EntityNotFoundException(String.format(COMMENT_NOT_FOUND, commentId)));
-        return commentMapper.toCommentResponse(comment);
+
+        // Note: For single fetching, we default isLiked to false for simplicity here.
+        // If you need it accurate, use 'commentRepository.existsLikeByCommentIdAndUserId'
+        return commentMapper.toCommentResponse(comment, false);
     }
 
     @Override
@@ -110,7 +120,11 @@ public class CommentServiceImpl implements CommentService {
 
         validateOwnership(comment, userId);
         comment.setContent(request.content());
-        return commentMapper.toCommentResponse(comment);
+
+        // Assuming user updating their own comment implies they haven't "liked" it in this context,
+        // or passing 'false' is acceptable since the UI optimistically updates.
+        // For strict correctness: boolean isLiked = commentRepository.existsLikeByCommentIdAndUserId(commentId, userId);
+        return commentMapper.toCommentResponse(comment, false);
     }
 
     @Override

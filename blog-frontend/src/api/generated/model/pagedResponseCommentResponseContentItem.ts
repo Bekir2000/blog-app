@@ -6,7 +6,7 @@
  */
 import type { UserResponse } from './userResponse';
 
-export interface CommentResponse {
+export type PagedResponseCommentResponseContentItem = {
   id?: string;
   content?: string;
   author?: UserResponse;
@@ -14,4 +14,4 @@ export interface CommentResponse {
   likesCount?: number;
   replyCount?: number;
   replies?: unknown[];
-}
+};

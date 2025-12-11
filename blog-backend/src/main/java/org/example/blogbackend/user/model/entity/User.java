@@ -67,6 +67,10 @@ public class User {
     private Set<Post> likedPosts = new HashSet<>();
 
     @Builder.Default
+    @ManyToMany(mappedBy = "likedBy")
+    private Set<Comment> likedComments = new HashSet<>();
+
+    @Builder.Default
     @ManyToMany
     @JoinTable(
             name = "user_bookmarks",
