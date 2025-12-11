@@ -5,28 +5,36 @@ import org.example.blogbackend.comment.model.dto.response.CommentResponse;
 import org.example.blogbackend.comment.model.entity.Comment;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.Named;
 
 import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface CommentMapper {
 
-    // 1. Map Entity -> Response
-    @Mapping(target = "replyCount", expression = "java(comment.getReplies() != null ? comment.getReplies().size() : 0)")
-    @Mapping(target = "likedByCurrentUser", source = "isLiked")
-    CommentResponse toCommentResponse(Comment comment, Boolean isLiked);
-
-    // 2. Map List<Entity> -> List<Response>
-    List<CommentResponse> toCommentResponseList(List<Comment> comments);
-
+    // 1. Entity Creation Mapping
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "post", ignore = true)
     @Mapping(target = "author", ignore = true)
     @Mapping(target = "parent", ignore = true)
     @Mapping(target = "replies", ignore = true)
-    @Mapping(target = "likesCount", constant = "0")
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "likedBy", ignore = true)
+    @Mapping(target = "likesCount", ignore = true)
+    @Mapping(target = "replyCount", ignore = true)
     Comment toComment(CreateCommentRequest request);
 
+    // 2. Simple Response Mapping
+    @Mapping(target = "likedByCurrentUser", source = "isLiked")
+    // Use the entity's formula values by default
+    @Mapping(target = "replyCount", source = "comment.replyCount")
+    @Mapping(target = "replies", ignore = true) // Simple mapping ignores tree
+    CommentResponse toCommentResponse(Comment comment, boolean isLiked);
+
+    // 3. Tree Response Mapping (The one we use in the service)
+    @Mapping(target = "likedByCurrentUser", source = "isLiked")
+    @Mapping(target = "replies", source = "replies")
+    // We override the formula count with the actual list size for consistency
+    @Mapping(target = "replyCount", expression = "java((long) replies.size())")
+    CommentResponse toTreeResponse(Comment comment, boolean isLiked, List<CommentResponse> replies);
 }

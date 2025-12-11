@@ -15,12 +15,13 @@ import org.example.blogbackend.shared.mapper.PageMapper;
 import org.example.blogbackend.user.model.entity.User;
 import org.example.blogbackend.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -31,8 +32,43 @@ public class CommentServiceImpl implements CommentService {
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
-    private final CommentMapper commentMapper;
+    private final CommentMapper commentMapper; // 👈 Now we actually use this!
     private final PageMapper pageMapper;
+
+    @Override
+    @Transactional(readOnly = true)
+    public PagedResponse<CommentResponse> getCommentsByPostId(UUID postId, UUID userId, Pageable pageable) {
+        Page<Comment> rootPage = commentRepository.findRootComments(postId, pageable);
+        List<Comment> rootComments = rootPage.getContent();
+
+        // Check likes for visible comments
+        Set<UUID> likedCommentIds = new HashSet<>();
+        if (userId != null && !rootComments.isEmpty()) {
+            likedCommentIds = commentRepository.findLikedCommentIds(rootComments, userId);
+        }
+
+        final Set<UUID> finalLikedIds = likedCommentIds;
+        List<CommentResponse> responseList = rootComments.stream()
+                .map(c -> mapToResponseRecursive(c, finalLikedIds))
+                .toList();
+
+        return pageMapper.toPagedResponse(new PageImpl<>(responseList, pageable, rootPage.getTotalElements()));
+    }
+
+    // --- Recursive Mapper using MapStruct ---
+    private CommentResponse mapToResponseRecursive(Comment comment, Set<UUID> likedIds) {
+        boolean isLiked = likedIds.contains(comment.getId());
+
+        // 1. Recursively map replies
+        List<CommentResponse> replies = comment.getReplies().stream()
+                .map(child -> mapToResponseRecursive(child, likedIds))
+                .toList();
+
+        // 2. Delegate to MapStruct for the DTO creation
+        return commentMapper.toTreeResponse(comment, isLiked, replies);
+    }
+
+    // ... createComment, toggleLike, etc. (No changes needed) ...
 
     @Override
     @Transactional
@@ -44,43 +80,17 @@ public class CommentServiceImpl implements CommentService {
         comment.setPost(post);
         comment.setAuthor(author);
 
-        // --- PARENT/CHILD LOGIC ---
         if (request.parentCommentId() != null) {
             if (!commentRepository.existsById(request.parentCommentId())) {
                 throw new EntityNotFoundException("Parent comment not found");
             }
-            Comment parentProxy = commentRepository.getReferenceById(request.parentCommentId());
-            comment.setParent(parentProxy);
+            comment.setParent(commentRepository.getReferenceById(request.parentCommentId()));
         }
-        // --------------------------
 
         Comment savedComment = commentRepository.save(comment);
         postRepository.incrementCommentsCount(postId);
 
-        // A new comment is never 'liked' by the creator initially
         return commentMapper.toCommentResponse(savedComment, false);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public PagedResponse<CommentResponse> getCommentsByPostId(UUID postId, UUID userId, Pageable pageable) {
-        Page<CommentResponse> responsePage;
-
-        if (userId != null) {
-            // 1. Logged-in User: Load User Entity so we can check "MEMBER OF"
-            // We use findById because we need the actual entity class for the query
-            User currentUser = userRepository.findById(userId)
-                    .orElseThrow(() -> new EntityNotFoundException("User not found"));
-
-            // Runs the optimized query with "isLiked = calculated"
-            responsePage = commentRepository.findRootCommentsForUser(postId, currentUser, pageable);
-        } else {
-            // 2. Guest: Runs the optimized query with "isLiked = false"
-            responsePage = commentRepository.findRootCommentsForGuest(postId, pageable);
-        }
-
-        // 3. Return directly (No mapping needed! The Repository returned DTOs)
-        return pageMapper.toPagedResponse(responsePage);
     }
 
     @Override
@@ -89,15 +99,10 @@ public class CommentServiceImpl implements CommentService {
         if (!commentRepository.existsById(commentId)) {
             throw new EntityNotFoundException(String.format(COMMENT_NOT_FOUND, commentId));
         }
-
-        // Use Native Queries for speed
         if (commentRepository.existsLikeByCommentIdAndUserId(commentId, userId)) {
             commentRepository.removeLike(commentId, userId);
-            // NOTE: We do NOT manually decrement 'likesCount' column anymore.
-            // The read query calculates it dynamically via SIZE().
         } else {
             commentRepository.addLike(commentId, userId);
-            // NOTE: We do NOT manually increment 'likesCount' column anymore.
         }
     }
 
@@ -106,10 +111,7 @@ public class CommentServiceImpl implements CommentService {
     public CommentResponse getCommentById(UUID postId, UUID commentId) {
         Comment comment = commentRepository.findByIdAndPostId(commentId, postId)
                 .orElseThrow(() -> new EntityNotFoundException(String.format(COMMENT_NOT_FOUND, commentId)));
-
-        // Note: For single fetching, we default isLiked to false for simplicity here.
-        // If you need it accurate, use 'commentRepository.existsLikeByCommentIdAndUserId'
-        return commentMapper.toCommentResponse(comment, false);
+        return mapToResponseRecursive(comment, Collections.emptySet());
     }
 
     @Override
@@ -117,13 +119,8 @@ public class CommentServiceImpl implements CommentService {
     public CommentResponse updateComment(UUID postId, UUID commentId, UUID userId, CreateCommentRequest request) {
         Comment comment = commentRepository.findByIdAndPostId(commentId, postId)
                 .orElseThrow(() -> new EntityNotFoundException(String.format(COMMENT_NOT_FOUND, commentId)));
-
         validateOwnership(comment, userId);
         comment.setContent(request.content());
-
-        // Assuming user updating their own comment implies they haven't "liked" it in this context,
-        // or passing 'false' is acceptable since the UI optimistically updates.
-        // For strict correctness: boolean isLiked = commentRepository.existsLikeByCommentIdAndUserId(commentId, userId);
         return commentMapper.toCommentResponse(comment, false);
     }
 
@@ -132,7 +129,6 @@ public class CommentServiceImpl implements CommentService {
     public void deleteComment(UUID postId, UUID commentId, UUID userId) {
         Comment comment = commentRepository.findByIdAndPostId(commentId, postId)
                 .orElseThrow(() -> new EntityNotFoundException(String.format(COMMENT_NOT_FOUND, commentId)));
-
         validateOwnership(comment, userId);
         commentRepository.delete(comment);
         postRepository.decrementCommentsCount(postId);
