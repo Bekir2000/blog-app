@@ -60,7 +60,7 @@ Authorization: Bearer {{access_token}}
 
 # ==========================================
 # 4. GET ALL COMMENTS (Feed)
-# ==========================================
+# ==========================================co
 GET http://{{host}}/api/v1/posts/{{postId}}/comments?page=0&size=10
 Authorization: Bearer {{access_token}}
 

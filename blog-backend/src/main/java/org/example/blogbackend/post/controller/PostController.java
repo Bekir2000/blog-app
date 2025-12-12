@@ -2,6 +2,7 @@ package org.example.blogbackend.post.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.example.blogbackend.comment.model.SearchType;
 import org.example.blogbackend.shared.security.BlogUserDetails;
 import org.example.blogbackend.post.dto.request.PostRequest;
 import org.example.blogbackend.shared.dto.PagedResponse;
@@ -38,6 +39,8 @@ public class PostController {
 
     @GetMapping
     public ResponseEntity<PagedResponse<PostCardResponse>> getAllPostCards(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false, defaultValue = "MIXED") SearchType searchType, // 👈 New Param
             @RequestParam(required = false) UUID categoryId,
             @RequestParam(required = false) UUID tagId,
             @RequestParam(defaultValue = "0") int page,
@@ -46,8 +49,9 @@ public class PostController {
 
         UUID userId = (userDetails != null) ? userDetails.getUserId() : null;
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
         return ResponseEntity.ok(
-                postService.getPostCards(userId, categoryId, tagId, pageable)
+                postService.getPostCards(userId, query, searchType, categoryId, tagId, pageable)
         );
     }
 
@@ -55,7 +59,6 @@ public class PostController {
     public ResponseEntity<List<PostCardResponse>> getDrafts(
             @AuthenticationPrincipal BlogUserDetails userDetails) {
 
-        // Service now returns DTOs directly
         return ResponseEntity.ok(postService.getDraftPosts(userDetails.getUserId()));
     }
 

@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.blogbackend.category.model.dto.request.CreateCategoryRequest;
 import org.example.blogbackend.category.model.entity.Category;
 import org.example.blogbackend.category.repository.CategoryRepository;
-import org.example.blogbackend.category.service.CategoryService;
+import org.example.blogbackend.comment.model.SearchType;
 import org.example.blogbackend.post.dto.request.PostRequest;
 import org.example.blogbackend.shared.dto.PagedResponse;
 import org.example.blogbackend.post.dto.response.PostCardResponse;
@@ -21,7 +21,6 @@ import org.example.blogbackend.shared.mapper.PageMapper;
 import org.example.blogbackend.tag.model.dto.request.CreateTagRequest;
 import org.example.blogbackend.tag.model.entity.Tag;
 import org.example.blogbackend.tag.repository.TagRepository;
-import org.example.blogbackend.tag.service.TagService;
 import org.example.blogbackend.user.model.entity.User;
 import org.example.blogbackend.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
@@ -48,8 +47,6 @@ public class PostServiceImpl implements PostService {
     private final CategoryRepository categoryRepository;
     private final TagRepository tagRepository;
     private final UserRepository userRepository;
-    private final TagService tagService;
-    private final CategoryService categoryService;
     private final PostMapper postMapper;
     private final PageMapper pageMapper;
 
@@ -60,8 +57,11 @@ public class PostServiceImpl implements PostService {
                 .orElseThrow(() -> new EntityNotFoundException(USER_NOT_FOUND_MSG + userId));
 
         Post post = postMapper.toEntity(request);
-        post.setAuthor(author); // IMPORTANT: Set the author
-        post.setStatus(PostStatus.DRAFT); // Default to Draft (optional, depends on logic)
+        post.setAuthor(author);
+
+        if (post.getStatus() == null) {
+            post.setStatus(PostStatus.DRAFT);
+        }
 
         calculateAndSetReadingTime(post);
         resolveCategory(post, request.category());
@@ -80,15 +80,9 @@ public class PostServiceImpl implements PostService {
         boolean isFollowingAuthor = false;
         boolean isLiked = false;
 
-        // Only check these states if a user is logged in
         if (userId != null) {
-            // 1. Check Bookmark
             isBookmarked = userRepository.isBookmarked(userId, post.getId());
-
-            // 2. Check Following (Target is the post author)
             isFollowingAuthor = userRepository.isFollowing(userId, post.getAuthor().getId());
-
-            // 3. Check Like (NEW)
             isLiked = userRepository.isLiked(userId, post.getId());
         }
 
@@ -97,10 +91,28 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional(readOnly = true)
-    public PagedResponse<PostCardResponse> getPostCards(UUID userId, UUID categoryId, UUID tagId, Pageable pageable) {
+    public PagedResponse<PostCardResponse> getPostCards(
+            UUID userId,
+            String query,
+            SearchType searchType, // 👈 New Parameter
+            UUID categoryId,
+            UUID tagId,
+            Pageable pageable
+    ) {
+        // Convert Enum to String for JPQL, default to MIXED if null
+        String typeString = (searchType != null) ? searchType.name() : SearchType.MIXED.name();
 
-        Page<PostCardView> postCards = fetchPostCardViews(categoryId, tagId, pageable);
+        // 1. Fetch filtered view directly from Repository
+        Page<PostCardView> postCards = postRepository.findFilteredPosts(
+                PostStatus.PUBLISHED,
+                query,
+                typeString,
+                categoryId,
+                tagId,
+                pageable
+        );
 
+        // 2. Extract IDs to check bookmarks efficiently
         Set<UUID> postIds = postCards.getContent().stream()
                 .map(PostCardView::getId)
                 .collect(Collectors.toSet());
@@ -109,6 +121,7 @@ public class PostServiceImpl implements PostService {
                 ? userRepository.findBookmarkedPostIdsByUserIdAndPostIdIn(userId, postIds)
                 : Collections.emptySet();
 
+        // 3. Map to DTO
         Page<PostCardResponse> responsePage = postCards.map(postCard ->
                 postMapper.toPostCardResponse(
                         postCard,
@@ -122,12 +135,9 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional(readOnly = true)
     public List<PostCardResponse> getDraftPosts(UUID userId) {
-
         List<PostCardView> drafts = postRepository.findProjectedByAuthor_IdAndStatus(userId, PostStatus.DRAFT);
-
-        // Convert to DTOs
         return drafts.stream()
-                .map(post -> postMapper.toPostCardResponse(post, false)) // Drafts are likely not bookmarked
+                .map(post -> postMapper.toPostCardResponse(post, false))
                 .toList();
     }
 
@@ -135,11 +145,10 @@ public class PostServiceImpl implements PostService {
     @Transactional
     public PostResponse updatePost(UUID postId, PostRequest request, UUID currentUserId) {
         Post post = getPostEntity(postId);
-
         validateAuthorOwnership(post, currentUserId);
 
         postMapper.updatePostFromRequest(request, post);
-        calculateAndSetReadingTime(post); // Re-calculate if content changed
+        calculateAndSetReadingTime(post);
         resolveCategory(post, request.category());
         resolveTags(post, request.tags());
 
@@ -158,42 +167,23 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public PostResponse toggleLike(UUID postId, UUID userId) {
-        // 1. Check if user exists (Cheap select)
         if (!userRepository.existsById(userId)) {
             throw new EntityNotFoundException(USER_NOT_FOUND_MSG + userId);
         }
-
-        // 2. Check if the Post exists (Cheap select)
-        // We fetch it because we need to return the updated data at the end anyway
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("Post not found"));
 
-        // 3. Check relationship status efficiently (Returns single boolean, no lists loaded)
         boolean isLiked = postRepository.existsByPostIdAndUserId(postId, userId);
 
         if (isLiked) {
-            // --- UNLIKE ---
-            // Remove direct link
             postRepository.removeLike(postId, userId);
-            // Atomic decrement
             postRepository.decrementLikes(postId);
-
-            // Update local object for response (optional, keeps UI in sync without refetch)
             post.setLikes(Math.max(0, post.getLikes() - 1));
         } else {
-            // --- LIKE ---
-            // Add direct link
             postRepository.addLike(postId, userId);
-            // Atomic increment
             postRepository.incrementLikes(postId);
-
-            // Update local object for response
             post.setLikes(post.getLikes() + 1);
         }
-
-        // 4. Return response
-        // Notice we pass 'isLiked' manually because the 'post' entity might not be
-        // strictly aware of the native query changes yet within this transaction.
         return postMapper.toPostResponse(post);
     }
 
@@ -207,21 +197,6 @@ public class PostServiceImpl implements PostService {
     private void validateAuthorOwnership(Post post, UUID userId) {
         if (!post.getAuthor().getId().equals(userId)) {
             throw new AccessDeniedException("You are not the author of this post");
-        }
-    }
-
-    private Page<PostCardView> fetchPostCardViews(UUID categoryId, UUID tagId, Pageable pageable) {
-        if (categoryId != null && tagId != null) {
-            return postRepository.findProjectedByStatusAndCategory_IdAndTags_Id(
-                    PostStatus.PUBLISHED, categoryId, tagId, pageable);
-        } else if (categoryId != null) {
-            return postRepository.findProjectedByStatusAndCategory_Id(
-                    PostStatus.PUBLISHED, categoryId, pageable);
-        } else if (tagId != null) {
-            return postRepository.findProjectedByStatusAndTags_Id(
-                    PostStatus.PUBLISHED, tagId, pageable);
-        } else {
-            return postRepository.findProjectedByStatus(PostStatus.PUBLISHED, pageable);
         }
     }
 

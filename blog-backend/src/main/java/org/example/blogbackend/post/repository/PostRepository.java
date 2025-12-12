@@ -18,34 +18,25 @@ import java.util.UUID;
 public interface PostRepository extends JpaRepository<Post, UUID> {
 
     // ========================================================================
-    // 1. FEED QUERIES (Read-Only Projections)
+    // 1. DYNAMIC FEED QUERY (Handles all filters)
     // ========================================================================
 
-    // Filter by Category AND Tag
-    Page<PostCardView> findProjectedByStatusAndCategory_IdAndTags_Id(
-            PostStatus status,
-            UUID categoryId,
-            UUID tagId,
-            Pageable pageable
-    );
-
-    // Filter by Category only
-    Page<PostCardView> findProjectedByStatusAndCategory_Id(
-            PostStatus status,
-            UUID categoryId,
-            Pageable pageable
-    );
-
-    // Filter by Tag only
-    Page<PostCardView> findProjectedByStatusAndTags_Id(
-            PostStatus status,
-            UUID tagId,
-            Pageable pageable
-    );
-
-    // General Feed (No filters)
-    Page<PostCardView> findProjectedByStatus(
-            PostStatus status,
+    @Query("SELECT p FROM Post p WHERE p.status = :status " +
+            // 1. Dynamic Search Logic
+            "AND (:query IS NULL OR :query = '' OR " +
+            "    (:searchType = 'TITLE' AND LOWER(p.title) LIKE LOWER(CONCAT('%', :query, '%'))) OR " +
+            "    (:searchType = 'CONTENT' AND LOWER(p.content) LIKE LOWER(CONCAT('%', :query, '%'))) OR " +
+            "    ((:searchType IS NULL OR :searchType = 'MIXED') AND (LOWER(p.title) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(p.content) LIKE LOWER(CONCAT('%', :query, '%'))))" +
+            ") " +
+            // 2. Strict Filter Logic (Category & Tag)
+            "AND (:categoryId IS NULL OR p.category.id = :categoryId) " +
+            "AND (:tagId IS NULL OR :tagId MEMBER OF p.tags)")
+    Page<PostCardView> findFilteredPosts(
+            @Param("status") PostStatus status,
+            @Param("query") String query,
+            @Param("searchType") String searchType, // Pass Enum.name()
+            @Param("categoryId") UUID categoryId,
+            @Param("tagId") UUID tagId,
             Pageable pageable
     );
 
@@ -55,18 +46,12 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
 
     List<PostCardView> findProjectedByAuthor_IdAndStatus(UUID userId, PostStatus status);
 
-    /**
-     * Fetches bookmarked posts.
-     * Query optimization: Joins from Post -> User to utilize the PostCardView projection efficiently.
-     * Assumes a generic ManyToMany or mapped relationship exists.
-     */
     @Query("SELECT p FROM User u JOIN u.bookmarkedPosts p WHERE u.id = :userId")
     Page<PostCardView> findBookmarkedPostsByUserId(@Param("userId") UUID userId, Pageable pageable);
 
     // ========================================================================
-    // 3. COUNTER OPTIMIZATIONS (Atomic Updates)
+    // 3. ATOMIC UPDATES & NATIVE LIKES
     // ========================================================================
-    // Note: These should be called inside a @Transactional Service method
 
     @Modifying
     @Query("UPDATE Post p SET p.commentsCount = p.commentsCount + 1 WHERE p.id = :postId")
@@ -83,10 +68,6 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     @Modifying
     @Query("UPDATE Post p SET p.likes = p.likes - 1 WHERE p.id = :postId AND p.likes > 0")
     void decrementLikes(@Param("postId") UUID postId);
-
-    // ========================================================================
-    // 4. NATIVE LIKE MANAGEMENT (High Performance)
-    // ========================================================================
 
     @Query(value = "SELECT COUNT(1) > 0 FROM posts_liked_by WHERE post_id = :postId AND user_id = :userId", nativeQuery = true)
     boolean existsByPostIdAndUserId(@Param("postId") UUID postId, @Param("userId") UUID userId);

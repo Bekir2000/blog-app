@@ -1,84 +1,104 @@
-### 1. Create a New Post
+### 1. Create a New Post (For Testing)
 POST http://localhost:8080/api/v1/posts
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 
 {
-  "title": "First Published Post",
-  "description": "Hello, this is a long description used for the card view.",
-  "content": "This is the content of my first post. It must be at least 10 characters long.",
-  "imageUrl": "https://picsum.photos/id/1/200/300",
+  "title": "Spring Boot Tutorial: Advanced JPA",
+  "description": "Learn how to use JPA Specifications and Custom Queries effectively.",
+  "content": "In this tutorial, we will dive deep into Java Persistence API. We will cover CriteriaBuilder and JPQL. It is essential for backend developers.",
+  "imageUrl": "https://picsum.photos/id/10/200/300",
   "status": "PUBLISHED",
   "category": {
-    "name": "First Category"
+    "name": "Programming"
   },
   "tags": [
-    { "name": "First Tag" },
-    { "name": "Second Tag" }
+    { "name": "Java" },
+    { "name": "Database" }
   ]
 }
 
 > {%
-    // Capture the Post ID for use in subsequent requests
     client.global.set("postId", response.body.id);
+    client.global.set("categoryId", response.body.category.id);
+    // Capture the ID of the 'Java' tag (assuming it's the first one)
+    client.global.set("tagId", response.body.tags[0].id);
 %}
 
 ###
 
-### 2. Get Post Feed (Post Cards)
-# Returns lightweight objects (no content)
+### 2. Get Post Feed (No Filters)
 GET http://localhost:8080/api/v1/posts
 Authorization: Bearer {{access_token}}
 
-> {%
-    // Capture the Post ID for use in subsequent requests
-    client.global.set("postId", response.body.content[0].id);
-%}
-
 ###
 
-### 3. Get Post Feed with Paging & Filtering
-GET http://localhost:8080/api/v1/posts?page=0&size=5&sort=createdAt,desc
+### 3. Search Mixed (Default)
+# Should find the post because "Tutorial" is in the title
+GET http://localhost:8080/api/v1/posts?query=Tutorial
 Authorization: Bearer {{access_token}}
 
 ###
 
-### 4. Get Post Details (Full Content)
-# Returns the full object with content, isBookmarked, and followingAuthor flags
-GET http://localhost:8080/api/v1/posts/{{postId}}
+### 4. Search by TITLE Only
+# Should find the post because "Advanced" is in the title
+GET http://localhost:8080/api/v1/posts?query=Advanced&searchType=TITLE
 Authorization: Bearer {{access_token}}
 
 ###
 
-### 5. Update Post
+### 5. Search by TITLE Only (Negative Test)
+# Should NOT find the post, because "CriteriaBuilder" is only in the content, not the title
+GET http://localhost:8080/api/v1/posts?query=CriteriaBuilder&searchType=TITLE
+Authorization: Bearer {{access_token}}
+
+###
+
+### 6. Search by CONTENT Only
+# Should find the post because "CriteriaBuilder" is in the content
+GET http://localhost:8080/api/v1/posts?query=CriteriaBuilder&searchType=CONTENT
+Authorization: Bearer {{access_token}}
+
+###
+
+### 7. Filter by Category Only
+# Should return posts in "Programming"
+GET http://localhost:8080/api/v1/posts?categoryId={{categoryId}}
+Authorization: Bearer {{access_token}}
+
+###
+
+### 8. Complex Filter: Content Search + Category
+# Search for "Java" in CONTENT, strictly within "Programming" category
+GET http://localhost:8080/api/v1/posts?query=Java&searchType=CONTENT&categoryId={{categoryId}}
+Authorization: Bearer {{access_token}}
+
+###
+
+### 9. Complex Filter: Tag + Title Search
+# Search for "Spring" in TITLE, strictly matching the "Java" tag
+GET http://localhost:8080/api/v1/posts?query=Spring&searchType=TITLE&tagId={{tagId}}
+Authorization: Bearer {{access_token}}
+
+###
+
+### 10. Update Post
 PUT http://localhost:8080/api/v1/posts/{{postId}}
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 
 {
-  "title": "First Updated Published Post",
-  "description": "This description has been updated.",
-  "content": "This is the content of my first post. It must be at least 10 characters long.",
-  "imageUrl": "https://picsum.photos/id/2/200/300",
+  "title": "Spring Boot Tutorial: Advanced JPA (Updated)",
+  "description": "Updated description.",
+  "content": "Content updated.",
+  "imageUrl": "https://picsum.photos/id/11/200/300",
   "status": "PUBLISHED",
-  "category": {
-    "name": "First Category"
-  },
-  "tags": [
-    { "name": "First Tag" },
-    { "name": "Updated Second Tag" },
-    { "name": "New Tag" }
-  ]
+  "category": { "name": "Programming" },
+  "tags": [ { "name": "Java" } ]
 }
 
 ###
 
-### 6. Toggle Like (Optional)
-PUT http://localhost:8080/api/v1/posts/{{postId}}/like
-Authorization: Bearer {{access_token}}
-
-###
-
-### 7. Delete Post
+### 11. Delete Post
 DELETE http://localhost:8080/api/v1/posts/{{postId}}
 Authorization: Bearer {{access_token}}
