@@ -6,19 +6,24 @@ import {
 } from "@/api/generated/client/post-controller/post-controller";
 import { PostCardResponse, UserResponse } from "@/api/generated/model";
 import { PostsGrid } from "@/components/posts/PostGrid";
+import { useSearchParams } from "next/navigation";
 
 interface HomeFeedProps {
   initialPosts: PostCardResponse[] | null;
   currentUser: UserResponse | null;
+  searchQuery?: string;
 }
 
 export function HomeFeed({ initialPosts, currentUser }: HomeFeedProps) {
+  const searchParams = useSearchParams();
+  const searchQuery = searchParams.get("query") ?? "";
+
   const queryResult = useGetAllPostCardsInfinite(
     { size: 5 },
     {
       query: {
         // Ensure the key relies on the user ID
-        queryKey: ["posts", "infinite", currentUser?.id],
+        queryKey: ["posts", "infinite", currentUser?.id, searchQuery || "all"],
 
         // 1. Fetch immediately in background
         staleTime: 0,
@@ -30,6 +35,7 @@ export function HomeFeed({ initialPosts, currentUser }: HomeFeedProps) {
           return getAllPostCards({
             page: Number(pageParam),
             size: 5,
+            query: searchQuery,
           });
         },
 

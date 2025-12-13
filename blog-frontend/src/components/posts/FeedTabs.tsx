@@ -4,10 +4,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getUser } from "@/lib/auth";
 import { HomeFeed } from "./HomeFeed";
 
-export async function FeedTabs() {
+export async function FeedTabs({ searchQuery }: { searchQuery: string }) {
   // Fetch initial data (Page 0, Size 5)
   // This executes serverFetch directly on the backend
-  const postsPage = await getAllPostCards({ page: 0, size: 5 });
+  const postsPage = await getAllPostCards({
+    query: searchQuery,
+    page: 0,
+    size: 5,
+  });
   console.log("Posts Page:", postsPage.page);
   const postCards = postsPage.content ?? [];
   const currentUser = await getUser();

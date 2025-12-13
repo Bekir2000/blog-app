@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { getUser } from "@/lib/auth";
-import { Bell, Search, SquarePenIcon } from "lucide-react";
+import { Bell, SquarePenIcon } from "lucide-react";
 import Link from "next/link";
 import { InfoTooltip } from "../InfoTooltip";
 import { SidebarTrigger } from "../ui/sidebar";
+import { SearchBar } from "./SearchBar";
 import { UserNav } from "./UserNav"; // <--- Import the new component
 
 export default async function Navbar() {
@@ -28,12 +29,7 @@ export default async function Navbar() {
         {/* Center: Search */}
         <div className="hidden md:flex flex-1 max-w-md px-6">
           <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search"
-              className="w-full rounded-full border border-gray-100 bg-gray-50 pl-10 pr-4 py-2 text-sm focus:border-gray-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-gray-100 transition-all"
-            />
+            <SearchBar />
           </div>
         </div>
 
