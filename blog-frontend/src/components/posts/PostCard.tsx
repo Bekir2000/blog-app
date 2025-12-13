@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Calendar, MessageCircle, ThumbsUp } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link"; // <--- 1. Import Link
+import Link from "next/link";
 import { PostActions } from "./PostActions";
 
 export function PostCard({
@@ -24,13 +24,13 @@ export function PostCard({
   }
 
   const isBookmarked = postCard.isBookmarked;
-  const postUrl = `/posts/${postCard.id}`; // <--- 2. Define the URL
+  const postUrl = `/posts/${postCard.id}`;
 
   return (
-    <Card className="max-w-3xl min-w-10 shadow-md transition-shadow hover:shadow-lg">
+    <Card className="w-full shadow-md transition-shadow hover:shadow-lg">
       <CardHeader>
-        {/* User Info (Not part of the main click to keep profile accessible separately) */}
-        <div className="text-sm flex flex-row items-center gap-2 mb-3">
+        {/* User Info */}
+        <div className="mb-3 flex flex-row items-center gap-2 text-sm">
           <Avatar className="h-6 w-6">
             <AvatarImage
               src={postCard.author?.profileImageUrl ?? undefined}
@@ -45,23 +45,22 @@ export function PostCard({
           </div>
         </div>
 
-        {/* 3. Wrap the Main Content in a Link */}
+        {/* Main Content Link */}
         <Link
           href={postUrl}
-          className="flex flex-row items-start justify-between gap-4 group cursor-pointer"
+          className="group flex flex-row items-start justify-between gap-4 cursor-pointer"
         >
           <div className="flex-1">
-            <CardTitle className="text-xl font-bold leading-snug group-hover:text-gray-700 transition-colors">
+            <CardTitle className="text-base font-bold leading-snug transition-colors group-hover:text-gray-700 sm:text-xl">
               {postCard.title}
             </CardTitle>
-            <CardDescription className="mt-2 line-clamp-2">
-              {" "}
-              {/* line-clamp limits text to 2 lines */}
+            <CardDescription className="mt-2 line-clamp-2 text-sm sm:text-base">
               {postCard.description}
             </CardDescription>
           </div>
 
-          <div className="w-[160px] h-[120px] shrink-0">
+          {/* Updated: Responsive Image Size (Smaller on mobile) */}
+          <div className="h-[75px] w-[100px] shrink-0 sm:h-[120px] sm:w-[160px]">
             {postCard.imageUrl && (
               <Image
                 src={postCard.imageUrl}
@@ -75,18 +74,17 @@ export function PostCard({
         </Link>
       </CardHeader>
 
-      <CardFooter className="flex justify-between items-center text-sm text-gray-600 mt-2">
-        {/* Footer info links to post as well, or stays static */}
-        <div className="flex items-center gap-6">
+      <CardFooter className="mt-2 flex items-center justify-between text-sm text-gray-600">
+        <div className="flex items-center gap-4 sm:gap-6">
           <span className="flex items-center gap-1 text-xs">
-            <Calendar className="w-3.5 h-3.5" />{" "}
+            <Calendar className="h-3.5 w-3.5" />{" "}
             {postCard.createdAt ? postCard.createdAt.split("T")[0] : ""}
           </span>
           <span className="flex items-center gap-1 text-xs">
-            <ThumbsUp className="w-3.5 h-3.5" /> {postCard.likes || 0}
+            <ThumbsUp className="h-3.5 w-3.5" /> {postCard.likes || 0}
           </span>
           <span className="flex items-center gap-1 text-xs">
-            <MessageCircle className="w-3.5 h-3.5" />{" "}
+            <MessageCircle className="h-3.5 w-3.5" />{" "}
             {postCard.commentsCount || 0}
           </span>
         </div>

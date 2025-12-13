@@ -5,19 +5,18 @@ import { getUser } from "@/lib/auth";
 import { HomeFeed } from "./HomeFeed";
 
 export async function FeedTabs({ searchQuery }: { searchQuery: string }) {
-  // Fetch initial data (Page 0, Size 5)
-  // This executes serverFetch directly on the backend
   const postsPage = await getAllPostCards({
     query: searchQuery,
     page: 0,
     size: 5,
   });
-  console.log("Posts Page:", postsPage.page);
+
   const postCards = postsPage.content ?? [];
   const currentUser = await getUser();
 
   return (
-    <Tabs defaultValue="foryou" className="mx-auto w-3xl">
+    // Updated: Changed w-3xl to w-full
+    <Tabs defaultValue="foryou" className="w-full">
       <TabsList>
         <InfoTooltip message="Recommended stories based on your reading history">
           <TabsTrigger value="foryou">For you</TabsTrigger>

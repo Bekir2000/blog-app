@@ -2,25 +2,25 @@ import RightSidebar from "@/components/RightSidebar";
 import { FeedTabs } from "@/components/posts/FeedTabs";
 
 interface HomePageProps {
-  // 👇 1. Update the type to Promise
   searchParams?: Promise<{
     query?: string;
   }>;
 }
 
 export default async function HomePage(props: HomePageProps) {
-  // 👇 2. Await the searchParams before using properties
   const searchParams = await props.searchParams;
   const query = searchParams?.query || "";
 
   return (
-    <main className="mt-10 container mx-auto px-4">
-      <div className="flex gap-10 justify-center">
+    // Updated: Uses w-full and px-4 for mobile padding, max-w-7xl for large screens
+    <main className="mt-10 w-full px-4 md:px-6">
+      <div className="mx-auto flex max-w-7xl justify-center gap-10">
         <div className="w-full max-w-3xl">
           <FeedTabs searchQuery={query} />
         </div>
 
-        <div className="hidden lg:block w-[350px] shrink-0">
+        {/* Sidebar hides on mobile/tablet, shows on large screens */}
+        <div className="hidden w-[350px] shrink-0 lg:block">
           <RightSidebar />
         </div>
       </div>

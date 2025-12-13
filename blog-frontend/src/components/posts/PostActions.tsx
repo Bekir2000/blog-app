@@ -26,68 +26,41 @@ export function PostActions({
   const { mutate: unbookmark } = useUnbookmarkPost();
 
   const handleToggle = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Stop click from opening the post details
+    e.stopPropagation();
     e.preventDefault();
     if (!currentUser) return;
 
     const nextState = !isBookmarked;
 
-    // 1. CANCEL ONGOING FETCHES (Crucial Fix)
-    // This stops any background refresh (e.g., from loading the page)
-    // from overwriting our optimistic update with old data.
     await queryClient.cancelQueries({ queryKey: ["posts"] });
     await queryClient.cancelQueries({ queryKey: ["me", "bookmarks"] });
 
-    // 2. OPTIMISTIC UPDATE
-    // Update the UI immediately in all lists (Home, Search, Bookmarks)
     updateAllCaches(nextState);
 
-    // 3. PERFORM API CALL
     if (isBookmarked) {
-      // Unbookmark Logic
-      unbookmark(
-        { postId }, // Usually DELETE takes path param only
-        {
-          onError: () => {
-            // Revert UI on error
-            updateAllCaches(!nextState);
-          },
-        }
-      );
+      unbookmark({ postId }, { onError: () => updateAllCaches(!nextState) });
     } else {
-      // Bookmark Logic
       bookmark(
-        { data: { postId } }, // Wrapped in 'data' for Orval body
-        {
-          onError: () => {
-            // Revert UI on error
-            updateAllCaches(!nextState);
-          },
-        }
+        { data: { postId } },
+        { onError: () => updateAllCaches(!nextState) }
       );
     }
   };
 
   const updateAllCaches = (newState: boolean) => {
-    // We target two main groups of queries:
-    // 1. ["posts"] -> Covers Home Feed, Search Results, Category Feeds
-    // 2. ["me", "bookmarks"] -> Covers the Library/Bookmark page
     const queryKeys = [["posts"], ["me", "bookmarks"]];
 
     queryKeys.forEach((key) => {
-      // setQueriesData (plural) updates all queries matching the key prefix
       queryClient.setQueriesData<InfiniteData<any>>(
         { queryKey: key },
         (oldData) => {
           if (!oldData) return oldData;
-
           return {
             ...oldData,
             pages: oldData.pages.map((page) => ({
               ...page,
               data: {
                 ...page.data,
-                // Find the specific post in the list and flip the flag
                 content: page.data.content?.map((post: any) =>
                   post.id === postId
                     ? { ...post, isBookmarked: newState }
@@ -102,22 +75,24 @@ export function PostActions({
   };
 
   return (
-    <div className="flex gap-4 mr-50">
-      <CircleMinus className="cursor-pointer hover:text-gray-600" />
+    // FIX 1: Removed 'mr-50'. Added 'items-center' and responsive gap.
+    // The parent PostCard already handles the spacing between left/right elements.
+    <div className="flex items-center gap-3 sm:gap-4 text-gray-500">
+      <CircleMinus className="h-5 w-5 cursor-pointer hover:text-gray-700 transition-colors" />
 
       {currentUser ? (
         <div onClick={handleToggle} className="cursor-pointer">
           {isBookmarked ? (
-            <Bookmark className="text-red-600 fill-red-600" />
+            <Bookmark className="h-5 w-5 text-red-600 fill-red-600 transition-colors" />
           ) : (
-            <BookmarkPlus className="text-gray-500 hover:text-red-600" />
+            <BookmarkPlus className="h-5 w-5 hover:text-gray-700 transition-colors" />
           )}
         </div>
       ) : (
-        <BookmarkPlus className="cursor-pointer text-gray-300 opacity-50" />
+        <BookmarkPlus className="h-5 w-5 cursor-pointer text-gray-300 opacity-50" />
       )}
 
-      <Ellipsis className="cursor-pointer hover:text-gray-600" />
+      <Ellipsis className="h-5 w-5 cursor-pointer hover:text-gray-700 transition-colors" />
     </div>
   );
 }

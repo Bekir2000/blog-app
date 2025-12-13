@@ -22,16 +22,14 @@ export function HomeFeed({ initialPosts, currentUser }: HomeFeedProps) {
     { size: 5 },
     {
       query: {
-        // Ensure the key relies on the user ID
+        // Ensure the key relies on the user ID and query
         queryKey: ["posts", "infinite", currentUser?.id, searchQuery || "all"],
 
-        // 1. Fetch immediately in background
+        // Fetch immediately in background to keep data fresh
         staleTime: 0,
         refetchOnMount: true,
 
         queryFn: async ({ pageParam = 0 }) => {
-          // DEBUG: check if this is actually running in your browser console
-          console.log("Fetching page:", pageParam);
           return getAllPostCards({
             page: Number(pageParam),
             size: 5,
