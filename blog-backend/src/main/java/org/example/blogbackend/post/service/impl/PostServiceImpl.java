@@ -6,7 +6,6 @@ import org.example.blogbackend.category.model.dto.request.CreateCategoryRequest;
 import org.example.blogbackend.category.model.entity.Category;
 import org.example.blogbackend.category.repository.CategoryRepository;
 import org.example.blogbackend.comment.model.SearchType;
-import org.example.blogbackend.post.dto.request.PostDraftRequest;
 import org.example.blogbackend.post.dto.request.PostRequest;
 import org.example.blogbackend.post.dto.response.PostCardResponse;
 import org.example.blogbackend.post.dto.response.PostDetailResponse;
@@ -31,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -50,19 +50,26 @@ public class PostServiceImpl implements PostService {
     private final PostMapper postMapper;
     private final PageMapper pageMapper;
 
+    // =========================================================================
+    // WRITE OPERATIONS (Create, Update, Delete)
+    // =========================================================================
+
     @Override
     @Transactional
     public PostResponse createPost(PostRequest request, UUID userId) {
         User author = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException(USER_NOT_FOUND_MSG + userId));
 
+        // Map unified DTO to Entity
         Post post = postMapper.toEntity(request);
         post.setAuthor(author);
 
+        // Fallback status if missing (though DTO validation should catch this)
         if (post.getStatus() == null) {
             post.setStatus(PostStatus.DRAFT);
         }
 
+        // Logic Helpers
         calculateAndSetReadingTime(post);
         resolveCategory(post, request.category());
         resolveTags(post, request.tags());
@@ -71,12 +78,114 @@ public class PostServiceImpl implements PostService {
         return postMapper.toPostResponse(savedPost);
     }
 
+
     @Override
     @Transactional
-    public PostResponse createPostDraft(PostDraftRequest DraftRequest, UUID userId) {
-        PostRequest request = postMapper.toPostRequestFromDraft(DraftRequest);
-        return createPost(request, userId);
+    public PostResponse createRevision(UUID originalPostId, UUID userId) {
+        Post original = getPostEntity(originalPostId);
+        validateAuthorOwnership(original, userId);
+
+        if (original.getStatus() != PostStatus.PUBLISHED) {
+            throw new IllegalArgumentException("You can only create revisions of PUBLISHED posts.");
+        }
+
+        // Check if a draft already exists for this post to prevent duplicates
+        // (Optional logic, depends on preference. Here we just create a new one.)
+
+        // Clone the data into a new Draft entity
+        Post draft = Post.builder()
+                .title(original.getTitle())
+                .content(original.getContent())
+                .description(original.getDescription())
+                .imageUrl(original.getImageUrl())
+                .status(PostStatus.DRAFT) // Force status to DRAFT
+                .parentPost(original)     // ✅ Link to Parent
+                .author(original.getAuthor())
+                .category(original.getCategory())
+                .readingTime(original.getReadingTime())
+                .tags(new HashSet<>(original.getTags())) // Copy tags
+                .build();
+
+        Post savedDraft = postRepository.save(draft);
+        return postMapper.toPostResponse(savedDraft);
     }
+
+    // =========================================================================
+    // 2. MERGE: Publish the Draft -> Overwrite the Parent
+    // =========================================================================
+    @Override
+    @Transactional
+    public PostResponse updatePost(UUID postId, PostRequest request, UUID userId) {
+        Post currentPost = getPostEntity(postId);
+        validateAuthorOwnership(currentPost, userId);
+
+        // CASE A: MERGING (Publishing a Revision)
+        // We are updating a Draft that has a Parent, and the user wants to PUBLISH it.
+        if (currentPost.getParentPost() != null && request.status() == PostStatus.PUBLISHED) {
+
+            Post livePost = currentPost.getParentPost();
+
+            // 1. Copy new content from Request -> Live Post
+            postMapper.updatePostFromRequest(request, livePost);
+
+            // 2. Re-calculate metadata for Live Post
+            calculateAndSetReadingTime(livePost);
+            resolveCategory(livePost, request.category());
+            resolveTags(livePost, request.tags());
+
+            // 3. Save the Live Post (It keeps its original ID, Likes, and Comments!)
+            Post updatedLivePost = postRepository.save(livePost);
+
+            // 4. Delete the temporary Draft
+            postRepository.delete(currentPost);
+
+            return postMapper.toPostResponse(updatedLivePost);
+        }
+
+        // CASE B: NORMAL UPDATE (Editing a normal draft or live post directly)
+        postMapper.updatePostFromRequest(request, currentPost);
+        calculateAndSetReadingTime(currentPost);
+        resolveCategory(currentPost, request.category());
+        resolveTags(currentPost, request.tags());
+
+        Post updatedPost = postRepository.save(currentPost);
+        return postMapper.toPostResponse(updatedPost);
+    }
+
+    @Override
+    @Transactional
+    public void deletePost(UUID postId, UUID userId) {
+        Post post = getPostEntity(postId);
+        validateAuthorOwnership(post, userId);
+        postRepository.delete(post);
+    }
+
+    @Override
+    @Transactional
+    public PostResponse toggleLike(UUID postId, UUID userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new EntityNotFoundException(USER_NOT_FOUND_MSG + userId);
+        }
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException(POST_NOT_FOUND_MSG + postId));
+
+        boolean isLiked = postRepository.existsByPostIdAndUserId(postId, userId);
+
+        if (isLiked) {
+            postRepository.removeLike(postId, userId);
+            postRepository.decrementLikes(postId);
+            post.setLikes(Math.max(0, post.getLikes() - 1));
+        } else {
+            postRepository.addLike(postId, userId);
+            postRepository.incrementLikes(postId);
+            post.setLikes(post.getLikes() + 1);
+        }
+        return postMapper.toPostResponse(post);
+    }
+
+    // =========================================================================
+    // READ OPERATIONS
+    // =========================================================================
 
     @Override
     @Transactional(readOnly = true)
@@ -96,113 +205,57 @@ public class PostServiceImpl implements PostService {
         return postMapper.toPostDetailResponse(post, isBookmarked, isFollowingAuthor, isLiked);
     }
 
-    // =========================================================================
-    // 1. PUBLIC FEED: Fetches PUBLISHED posts from ANY author
-    // =========================================================================
+    /**
+     * 1. Public Feed: Fetches PUBLISHED posts from ANY author
+     */
     @Override
     @Transactional(readOnly = true)
     public PagedResponse<PostCardResponse> getPostCards(
-            UUID userId, // The viewer (for bookmarks)
-            String query,
-            SearchType searchType,
-            UUID categoryId,
-            UUID tagId,
-            Pageable pageable
+            UUID userId, String query, SearchType searchType,
+            UUID categoryId, UUID tagId, Pageable pageable
     ) {
         return fetchAndMapPosts(
                 userId,          // Viewer
-                null,            // authorFilter (Null = Any Author)
+                null,            // AuthorFilter (Null = Any)
                 PostStatus.PUBLISHED,
-                query,
-                searchType,
-                categoryId,
-                tagId,
-                pageable
+                query, searchType, categoryId, tagId, pageable
         );
     }
 
-    // =========================================================================
-    // 2. DRAFTS: Fetches DRAFT posts from CURRENT USER only
-    // =========================================================================
+    /**
+     * 2. Drafts: Fetches DRAFT posts from CURRENT USER only
+     */
     @Override
     @Transactional(readOnly = true)
     public PagedResponse<PostCardResponse> getDraftPosts(UUID userId, Pageable pageable) {
         return fetchAndMapPosts(
                 userId,          // Viewer
-                userId,          // authorFilter (Must match viewer)
+                userId,          // AuthorFilter (Me)
                 PostStatus.DRAFT,
-                null,            // query (No search for drafts currently)
-                null,            // searchType
-                null,            // categoryId
-                null,            // tagId
+                null, null, null, null, // No search/filters for drafts list
                 pageable
         );
     }
 
+    /**
+     * 3. My Published: Fetches PUBLISHED posts from CURRENT USER only
+     */
     @Override
     @Transactional(readOnly = true)
     public PagedResponse<PostCardResponse> getUserPublishedPosts(UUID userId, Pageable pageable) {
         return fetchAndMapPosts(
-                userId,               // Viewer
-                userId,               // authorFilter (The user themselves)
+                userId,          // Viewer
+                userId,          // AuthorFilter (Me)
                 PostStatus.PUBLISHED,
-                null,                 // query
-                null,                 // searchType
-                null,                 // categoryId
-                null,                 // tagId
+                null, null, null, null,
                 pageable
         );
     }
 
-    @Override
-    @Transactional
-    public PostResponse updatePost(UUID postId, PostRequest request, UUID currentUserId) {
-        Post post = getPostEntity(postId);
-        validateAuthorOwnership(post, currentUserId);
-
-        postMapper.updatePostFromRequest(request, post);
-        calculateAndSetReadingTime(post);
-        resolveCategory(post, request.category());
-        resolveTags(post, request.tags());
-
-        Post updatedPost = postRepository.save(post);
-        return postMapper.toPostResponse(updatedPost);
-    }
-
-    @Override
-    @Transactional
-    public void deletePost(UUID postId, UUID userId) {
-        Post post = getPostEntity(postId);
-        validateAuthorOwnership(post, userId);
-        postRepository.delete(post);
-    }
-
-    @Override
-    @Transactional
-    public PostResponse toggleLike(UUID postId, UUID userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new EntityNotFoundException(USER_NOT_FOUND_MSG + userId);
-        }
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("Post not found"));
-
-        boolean isLiked = postRepository.existsByPostIdAndUserId(postId, userId);
-
-        if (isLiked) {
-            postRepository.removeLike(postId, userId);
-            postRepository.decrementLikes(postId);
-            post.setLikes(Math.max(0, post.getLikes() - 1));
-        } else {
-            postRepository.addLike(postId, userId);
-            postRepository.incrementLikes(postId);
-            post.setLikes(post.getLikes() + 1);
-        }
-        return postMapper.toPostResponse(post);
-    }
-
     // =========================================================================
-    // SHARED PRIVATE ENGINE: Handles Fetching, Filtering & Mapping
+    // SHARED PRIVATE ENGINE
     // =========================================================================
+
     private PagedResponse<PostCardResponse> fetchAndMapPosts(
             UUID viewerId,
             UUID authorFilterId,
@@ -213,10 +266,8 @@ public class PostServiceImpl implements PostService {
             UUID tagId,
             Pageable pageable
     ) {
-        // 1. Convert Enum to String for JPQL, default to MIXED
         String typeString = (searchType != null) ? searchType.name() : SearchType.MIXED.name();
 
-        // 2. Fetch from Repository
         Page<PostCardView> postCards = postRepository.findFilteredPosts(
                 status,
                 query,
@@ -227,7 +278,7 @@ public class PostServiceImpl implements PostService {
                 pageable
         );
 
-        // 3. Extract IDs to check bookmarks efficiently
+        // Bulk fetch bookmarks for efficiency
         Set<UUID> postIds = postCards.getContent().stream()
                 .map(PostCardView::getId)
                 .collect(Collectors.toSet());
@@ -236,7 +287,6 @@ public class PostServiceImpl implements PostService {
                 ? userRepository.findBookmarkedPostIdsByUserIdAndPostIdIn(viewerId, postIds)
                 : Collections.emptySet();
 
-        // 4. Map to DTO
         Page<PostCardResponse> responsePage = postCards.map(postCard ->
                 postMapper.toPostCardResponse(
                         postCard,
@@ -247,7 +297,9 @@ public class PostServiceImpl implements PostService {
         return pageMapper.toPagedResponse(responsePage);
     }
 
-    // --- Helper Methods ---
+    // =========================================================================
+    // HELPERS
+    // =========================================================================
 
     private Post getPostEntity(UUID postId) {
         return postRepository.findById(postId)
@@ -271,8 +323,9 @@ public class PostServiceImpl implements PostService {
     }
 
     private void resolveCategory(Post post, CreateCategoryRequest categoryRequest) {
+        // If draft, category can be optional. If publishing, @Valid handles it.
+        // If logic reaches here with null, we just skip setting it or set a default.
         if (categoryRequest == null || categoryRequest.name() == null) {
-            // Handle null category for drafts if needed, or default to "General"
             return;
         }
         String categoryName = categoryRequest.name();

@@ -34,7 +34,8 @@ public class Post {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    // ✅ FIXED: Changed nullable to true so Drafts can have empty descriptions
+    @Column(nullable = true, columnDefinition = "TEXT")
     private String description;
 
     @Column(nullable = false)
@@ -49,14 +50,12 @@ public class Post {
     @Column(nullable = false)
     private int readingTime;
 
-    /**
-     * Cascade all operations to comments.
-     * Orphan removal ensures comments removed from the set are deleted from DB.
-     */
     @OneToMany(mappedBy = "post", orphanRemoval = true)
     @Builder.Default
     private Set<Comment> comments = new HashSet<>();
 
+    // Already nullable by default, but explicit is good
+    @Column(nullable = true)
     private String imageUrl;
 
     @Column(nullable = false)
@@ -67,15 +66,16 @@ public class Post {
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
 
+    // ✅ FIXED: Changed nullable to true so Drafts can exist without a Category
     @ManyToOne
-    @JoinColumn(name = "category_id", nullable = false)
+    @JoinColumn(name = "category_id", nullable = true)
     private Category category;
 
     @ManyToMany
     @JoinTable(
-        name = "post_tags",
-        joinColumns = @JoinColumn(name = "post_id"),
-        inverseJoinColumns = @JoinColumn(name = "tag_id")
+            name = "post_tags",
+            joinColumns = @JoinColumn(name = "post_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
     )
     private Set<Tag> tags = new HashSet<>();
 
@@ -87,7 +87,12 @@ public class Post {
     )
     @Builder.Default
     private Set<User> likedBy = new HashSet<>();
-    
+
+    // ✅ PARENT LINK (For Revision/Fork Workflow)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_post_id")
+    private Post parentPost;
+
     public int getLikeCount() {
         return likedBy.size();
     }
@@ -116,6 +121,7 @@ public class Post {
         this.description = post.getDescription();
         this.imageUrl = post.getImageUrl();
         this.status = post.getStatus();
+        this.category = post.getCategory(); // Ensure category updates too
         this.updatedAt = Instant.now();
     }
 }

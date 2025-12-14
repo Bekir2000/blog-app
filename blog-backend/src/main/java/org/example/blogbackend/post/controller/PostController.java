@@ -3,14 +3,13 @@ package org.example.blogbackend.post.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.blogbackend.comment.model.SearchType;
-import org.example.blogbackend.post.dto.request.PostDraftRequest;
-import org.example.blogbackend.shared.security.BlogUserDetails;
 import org.example.blogbackend.post.dto.request.PostRequest;
-import org.example.blogbackend.shared.dto.PagedResponse;
 import org.example.blogbackend.post.dto.response.PostCardResponse;
 import org.example.blogbackend.post.dto.response.PostDetailResponse;
 import org.example.blogbackend.post.dto.response.PostResponse;
 import org.example.blogbackend.post.service.PostService;
+import org.example.blogbackend.shared.dto.PagedResponse;
+import org.example.blogbackend.shared.security.BlogUserDetails;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -28,11 +27,14 @@ public class PostController {
 
     private final PostService postService;
 
+    // ========================================================================
+    // READ OPERATIONS
+    // ========================================================================
+
     @GetMapping("/{postId}")
     public ResponseEntity<PostDetailResponse> getPostById(
             @PathVariable UUID postId,
             @AuthenticationPrincipal BlogUserDetails userDetails) {
-
         UUID userId = (userDetails != null) ? userDetails.getUserId() : null;
         return ResponseEntity.ok(postService.getPostById(postId, userId));
     }
@@ -55,19 +57,14 @@ public class PostController {
         );
     }
 
-
     @GetMapping("/drafts")
     public ResponseEntity<PagedResponse<PostCardResponse>> getDrafts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size,
             @AuthenticationPrincipal BlogUserDetails userDetails) {
 
-        // Sort drafts by newest first
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-
-        return ResponseEntity.ok(
-                postService.getDraftPosts(userDetails.getUserId(), pageable)
-        );
+        return ResponseEntity.ok(postService.getDraftPosts(userDetails.getUserId(), pageable));
     }
 
     @GetMapping("/published")
@@ -77,12 +74,16 @@ public class PostController {
             @AuthenticationPrincipal BlogUserDetails userDetails) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-
-        return ResponseEntity.ok(
-                postService.getUserPublishedPosts(userDetails.getUserId(), pageable)
-        );
+        return ResponseEntity.ok(postService.getUserPublishedPosts(userDetails.getUserId(), pageable));
     }
 
+    // ========================================================================
+    // WRITE OPERATIONS
+    // ========================================================================
+
+    /**
+     * Create Post: Handles both DRAFT and PUBLISHED creation based on request.status
+     */
     @PostMapping
     public ResponseEntity<PostResponse> createPost(
             @Valid @RequestBody PostRequest request,
@@ -92,14 +93,19 @@ public class PostController {
                 .body(postService.createPost(request, userDetails.getUserId()));
     }
 
-    @PostMapping("/draft")
-    public ResponseEntity<PostResponse> createPostDraft(
-            @Valid @RequestBody PostDraftRequest request,
+    /**
+     * Create Revision: Clones a published post into a new Draft.
+     * Use this when the user clicks "Edit" on a published story.
+     */
+    @PostMapping("/{postId}/revision")
+    public ResponseEntity<PostResponse> createRevision(
+            @PathVariable UUID postId,
             @AuthenticationPrincipal BlogUserDetails userDetails) {
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(postService.createPostDraft(request, userDetails.getUserId()));
+                .body(postService.createRevision(postId, userDetails.getUserId()));
     }
+
 
     @PutMapping("/{postId}")
     public ResponseEntity<PostResponse> updatePost(

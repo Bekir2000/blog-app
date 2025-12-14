@@ -21,33 +21,31 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     // 1. DYNAMIC FEED QUERY (Handles all filters)
     // ========================================================================
 
-    @Query("SELECT p FROM Post p " +
-            "LEFT JOIN p.tags t " + // Join tags for efficient filtering
-            "WHERE p.status = :status " +
 
-            // ✅ FIX 1: Corrected Typo and Logic (Compare to Entity field, not string)
-            "AND (:authorId IS NULL OR p.author.id = :authorId) " +
 
-            "AND (:categoryId IS NULL OR p.category.id = :categoryId) " +
-
-            // ✅ FIX 2: Use JOIN alias for tag filtering (Safer than MEMBER OF)
-            "AND (:tagId IS NULL OR t.id = :tagId) " +
-
-            "AND (:query IS NULL OR :query = '' OR " +
-            "    (:searchType = 'TITLE' AND LOWER(p.title) LIKE LOWER(CONCAT('%', :query, '%'))) OR " +
-            // Note: Ensure p.content is TEXT type in DB if you use this line
-            "    (:searchType = 'CONTENT' AND LOWER(p.content) LIKE LOWER(CONCAT('%', :query, '%'))) OR " +
-            "    ((:searchType IS NULL OR :searchType = 'MIXED') AND (LOWER(p.title) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(p.description) LIKE LOWER(CONCAT('%', :query, '%'))))" +
-            ")")
-    Page<PostCardView> findFilteredPosts(
-            @Param("status") PostStatus status,
-            @Param("query") String query,
-            @Param("authorId") UUID authorId,
-            @Param("searchType") String searchType,
-            @Param("categoryId") UUID categoryId,
-            @Param("tagId") UUID tagId,
-            Pageable pageable
-    );
+        // ✅ ADDED 'DISTINCT' to ensure one Post doesn't take up multiple slots
+        @Query("""
+        SELECT DISTINCT p FROM Post p
+        LEFT JOIN p.tags t
+        WHERE p.status = :status
+        AND (:authorId IS NULL OR p.author.id = :authorId)
+        AND (:categoryId IS NULL OR p.category.id = :categoryId)
+        AND (:tagId IS NULL OR t.id = :tagId)
+        AND (:query IS NULL OR :query = '' OR
+            (:searchType = 'TITLE' AND LOWER(p.title) LIKE LOWER(CONCAT('%', :query, '%'))) OR
+            (:searchType = 'CONTENT' AND LOWER(p.content) LIKE LOWER(CONCAT('%', :query, '%'))) OR
+            ((:searchType IS NULL OR :searchType = 'MIXED') AND (LOWER(p.title) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(p.description) LIKE LOWER(CONCAT('%', :query, '%'))))
+        )
+    """)
+        Page<PostCardView> findFilteredPosts(
+                @Param("status") PostStatus status,
+                @Param("query") String query,
+                @Param("authorId") UUID authorId,
+                @Param("searchType") String searchType,
+                @Param("categoryId") UUID categoryId,
+                @Param("tagId") UUID tagId,
+                Pageable pageable
+        );
 
     // ========================================================================
     // 2. USER SPECIFIC QUERIES

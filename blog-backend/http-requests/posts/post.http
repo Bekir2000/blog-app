@@ -1,4 +1,4 @@
-### 1. Create a New Post (For Testing)
+### 1. Create a New Post (Published)
 POST http://localhost:8080/api/v1/posts
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
@@ -21,7 +21,6 @@ Authorization: Bearer {{access_token}}
 > {%
     client.global.set("postId", response.body.id);
     client.global.set("categoryId", response.body.category.id);
-    // Capture the ID of the 'Java' tag (assuming it's the first one)
     client.global.set("tagId", response.body.tags[0].id);
 %}
 
@@ -33,62 +32,50 @@ Authorization: Bearer {{access_token}}
 
 ###
 
-### 3. Search Mixed (Default)
-# Should find the post because "Tutorial" is in the title
+### 3. Search Mixed (Default: Title + Description)
 GET http://localhost:8080/api/v1/posts?query=Tutorial
 Authorization: Bearer {{access_token}}
 
 ###
 
 ### 4. Search by TITLE Only
-# Should find the post because "Advanced" is in the title
 GET http://localhost:8080/api/v1/posts?query=Advanced&searchType=TITLE
 Authorization: Bearer {{access_token}}
 
 ###
 
-### 5. Search by TITLE Only (Negative Test)
-# Should NOT find the post, because "CriteriaBuilder" is only in the content, not the title
-GET http://localhost:8080/api/v1/posts?query=CriteriaBuilder&searchType=TITLE
+### 5. Search by DESCRIPTION (via MIXED type)
+GET http://localhost:8080/api/v1/posts?query=Specifications&searchType=MIXED
 Authorization: Bearer {{access_token}}
 
 ###
 
-### 6. Search by CONTENT Only
-# Should find the post because "CriteriaBuilder" is in the content
-GET http://localhost:8080/api/v1/posts?query=CriteriaBuilder&searchType=CONTENT
-Authorization: Bearer {{access_token}}
-
-###
-
-### 7. Filter by Category Only
-# Should return posts in "Programming"
+### 6. Filter by Category Only
 GET http://localhost:8080/api/v1/posts?categoryId={{categoryId}}
 Authorization: Bearer {{access_token}}
 
 ###
 
-### 8. Complex Filter: Content Search + Category
-# Search for "Java" in CONTENT, strictly within "Programming" category
-GET http://localhost:8080/api/v1/posts?query=Java&searchType=CONTENT&categoryId={{categoryId}}
+### 7. Complex Filter: Mixed Search + Category
+GET http://localhost:8080/api/v1/posts?query=JPA&searchType=MIXED&categoryId={{categoryId}}
 Authorization: Bearer {{access_token}}
 
 ###
 
-### 9. Complex Filter: Tag + Title Search
-# Search for "Spring" in TITLE, strictly matching the "Java" tag
+### 8. Complex Filter: Tag + Title Search
 GET http://localhost:8080/api/v1/posts?query=Spring&searchType=TITLE&tagId={{tagId}}
 Authorization: Bearer {{access_token}}
 
 ###
 
-### 10. Update Post
+### 9. Update Post (Direct Hotfix)
+# Simulates updating a live post directly without a draft (e.g. typo fix)
 PUT http://localhost:8080/api/v1/posts/{{postId}}
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 
 {
-  "title": "Spring Boot Tutorial: Advanced JPA (Updated)",
+  "title": "Spring Boot Tutorial: Advanced JPA (Hotfix)",
   "description": "Updated description.",
   "content": "Content updated.",
   "imageUrl": "https://picsum.photos/id/11/200/300",
@@ -99,24 +86,20 @@ Authorization: Bearer {{access_token}}
 
 ###
 
-### 11. Delete Post
-DELETE http://localhost:8080/api/v1/posts/{{postId}}
-Authorization: Bearer {{access_token}}
-
-### 12. Create a Post Draft
-POST http://localhost:8080/api/v1/posts/draft
+### 10. Create a New Independent Draft
+# Test flexible validation (missing tags/description is allowed for DRAFT)
+POST http://localhost:8080/api/v1/posts
 Content-Type: application/json
 Authorization: Bearer {{access_token}}
 
 {
   "title": "My Rough Ideas",
-  "description": "Just a quick thought...",
   "content": "This is a work in progress. I will finish it later.",
+  "status": "DRAFT",
   "imageUrl": "",
   "category": {
     "name": "Journal"
-  },
-  "tags": []
+  }
 }
 
 > {%
@@ -125,12 +108,73 @@ Authorization: Bearer {{access_token}}
 
 ###
 
-### 13. Get Drafts (Paged)
-# Should return a PagedResponse of drafts for the current user
+### 11. Get Drafts List (Paged)
 GET http://localhost:8080/api/v1/posts/drafts?page=0&size=5
 Authorization: Bearer {{access_token}}
 
-### 14. Get Users published posts (Paged)
-# Should return a PagedResponse of drafts for the current user
+###
+
+### 12. Get My Published Posts (Paged)
 GET http://localhost:8080/api/v1/posts/published?page=0&size=5
 Authorization: Bearer {{access_token}}
+
+###
+
+# =============================================================================
+# REVISION WORKFLOW TESTS (Fork & Merge)
+# =============================================================================
+
+### 13. Create Revision (Fork)
+# Creates a DRAFT copy of the Published Post ({{postId}})
+POST http://localhost:8080/api/v1/posts/{{postId}}/revision
+Authorization: Bearer {{access_token}}
+
+> {%
+    client.global.set("revisionId", response.body.id);
+%}
+
+### 14a. Update Revision - Round 1 (Save Draft)
+# User types something but isn't finished.
+PUT http://localhost:8080/api/v1/posts/{{revisionId}}
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "title": "Spring Boot Tutorial: Version 2.0 (Work in Progress)",
+  "content": "I started writing the new section...",
+  "status": "DRAFT",
+  "imageUrl": "",
+  "category": { "name": "Programming" },
+  "tags": [ { "name": "Java" } ]
+}
+
+### 14b. Update Revision - Round 2 (Save Draft Again)
+# User comes back later and adds more content. Original is STILL untouched.
+PUT http://localhost:8080/api/v1/posts/{{revisionId}}
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "title": "Spring Boot Tutorial: Version 2.0 (Almost Done)",
+  "content": "I started writing the new section... and now I finished the conclusion.",
+  "status": "DRAFT",
+  "imageUrl": "",
+  "category": { "name": "Programming" },
+  "tags": [ { "name": "Java" } ]
+}
+
+### 15. Publish the Revision (Final Merge)
+# User is finally happy. This overwrites the original post.
+PUT http://localhost:8080/api/v1/posts/{{revisionId}}
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "title": "Spring Boot Tutorial: Version 2.0 (Final)",
+  "content": "I started writing the new section... and now I finished the conclusion. It is live!",
+  "status": "PUBLISHED",
+  "description": "New Description Live.",
+  "imageUrl": "https://picsum.photos/id/12/200/300",
+  "category": { "name": "Programming" },
+  "tags": [ { "name": "Java" } ]
+}

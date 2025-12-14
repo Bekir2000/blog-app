@@ -1,7 +1,6 @@
 package org.example.blogbackend.post.service;
 
 import org.example.blogbackend.comment.model.SearchType;
-import org.example.blogbackend.post.dto.request.PostDraftRequest;
 import org.example.blogbackend.post.dto.request.PostRequest;
 import org.example.blogbackend.post.dto.response.PostCardResponse;
 import org.example.blogbackend.post.dto.response.PostDetailResponse;
@@ -15,19 +14,18 @@ public interface PostService {
 
     PostResponse createPost(PostRequest request, UUID userId);
 
-    PostResponse createPostDraft(PostDraftRequest request, UUID userId);
-
     PostDetailResponse getPostById(UUID postId, UUID userId);
 
     PagedResponse<PostCardResponse> getPostCards(
             UUID userId, String query, SearchType searchType, UUID categoryId, UUID tagId, Pageable pageable
     );
 
-    // ✅ Updated to accept Pageable
     PagedResponse<PostCardResponse> getDraftPosts(UUID userId, Pageable pageable);
+
     PagedResponse<PostCardResponse> getUserPublishedPosts(UUID userId, Pageable pageable);
 
     PostResponse updatePost(UUID postId, PostRequest request, UUID userId);
+    PostResponse createRevision(UUID originalPostId, UUID userId);
 
     void deletePost(UUID postId, UUID userId);
 
