@@ -140,6 +140,21 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public PagedResponse<PostCardResponse> getUserPublishedPosts(UUID userId, Pageable pageable) {
+        return fetchAndMapPosts(
+                userId,               // Viewer
+                userId,               // authorFilter (The user themselves)
+                PostStatus.PUBLISHED,
+                null,                 // query
+                null,                 // searchType
+                null,                 // categoryId
+                null,                 // tagId
+                pageable
+        );
+    }
+
+    @Override
     @Transactional
     public PostResponse updatePost(UUID postId, PostRequest request, UUID currentUserId) {
         Post post = getPostEntity(postId);

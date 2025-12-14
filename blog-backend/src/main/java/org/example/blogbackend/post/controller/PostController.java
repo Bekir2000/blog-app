@@ -55,7 +55,7 @@ public class PostController {
         );
     }
 
-    // ✅ Updated Drafts Endpoint for Pagination
+
     @GetMapping("/drafts")
     public ResponseEntity<PagedResponse<PostCardResponse>> getDrafts(
             @RequestParam(defaultValue = "0") int page,
@@ -67,6 +67,19 @@ public class PostController {
 
         return ResponseEntity.ok(
                 postService.getDraftPosts(userDetails.getUserId(), pageable)
+        );
+    }
+
+    @GetMapping("/published")
+    public ResponseEntity<PagedResponse<PostCardResponse>> getMyPublishedPosts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size,
+            @AuthenticationPrincipal BlogUserDetails userDetails) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        return ResponseEntity.ok(
+                postService.getUserPublishedPosts(userDetails.getUserId(), pageable)
         );
     }
 

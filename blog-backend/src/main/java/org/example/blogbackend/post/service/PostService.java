@@ -25,6 +25,7 @@ public interface PostService {
 
     // ✅ Updated to accept Pageable
     PagedResponse<PostCardResponse> getDraftPosts(UUID userId, Pageable pageable);
+    PagedResponse<PostCardResponse> getUserPublishedPosts(UUID userId, Pageable pageable);
 
     PostResponse updatePost(UUID postId, PostRequest request, UUID userId);
 
