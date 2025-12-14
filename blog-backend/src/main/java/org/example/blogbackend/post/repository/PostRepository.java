@@ -21,20 +21,29 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     // 1. DYNAMIC FEED QUERY (Handles all filters)
     // ========================================================================
 
-    @Query("SELECT p FROM Post p WHERE p.status = :status " +
-            // 1. Dynamic Search Logic
+    @Query("SELECT p FROM Post p " +
+            "LEFT JOIN p.tags t " + // Join tags for efficient filtering
+            "WHERE p.status = :status " +
+
+            // ✅ FIX 1: Corrected Typo and Logic (Compare to Entity field, not string)
+            "AND (:authorId IS NULL OR p.author.id = :authorId) " +
+
+            "AND (:categoryId IS NULL OR p.category.id = :categoryId) " +
+
+            // ✅ FIX 2: Use JOIN alias for tag filtering (Safer than MEMBER OF)
+            "AND (:tagId IS NULL OR t.id = :tagId) " +
+
             "AND (:query IS NULL OR :query = '' OR " +
             "    (:searchType = 'TITLE' AND LOWER(p.title) LIKE LOWER(CONCAT('%', :query, '%'))) OR " +
+            // Note: Ensure p.content is TEXT type in DB if you use this line
             "    (:searchType = 'CONTENT' AND LOWER(p.content) LIKE LOWER(CONCAT('%', :query, '%'))) OR " +
-            "    ((:searchType IS NULL OR :searchType = 'MIXED') AND (LOWER(p.title) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(p.content) LIKE LOWER(CONCAT('%', :query, '%'))))" +
-            ") " +
-            // 2. Strict Filter Logic (Category & Tag)
-            "AND (:categoryId IS NULL OR p.category.id = :categoryId) " +
-            "AND (:tagId IS NULL OR :tagId MEMBER OF p.tags)")
+            "    ((:searchType IS NULL OR :searchType = 'MIXED') AND (LOWER(p.title) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(p.description) LIKE LOWER(CONCAT('%', :query, '%'))))" +
+            ")")
     Page<PostCardView> findFilteredPosts(
             @Param("status") PostStatus status,
             @Param("query") String query,
-            @Param("searchType") String searchType, // Pass Enum.name()
+            @Param("authorId") UUID authorId,
+            @Param("searchType") String searchType,
             @Param("categoryId") UUID categoryId,
             @Param("tagId") UUID tagId,
             Pageable pageable

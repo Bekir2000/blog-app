@@ -1,5 +1,6 @@
 package org.example.blogbackend.post.mapper;
 
+import org.example.blogbackend.post.dto.request.PostDraftRequest;
 import org.example.blogbackend.post.dto.request.PostRequest;
 import org.example.blogbackend.shared.dto.PagedResponse;
 import org.example.blogbackend.post.dto.response.PostCardResponse;
@@ -32,5 +33,8 @@ public interface PostMapper {
     @Mapping(target = "category", ignore = true)
     @Mapping(target = "tags", ignore = true)
     void updatePostFromRequest(PostRequest request, @MappingTarget Post post);
+
+    @Mapping(target = "status", constant = "DRAFT")
+    PostRequest toPostRequestFromDraft(PostDraftRequest post);
 
 }

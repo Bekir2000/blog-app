@@ -102,3 +102,30 @@ Authorization: Bearer {{access_token}}
 ### 11. Delete Post
 DELETE http://localhost:8080/api/v1/posts/{{postId}}
 Authorization: Bearer {{access_token}}
+
+### 12. Create a Post Draft
+POST http://localhost:8080/api/v1/posts/draft
+Content-Type: application/json
+Authorization: Bearer {{access_token}}
+
+{
+  "title": "My Rough Ideas",
+  "description": "Just a quick thought...",
+  "content": "This is a work in progress. I will finish it later.",
+  "imageUrl": "",
+  "category": {
+    "name": "Journal"
+  },
+  "tags": []
+}
+
+> {%
+    client.global.set("draftId", response.body.id);
+%}
+
+###
+
+### 13. Get Drafts (Paged)
+# Should return a PagedResponse of drafts for the current user
+GET http://localhost:8080/api/v1/posts/drafts?page=0&size=5
+Authorization: Bearer {{access_token}}

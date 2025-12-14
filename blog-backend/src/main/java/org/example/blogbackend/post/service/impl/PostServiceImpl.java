@@ -6,8 +6,8 @@ import org.example.blogbackend.category.model.dto.request.CreateCategoryRequest;
 import org.example.blogbackend.category.model.entity.Category;
 import org.example.blogbackend.category.repository.CategoryRepository;
 import org.example.blogbackend.comment.model.SearchType;
+import org.example.blogbackend.post.dto.request.PostDraftRequest;
 import org.example.blogbackend.post.dto.request.PostRequest;
-import org.example.blogbackend.shared.dto.PagedResponse;
 import org.example.blogbackend.post.dto.response.PostCardResponse;
 import org.example.blogbackend.post.dto.response.PostDetailResponse;
 import org.example.blogbackend.post.dto.response.PostResponse;
@@ -17,6 +17,7 @@ import org.example.blogbackend.post.model.entity.Post;
 import org.example.blogbackend.post.model.projection.PostCardView;
 import org.example.blogbackend.post.repository.PostRepository;
 import org.example.blogbackend.post.service.PostService;
+import org.example.blogbackend.shared.dto.PagedResponse;
 import org.example.blogbackend.shared.mapper.PageMapper;
 import org.example.blogbackend.tag.model.dto.request.CreateTagRequest;
 import org.example.blogbackend.tag.model.entity.Tag;
@@ -30,7 +31,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -72,6 +72,13 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @Transactional
+    public PostResponse createPostDraft(PostDraftRequest DraftRequest, UUID userId) {
+        PostRequest request = postMapper.toPostRequestFromDraft(DraftRequest);
+        return createPost(request, userId);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public PostDetailResponse getPostById(UUID postId, UUID userId) {
         Post post = getPostEntity(postId);
@@ -89,56 +96,47 @@ public class PostServiceImpl implements PostService {
         return postMapper.toPostDetailResponse(post, isBookmarked, isFollowingAuthor, isLiked);
     }
 
+    // =========================================================================
+    // 1. PUBLIC FEED: Fetches PUBLISHED posts from ANY author
+    // =========================================================================
     @Override
     @Transactional(readOnly = true)
     public PagedResponse<PostCardResponse> getPostCards(
-            UUID userId,
+            UUID userId, // The viewer (for bookmarks)
             String query,
-            SearchType searchType, // 👈 New Parameter
+            SearchType searchType,
             UUID categoryId,
             UUID tagId,
             Pageable pageable
     ) {
-        // Convert Enum to String for JPQL, default to MIXED if null
-        String typeString = (searchType != null) ? searchType.name() : SearchType.MIXED.name();
-
-        // 1. Fetch filtered view directly from Repository
-        Page<PostCardView> postCards = postRepository.findFilteredPosts(
+        return fetchAndMapPosts(
+                userId,          // Viewer
+                null,            // authorFilter (Null = Any Author)
                 PostStatus.PUBLISHED,
                 query,
-                typeString,
+                searchType,
                 categoryId,
                 tagId,
                 pageable
         );
-
-        // 2. Extract IDs to check bookmarks efficiently
-        Set<UUID> postIds = postCards.getContent().stream()
-                .map(PostCardView::getId)
-                .collect(Collectors.toSet());
-
-        Set<UUID> bookmarkedPostIds = (userId != null && !postIds.isEmpty())
-                ? userRepository.findBookmarkedPostIdsByUserIdAndPostIdIn(userId, postIds)
-                : Collections.emptySet();
-
-        // 3. Map to DTO
-        Page<PostCardResponse> responsePage = postCards.map(postCard ->
-                postMapper.toPostCardResponse(
-                        postCard,
-                        bookmarkedPostIds.contains(postCard.getId())
-                )
-        );
-
-        return pageMapper.toPagedResponse(responsePage);
     }
 
+    // =========================================================================
+    // 2. DRAFTS: Fetches DRAFT posts from CURRENT USER only
+    // =========================================================================
     @Override
     @Transactional(readOnly = true)
-    public List<PostCardResponse> getDraftPosts(UUID userId) {
-        List<PostCardView> drafts = postRepository.findProjectedByAuthor_IdAndStatus(userId, PostStatus.DRAFT);
-        return drafts.stream()
-                .map(post -> postMapper.toPostCardResponse(post, false))
-                .toList();
+    public PagedResponse<PostCardResponse> getDraftPosts(UUID userId, Pageable pageable) {
+        return fetchAndMapPosts(
+                userId,          // Viewer
+                userId,          // authorFilter (Must match viewer)
+                PostStatus.DRAFT,
+                null,            // query (No search for drafts currently)
+                null,            // searchType
+                null,            // categoryId
+                null,            // tagId
+                pageable
+        );
     }
 
     @Override
@@ -187,6 +185,53 @@ public class PostServiceImpl implements PostService {
         return postMapper.toPostResponse(post);
     }
 
+    // =========================================================================
+    // SHARED PRIVATE ENGINE: Handles Fetching, Filtering & Mapping
+    // =========================================================================
+    private PagedResponse<PostCardResponse> fetchAndMapPosts(
+            UUID viewerId,
+            UUID authorFilterId,
+            PostStatus status,
+            String query,
+            SearchType searchType,
+            UUID categoryId,
+            UUID tagId,
+            Pageable pageable
+    ) {
+        // 1. Convert Enum to String for JPQL, default to MIXED
+        String typeString = (searchType != null) ? searchType.name() : SearchType.MIXED.name();
+
+        // 2. Fetch from Repository
+        Page<PostCardView> postCards = postRepository.findFilteredPosts(
+                status,
+                query,
+                authorFilterId,
+                typeString,
+                categoryId,
+                tagId,
+                pageable
+        );
+
+        // 3. Extract IDs to check bookmarks efficiently
+        Set<UUID> postIds = postCards.getContent().stream()
+                .map(PostCardView::getId)
+                .collect(Collectors.toSet());
+
+        Set<UUID> bookmarkedPostIds = (viewerId != null && !postIds.isEmpty())
+                ? userRepository.findBookmarkedPostIdsByUserIdAndPostIdIn(viewerId, postIds)
+                : Collections.emptySet();
+
+        // 4. Map to DTO
+        Page<PostCardResponse> responsePage = postCards.map(postCard ->
+                postMapper.toPostCardResponse(
+                        postCard,
+                        bookmarkedPostIds.contains(postCard.getId())
+                )
+        );
+
+        return pageMapper.toPagedResponse(responsePage);
+    }
+
     // --- Helper Methods ---
 
     private Post getPostEntity(UUID postId) {
@@ -211,6 +256,10 @@ public class PostServiceImpl implements PostService {
     }
 
     private void resolveCategory(Post post, CreateCategoryRequest categoryRequest) {
+        if (categoryRequest == null || categoryRequest.name() == null) {
+            // Handle null category for drafts if needed, or default to "General"
+            return;
+        }
         String categoryName = categoryRequest.name();
         Category category = categoryRepository.findByNameIgnoreCase(categoryName).orElse(
                 Category.builder().name(categoryName).build()
@@ -220,11 +269,14 @@ public class PostServiceImpl implements PostService {
     }
 
     private void resolveTags(Post post, Set<CreateTagRequest> tagRequests) {
+        if (tagRequests == null || tagRequests.isEmpty()) {
+            return;
+        }
         Set<String> tagNames = tagRequests.stream()
                 .map(CreateTagRequest::name)
                 .collect(Collectors.toSet());
 
-        if (post.getTags() != null && !post.getTags().isEmpty()) {
+        if (!tagNames.isEmpty()) {
             Set<Tag> newTags = tagRepository.findByNameNotIn(tagNames);
             tagRepository.saveAll(newTags);
             post.setTags(newTags);

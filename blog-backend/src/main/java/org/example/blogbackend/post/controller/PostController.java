@@ -3,6 +3,7 @@ package org.example.blogbackend.post.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.blogbackend.comment.model.SearchType;
+import org.example.blogbackend.post.dto.request.PostDraftRequest;
 import org.example.blogbackend.shared.security.BlogUserDetails;
 import org.example.blogbackend.post.dto.request.PostRequest;
 import org.example.blogbackend.shared.dto.PagedResponse;
@@ -18,7 +19,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -40,7 +40,7 @@ public class PostController {
     @GetMapping
     public ResponseEntity<PagedResponse<PostCardResponse>> getAllPostCards(
             @RequestParam(required = false) String query,
-            @RequestParam(required = false, defaultValue = "MIXED") SearchType searchType, // 👈 New Param
+            @RequestParam(required = false, defaultValue = "MIXED") SearchType searchType,
             @RequestParam(required = false) UUID categoryId,
             @RequestParam(required = false) UUID tagId,
             @RequestParam(defaultValue = "0") int page,
@@ -55,11 +55,19 @@ public class PostController {
         );
     }
 
+    // ✅ Updated Drafts Endpoint for Pagination
     @GetMapping("/drafts")
-    public ResponseEntity<List<PostCardResponse>> getDrafts(
+    public ResponseEntity<PagedResponse<PostCardResponse>> getDrafts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size,
             @AuthenticationPrincipal BlogUserDetails userDetails) {
 
-        return ResponseEntity.ok(postService.getDraftPosts(userDetails.getUserId()));
+        // Sort drafts by newest first
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        return ResponseEntity.ok(
+                postService.getDraftPosts(userDetails.getUserId(), pageable)
+        );
     }
 
     @PostMapping
@@ -69,6 +77,15 @@ public class PostController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(postService.createPost(request, userDetails.getUserId()));
+    }
+
+    @PostMapping("/draft")
+    public ResponseEntity<PostResponse> createPostDraft(
+            @Valid @RequestBody PostDraftRequest request,
+            @AuthenticationPrincipal BlogUserDetails userDetails) {
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(postService.createPostDraft(request, userDetails.getUserId()));
     }
 
     @PutMapping("/{postId}")
