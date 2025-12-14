@@ -5,7 +5,7 @@ import Link from "next/link";
 import { InfoTooltip } from "../InfoTooltip";
 import { SidebarTrigger } from "../ui/sidebar";
 import { SearchBar } from "./SearchBar";
-import { UserNav } from "./UserNav"; // <--- Import the new component
+import { UserNav } from "./UserNav";
 
 export default async function Navbar() {
   const user = await getUser();
@@ -35,9 +35,13 @@ export default async function Navbar() {
 
         {/* Right: Write, Bell, User */}
         <div className="flex items-center gap-4">
-          <button className="hidden sm:flex items-center gap-1 text-gray-600 hover:text-black transition-colors px-2">
+          {/* 👇 CHANGED: Converted button to Link pointing to /new-story */}
+          <Link
+            href="/new-story"
+            className="hidden sm:flex items-center gap-1 text-gray-600 hover:text-black transition-colors px-2"
+          >
             <SquarePenIcon className="w-4 h-4" /> Write
-          </button>
+          </Link>
 
           <InfoTooltip message="Notifications">
             <Button variant="ghost" size="icon" className="rounded-full">
@@ -46,7 +50,6 @@ export default async function Navbar() {
           </InfoTooltip>
 
           {user ? (
-            // Clean abstraction: The logic is now inside UserNav
             <UserNav user={user} />
           ) : (
             <Button asChild className="rounded-full">
