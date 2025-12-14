@@ -2,6 +2,7 @@
 
 import {
   useCreatePost,
+  useCreatePostDraft,
   useUpdatePost,
 } from "@/api/generated/client/post-controller/post-controller";
 import {
@@ -9,6 +10,7 @@ import {
   PostRequestStatus,
   UserResponse,
 } from "@/api/generated/model";
+import { EditorNavbar } from "@/components/navbar/EditorNavbar";
 import { Button } from "@/components/ui/button";
 import { useAutoResizeTextArea } from "@/hooks/useAutoResizeTextArea";
 import { Hash, Search, X } from "lucide-react";
@@ -16,7 +18,6 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { EditorNavbar } from "../navbar/EditorNavbar";
 import { UnsplashModal } from "./UnsplashModal";
 
 interface PostEditorProps {
@@ -47,14 +48,32 @@ export function PostEditor({ currentUser, postToEdit }: PostEditorProps) {
 
   // --- API Hooks ---
   const createMutation = useCreatePost();
+  const createDraftMutation = useCreatePostDraft();
   const updateMutation = useUpdatePost();
-  const isPending = createMutation.isPending || updateMutation.isPending;
+
+  const isPending =
+    createMutation.isPending ||
+    updateMutation.isPending ||
+    createDraftMutation.isPending;
 
   // --- Submit Handler ---
   const handleSubmit = (targetStatus: PostRequestStatus) => {
-    if (!title || !content || !imageUrl) {
-      toast.error("Please add a title, content, and cover image.");
+    // 1. Always require a Title
+    if (!title.trim()) {
+      toast.error("Please add a title before saving.");
       return;
+    }
+
+    // 2. Strict Validation ONLY for Publishing
+    if (targetStatus === PostRequestStatus.PUBLISHED) {
+      if (!content.trim()) {
+        toast.error("You cannot publish an empty story.");
+        return;
+      }
+      if (!imageUrl) {
+        toast.error("Please add a cover image before publishing.");
+        return;
+      }
     }
 
     const cleanContent = content.replace(/<[^>]*>?/gm, "");
@@ -65,7 +84,7 @@ export function PostEditor({ currentUser, postToEdit }: PostEditorProps) {
       title,
       content,
       description,
-      imageUrl,
+      imageUrl, // Can be empty string "" for drafts
       status: targetStatus,
       tags: tags.map((tag) => ({ name: tag })) as any,
       category: { name: categoryName || "General" } as any,
@@ -81,13 +100,18 @@ export function PostEditor({ currentUser, postToEdit }: PostEditorProps) {
       onError: () => toast.error("Something went wrong. Please try again."),
     };
 
+    // --- Logic Branching ---
     if (isEditing && postToEdit?.id) {
       updateMutation.mutate(
         { postId: postToEdit.id, data: payload },
         mutationOptions
       );
     } else {
-      createMutation.mutate({ data: payload }, mutationOptions);
+      if (targetStatus === PostRequestStatus.DRAFT) {
+        createDraftMutation.mutate({ data: payload }, mutationOptions);
+      } else {
+        createMutation.mutate({ data: payload }, mutationOptions);
+      }
     }
   };
 
@@ -109,11 +133,6 @@ export function PostEditor({ currentUser, postToEdit }: PostEditorProps) {
 
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950 pb-20">
-      {/* --- NAVBAR --- 
-          Identical structure to main Navbar:
-          - Uses 'py-3' and 'px-6' 
-          - Standard Button for Back (matches SidebarTrigger)
-      */}
       <EditorNavbar
         currentUser={currentUser}
         isPending={isPending}
@@ -122,7 +141,6 @@ export function PostEditor({ currentUser, postToEdit }: PostEditorProps) {
         onPublish={() => handleSubmit(PostRequestStatus.PUBLISHED)}
       />
 
-      {/* --- CONTENT --- */}
       <UnsplashModal
         open={unsplashOpen}
         onOpenChange={setUnsplashOpen}
@@ -130,7 +148,7 @@ export function PostEditor({ currentUser, postToEdit }: PostEditorProps) {
       />
 
       <div className="mx-auto max-w-[720px] px-6 py-10 md:py-14">
-        {/* Cover Image */}
+        {/* Cover Image Section */}
         <div className="group relative mb-8 transition-all">
           {imageUrl ? (
             <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-gray-100 shadow-sm bg-gray-50">
