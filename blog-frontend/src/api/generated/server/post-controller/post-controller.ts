@@ -10,7 +10,6 @@ import type {
   GetMyPublishedPostsParams,
   PagedResponsePostCardResponse,
   PostDetailResponse,
-  PostDraftRequest,
   PostRequest,
   PostResponse
 } from '../../model';
@@ -73,13 +72,11 @@ import { serverFetch } from '../../../../lib/api-client';
     },
       );
     }
-  export const createPostDraft = (
-    postDraftRequest: PostDraftRequest,
+  export const createRevision = (
+    postId: string,
  ) => {
       return serverFetch<PostResponse>(
-      {url: `/api/v1/posts/draft`, method: 'POST',
-      headers: {'Content-Type': 'application/json', },
-      data: postDraftRequest
+      {url: `/api/v1/posts/${postId}/revision`, method: 'POST'
     },
       );
     }
@@ -107,6 +104,6 @@ export type DeletePostResult = NonNullable<Awaited<ReturnType<typeof deletePost>
 export type ToggleLikeResult = NonNullable<Awaited<ReturnType<typeof toggleLike>>>
 export type GetAllPostCardsResult = NonNullable<Awaited<ReturnType<typeof getAllPostCards>>>
 export type CreatePostResult = NonNullable<Awaited<ReturnType<typeof createPost>>>
-export type CreatePostDraftResult = NonNullable<Awaited<ReturnType<typeof createPostDraft>>>
+export type CreateRevisionResult = NonNullable<Awaited<ReturnType<typeof createRevision>>>
 export type GetMyPublishedPostsResult = NonNullable<Awaited<ReturnType<typeof getMyPublishedPosts>>>
 export type GetDraftsResult = NonNullable<Awaited<ReturnType<typeof getDrafts>>>

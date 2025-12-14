@@ -1,6 +1,9 @@
 "use client";
 
-import { useDeletePost } from "@/api/generated/client/post-controller/post-controller";
+import {
+  useCreateRevision, // ✅ New Hook (Make sure you regenerated API client)
+  useDeletePost,
+} from "@/api/generated/client/post-controller/post-controller";
 import {
   PagedResponsePostCardResponse,
   PostCardResponse,
@@ -14,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { InfiniteData, UseInfiniteQueryResult } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Edit2, MoreHorizontal, Trash2 } from "lucide-react";
+import { Edit2, Eye, MoreHorizontal, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
@@ -29,7 +32,6 @@ type ApiPageResponse = {
 
 interface StoryListProps {
   initialPosts: PostCardResponse[];
-  // Strictly typed query result
   queryResult: UseInfiniteQueryResult<InfiniteData<ApiPageResponse>, unknown>;
   type: "DRAFT" | "PUBLISHED";
 }
@@ -41,6 +43,7 @@ export function StoryList({ initialPosts, queryResult, type }: StoryListProps) {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } =
     queryResult;
 
+  // --- 1. Delete Mutation ---
   const { mutate: deletePost } = useDeletePost({
     mutation: {
       onSuccess: () => {
@@ -51,26 +54,48 @@ export function StoryList({ initialPosts, queryResult, type }: StoryListProps) {
     },
   });
 
+  // --- 2. Revision Mutation (Fork Logic) ---
+  const { mutate: createRevision, isPending: isCreatingRevision } =
+    useCreateRevision({
+      mutation: {
+        onSuccess: (response) => {
+          toast.success("Draft revision created");
+          // Redirect to the NEW draft ID
+          router.push(`/posts/${response.data.id}/edit`);
+        },
+        onError: () => toast.error("Could not create revision"),
+      },
+    });
+
+  // --- Handlers ---
   const handleDelete = (id: string) => {
     if (confirm("Are you sure you want to delete this story?")) {
       deletePost({ postId: id });
     }
   };
 
+  const handleEdit = (post: PostCardResponse) => {
+    if (type === "DRAFT") {
+      // Direct Edit
+      router.push(`/posts/${post.id}/edit`);
+    } else {
+      // Fork & Edit (Revision Workflow)
+      createRevision({ postId: post.id! });
+    }
+  };
+
+  // --- Infinite Scroll Trigger ---
   useEffect(() => {
     if (inView && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
   }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Combine SSR data + Client Infinite Data
+  // --- Data Merging ---
   const allPosts = useMemo(() => {
-    // If we have fetched data on the client, use it (it effectively replaces initialPosts)
     if (data && data.pages.length > 0) {
-      // flatMap over the pages. Each page has a .data property which has .content
       const rawPosts =
         data.pages.flatMap((page) => page.data.content ?? []) || [];
-
       const seen = new Set<string>();
       return rawPosts.filter((post) => {
         if (!post?.id || seen.has(post.id)) return false;
@@ -78,7 +103,6 @@ export function StoryList({ initialPosts, queryResult, type }: StoryListProps) {
         return true;
       });
     }
-    // Fallback to SSR initial data
     return initialPosts || [];
   }, [data, initialPosts]);
 
@@ -95,9 +119,14 @@ export function StoryList({ initialPosts, queryResult, type }: StoryListProps) {
       {allPosts.map((post) => (
         <div key={post.id} className="group border-b border-gray-100 pb-6">
           <div className="flex items-start justify-between">
-            <div>
+            <div className="flex-1">
+              {/* Logic: If Draft, clicking title edits. If Published, clicking title views it. */}
               <Link
-                href={`/posts/${post.id}/edit`}
+                href={
+                  type === "DRAFT"
+                    ? `/posts/${post.id}/edit`
+                    : `/posts/${post.id}` // Assuming this is your public view route
+                }
                 className="block group-hover:opacity-75 transition-opacity"
               >
                 <h3 className="font-bold text-lg mb-1">{post.title}</h3>
@@ -122,11 +151,25 @@ export function StoryList({ initialPosts, queryResult, type }: StoryListProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {/* View Action (Only for Published) */}
+                {type === "PUBLISHED" && (
+                  <DropdownMenuItem
+                    onClick={() => router.push(`/posts/${post.id}`)}
+                  >
+                    <Eye className="w-4 h-4 mr-2" /> View
+                  </DropdownMenuItem>
+                )}
+
+                {/* Edit Action */}
                 <DropdownMenuItem
-                  onClick={() => router.push(`/posts/${post.id}/edit`)}
+                  onClick={() => handleEdit(post)}
+                  disabled={isCreatingRevision}
                 >
-                  <Edit2 className="w-4 h-4 mr-2" /> Edit
+                  <Edit2 className="w-4 h-4 mr-2" />
+                  {type === "PUBLISHED" ? "Edit Revision" : "Edit"}
                 </DropdownMenuItem>
+
+                {/* Delete Action */}
                 <DropdownMenuItem
                   onClick={() => handleDelete(post.id!)}
                   className="text-red-600 focus:text-red-600"

@@ -34,7 +34,6 @@ import type {
   GetMyPublishedPostsParams,
   PagedResponsePostCardResponse,
   PostDetailResponse,
-  PostDraftRequest,
   PostRequest,
   PostResponse
 } from '../../model';
@@ -712,46 +711,45 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
       return useMutation(mutationOptions, queryClient);
     }
-    export type createPostDraftResponse200 = {
+    export type createRevisionResponse200 = {
   data: PostResponse
   status: 200
 }
     
-export type createPostDraftResponseSuccess = (createPostDraftResponse200) & {
+export type createRevisionResponseSuccess = (createRevisionResponse200) & {
   headers: Headers;
 };
 ;
 
-export type createPostDraftResponse = (createPostDraftResponseSuccess)
+export type createRevisionResponse = (createRevisionResponseSuccess)
 
-export const getCreatePostDraftUrl = () => {
+export const getCreateRevisionUrl = (postId: string,) => {
 
 
   
 
-  return `/api/v1/posts/draft`
+  return `/api/v1/posts/${postId}/revision`
 }
 
-export const createPostDraft = async (postDraftRequest: PostDraftRequest, options?: RequestInit): Promise<createPostDraftResponse> => {
+export const createRevision = async (postId: string, options?: RequestInit): Promise<createRevisionResponse> => {
   
-  return clientFetch<createPostDraftResponse>(getCreatePostDraftUrl(),
+  return clientFetch<createRevisionResponse>(getCreateRevisionUrl(postId),
   {      
     ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      postDraftRequest,)
+    method: 'POST'
+    
+    
   }
 );}
 
 
 
 
-export const getCreatePostDraftMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPostDraft>>, TError,{data: PostDraftRequest}, TContext>, request?: SecondParameter<typeof clientFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createPostDraft>>, TError,{data: PostDraftRequest}, TContext> => {
+export const getCreateRevisionMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRevision>>, TError,{postId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createRevision>>, TError,{postId: string}, TContext> => {
 
-const mutationKey = ['createPostDraft'];
+const mutationKey = ['createRevision'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -761,10 +759,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPostDraft>>, {data: PostDraftRequest}> = (props) => {
-          const {data} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createRevision>>, {postId: string}> = (props) => {
+          const {postId} = props ?? {};
 
-          return  createPostDraft(data,requestOptions)
+          return  createRevision(postId,requestOptions)
         }
 
         
@@ -772,20 +770,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CreatePostDraftMutationResult = NonNullable<Awaited<ReturnType<typeof createPostDraft>>>
-    export type CreatePostDraftMutationBody = PostDraftRequest
-    export type CreatePostDraftMutationError = unknown
+    export type CreateRevisionMutationResult = NonNullable<Awaited<ReturnType<typeof createRevision>>>
+    
+    export type CreateRevisionMutationError = unknown
 
-    export const useCreatePostDraft = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPostDraft>>, TError,{data: PostDraftRequest}, TContext>, request?: SecondParameter<typeof clientFetch>}
+    export const useCreateRevision = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRevision>>, TError,{postId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof createPostDraft>>,
+        Awaited<ReturnType<typeof createRevision>>,
         TError,
-        {data: PostDraftRequest},
+        {postId: string},
         TContext
       > => {
 
-      const mutationOptions = getCreatePostDraftMutationOptions(options);
+      const mutationOptions = getCreateRevisionMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }

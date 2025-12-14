@@ -4,9 +4,9 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
+import type { PostRequestStatus } from './postRequestStatus';
 import type { CreateCategoryRequest } from './createCategoryRequest';
 import type { CreateTagRequest } from './createTagRequest';
-import type { PostRequestStatus } from './postRequestStatus';
 
 export interface PostRequest {
   /**
@@ -14,23 +14,22 @@ export interface PostRequest {
    * @maxLength 100
    */
   title: string;
-  /** @minLength 1 */
-  description: string;
   /**
    * @minLength 10
    * @maxLength 50000
    */
   content: string;
+  status: PostRequestStatus;
+  description?: string;
   /**
    * @minLength 0
    * @maxLength 2048
    */
-  imageUrl: string;
-  category: CreateCategoryRequest;
+  imageUrl?: string;
+  category?: CreateCategoryRequest;
   /**
    * @minItems 0
    * @maxItems 10
    */
-  tags: CreateTagRequest[];
-  status: PostRequestStatus;
+  tags?: CreateTagRequest[];
 }

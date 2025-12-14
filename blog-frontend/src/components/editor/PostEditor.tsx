@@ -2,11 +2,11 @@
 
 import {
   useCreatePost,
-  useCreatePostDraft,
   useUpdatePost,
 } from "@/api/generated/client/post-controller/post-controller";
 import {
   PostDetailResponse,
+  PostRequest,
   PostRequestStatus,
   UserResponse,
 } from "@/api/generated/model";
@@ -37,34 +37,32 @@ export function PostEditor({ currentUser, postToEdit }: PostEditorProps) {
     postToEdit?.tags?.map((t) => t.name || "") || []
   );
   const [tagInput, setTagInput] = useState("");
+  // Default category to "General" if missing (common for drafts)
   const [categoryName, setCategoryName] = useState(
-    postToEdit?.category?.name || ""
+    postToEdit?.category?.name || "General"
   );
   const [unsplashOpen, setUnsplashOpen] = useState(false);
 
-  // Refs
+  // Refs for auto-growing textareas
   const titleRef = useAutoResizeTextArea(title);
   const contentRef = useAutoResizeTextArea(content);
 
   // --- API Hooks ---
+  // ✅ Removed useCreatePostDraft (endpoint deleted)
   const createMutation = useCreatePost();
-  const createDraftMutation = useCreatePostDraft();
   const updateMutation = useUpdatePost();
 
-  const isPending =
-    createMutation.isPending ||
-    updateMutation.isPending ||
-    createDraftMutation.isPending;
+  const isPending = createMutation.isPending || updateMutation.isPending;
 
   // --- Submit Handler ---
   const handleSubmit = (targetStatus: PostRequestStatus) => {
-    // 1. Always require a Title
+    // 1. Basic Validation (Required for EVERYTHING)
     if (!title.trim()) {
-      toast.error("Please add a title before saving.");
+      toast.error("Please add a title.");
       return;
     }
 
-    // 2. Strict Validation ONLY for Publishing
+    // 2. Strict Validation (Required ONLY for Publishing)
     if (targetStatus === PostRequestStatus.PUBLISHED) {
       if (!content.trim()) {
         toast.error("You cannot publish an empty story.");
@@ -76,42 +74,48 @@ export function PostEditor({ currentUser, postToEdit }: PostEditorProps) {
       }
     }
 
+    // Generate a default description if none exists
+    // (Note: Backend handles optionality for drafts)
     const cleanContent = content.replace(/<[^>]*>?/gm, "");
-    const description =
-      cleanContent.slice(0, 140).trim() || "Read this story on Blogium.";
+    const description = cleanContent.slice(0, 140).trim() || "";
 
-    const payload = {
+    // ✅ Construct Unified Payload
+    const payload: PostRequest = {
       title,
       content,
-      description,
-      imageUrl, // Can be empty string "" for drafts
+      description: description || undefined, // Send undefined if empty so backend ignores it for draft
+      imageUrl: imageUrl || undefined,
       status: targetStatus,
-      tags: tags.map((tag) => ({ name: tag })) as any,
-      category: { name: categoryName || "General" } as any,
+      tags: tags.length > 0 ? tags.map((tag) => ({ name: tag })) : undefined,
+      category: categoryName ? { name: categoryName } : undefined,
     };
 
     const mutationOptions = {
-      onSuccess: () => {
+      onSuccess: (data: any) => {
         toast.success(
           targetStatus === "DRAFT" ? "Draft saved" : "Story published!"
         );
-        router.push(targetStatus === "DRAFT" ? "/me/stories" : "/");
+        // If it was a draft creation, maybe redirect to edit page or dashboard
+        router.push("/me/stories");
+        router.refresh();
       },
-      onError: () => toast.error("Something went wrong. Please try again."),
+      onError: (err: any) => {
+        // Backend validation errors (e.g. 400 Bad Request)
+        const msg = err?.response?.data?.detail || "Something went wrong.";
+        toast.error(msg);
+      },
     };
 
     // --- Logic Branching ---
     if (isEditing && postToEdit?.id) {
+      // UPDATE (PUT) - Handles both saving draft updates AND publishing drafts
       updateMutation.mutate(
         { postId: postToEdit.id, data: payload },
         mutationOptions
       );
     } else {
-      if (targetStatus === PostRequestStatus.DRAFT) {
-        createDraftMutation.mutate({ data: payload }, mutationOptions);
-      } else {
-        createMutation.mutate({ data: payload }, mutationOptions);
-      }
+      // CREATE (POST) - Handles creating new Drafts AND new Published posts
+      createMutation.mutate({ data: payload }, mutationOptions);
     }
   };
 
@@ -124,7 +128,7 @@ export function PostEditor({ currentUser, postToEdit }: PostEditorProps) {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
       const newTag = tagInput.trim();
-      if (newTag && !tags.includes(newTag) && tags.length < 10) {
+      if (newTag && !tags.includes(newTag) && tags.length < 5) {
         setTags([...tags, newTag]);
       }
       setTagInput("");
@@ -136,7 +140,7 @@ export function PostEditor({ currentUser, postToEdit }: PostEditorProps) {
       <EditorNavbar
         currentUser={currentUser}
         isPending={isPending}
-        isEditing={!!postToEdit}
+        isEditing={isEditing}
         onSaveDraft={() => handleSubmit(PostRequestStatus.DRAFT)}
         onPublish={() => handleSubmit(PostRequestStatus.PUBLISHED)}
       />

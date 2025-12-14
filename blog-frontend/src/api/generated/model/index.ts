@@ -26,7 +26,6 @@ export * from './pagedResponsePostCardResponse';
 export * from './postCardResponse';
 export * from './postDetailResponse';
 export * from './postDetailResponseStatus';
-export * from './postDraftRequest';
 export * from './postRequest';
 export * from './postRequestStatus';
 export * from './postResponse';
