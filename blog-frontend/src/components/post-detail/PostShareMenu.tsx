@@ -38,12 +38,18 @@ const WhatsAppOutlineIcon = ({
 
 interface PostShareMenuProps {
   postTitle?: string;
+  postsId?: string;
 }
 
 export function PostShareMenu({
   postTitle = "Check out this post",
+  postsId,
 }: PostShareMenuProps) {
-  const getCurrentUrl = () => window.location.href;
+  const getCurrentUrl = () => {
+    if (process.env.NODE_ENV === "development")
+      return `http://192.168.2.34:3000/posts/${postsId}`;
+    return window.location.href;
+  };
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(getCurrentUrl());

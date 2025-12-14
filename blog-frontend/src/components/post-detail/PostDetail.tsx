@@ -69,6 +69,7 @@ export function PostDetail({ post, currentUser }: PostDetailProps) {
           isLoading={isFollowLoading}
           isOwnPost={isOwnPost}
           onToggleFollow={toggleFollow}
+          postId={post.id!}
         />
 
         <PostActionBar

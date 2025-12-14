@@ -18,6 +18,7 @@ interface PostAuthorMetaProps {
   isOwnPost: boolean;
   onToggleFollow: () => void;
   postTitle?: string;
+  postId?: string;
 }
 
 export function PostAuthorMeta({
@@ -29,6 +30,7 @@ export function PostAuthorMeta({
   isOwnPost,
   onToggleFollow,
   postTitle,
+  postId,
 }: PostAuthorMetaProps) {
   return (
     <div className="mb-8 flex items-center justify-between">
@@ -89,7 +91,7 @@ export function PostAuthorMeta({
       {/* RIGHT: Actions */}
       <div className="flex gap-1">
         {/* 👇 Used here */}
-        <PostShareMenu postTitle={postTitle} />
+        <PostShareMenu postTitle={postTitle} postsId={postId} />
 
         <Button
           variant="ghost"

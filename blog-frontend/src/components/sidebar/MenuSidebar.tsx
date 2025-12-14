@@ -11,7 +11,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { getUser } from "@/lib/auth";
-import { BarChart, Bookmark, FileText, Home, User } from "lucide-react";
+import { Bookmark, FileText, Home } from "lucide-react";
 import Link from "next/link";
 // Import the new Client Component
 import { FollowingList } from "./following-list";
@@ -28,21 +28,21 @@ const menuItems = [
     url: "/bookmarks",
     icon: Bookmark,
   },
-  {
-    title: "Profile",
-    url: "#",
-    icon: User,
-  },
+  // {
+  //   title: "Profile",
+  //   url: "#",
+  //   icon: User,
+  // },
   {
     title: "Stories",
-    url: "#",
+    url: "/me/stories",
     icon: FileText,
   },
-  {
-    title: "Stats",
-    url: "#",
-    icon: BarChart,
-  },
+  // {
+  //   title: "Stats",
+  //   url: "#",
+  //   icon: BarChart,
+  // },
 ];
 
 export async function MenuSidebar() {
