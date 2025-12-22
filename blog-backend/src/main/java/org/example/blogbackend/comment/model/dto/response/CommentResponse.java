@@ -1,17 +1,21 @@
 package org.example.blogbackend.comment.model.dto.response;
 
+import lombok.Getter;
+import lombok.Setter;
+import org.example.blogbackend.post.dto.response.card.AuthorCardSummary;
 import org.example.blogbackend.user.model.dto.response.UserResponse;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public record CommentResponse(
-        UUID id,
-        String content,
-        UserResponse author,
-        UUID postId,
-        long likesCount,        // Changed to long (matches Entity @Formula)
-        long replyCount,        // Changed to long (matches Entity @Formula)
-        boolean likedByCurrentUser,
-        List<CommentResponse> replies
-) {
+@Getter
+@Setter
+public class CommentResponse {
+    public UUID id;
+    public String content;
+    public AuthorCardSummary author;
+    public UUID postId;
+    public CommentMetaData meta;
+    public List<CommentResponse> replies = new ArrayList<>();
 }

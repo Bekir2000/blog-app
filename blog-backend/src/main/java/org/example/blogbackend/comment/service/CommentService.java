@@ -8,17 +8,10 @@ import org.springframework.data.domain.Pageable;
 import java.util.UUID;
 
 public interface CommentService {
-
-    CommentResponse createComment(UUID postId, UUID userId, CreateCommentRequest createCommentRequest);
-
-    void toggleLike(UUID commentId, UUID userId);
-
-    CommentResponse getCommentById(UUID postId, UUID id);
-
-    // 👇 CHANGED: Added 'UUID userId' so we can check if the user liked the comments
-    PagedResponse<CommentResponse> getCommentsByPostId(UUID postId, UUID userId, Pageable pageable);
-
-    CommentResponse updateComment(UUID postId, UUID commentId, UUID userId, CreateCommentRequest request);
-
-    void deleteComment(UUID postId, UUID commentId, UUID userId);
+    UUID createRoot(UUID postId, UUID userId, String content);
+    PagedResponse<CommentResponse> getComments(UUID postId, UUID userId, Pageable pageable);
+    UUID reply(UUID postId, UUID parentId, UUID userId, String content);
+    void like(UUID commentId, UUID userId);
+    void unlike(UUID commentId, UUID userId);
+    void delete(UUID postId, UUID commentId, UUID userId);
 }

@@ -2,20 +2,18 @@ package org.example.blogbackend.comment.service.impl;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.example.blogbackend.comment.model.dto.request.CreateCommentRequest;
 import org.example.blogbackend.comment.model.dto.response.CommentResponse;
 import org.example.blogbackend.comment.model.entity.Comment;
+import org.example.blogbackend.comment.model.entity.CommentLike;
 import org.example.blogbackend.comment.model.mapper.CommentMapper;
+import org.example.blogbackend.comment.model.projection.CommentWithDetails;
+import org.example.blogbackend.comment.repository.CommentLikeRepository;
 import org.example.blogbackend.comment.repository.CommentRepository;
 import org.example.blogbackend.comment.service.CommentService;
-import org.example.blogbackend.post.model.entity.Post;
-import org.example.blogbackend.post.repository.PostRepository;
 import org.example.blogbackend.shared.dto.PagedResponse;
 import org.example.blogbackend.shared.mapper.PageMapper;
-import org.example.blogbackend.user.model.entity.User;
 import org.example.blogbackend.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -23,122 +21,151 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
+
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class CommentServiceImpl implements CommentService {
 
-    private static final String COMMENT_NOT_FOUND = "Comment with ID %s not found";
+    private static final int MAX_DEPTH = 2;
 
-    private final CommentRepository commentRepository;
-    private final PostRepository postRepository;
+    private final CommentRepository commentRepo;
+    private final CommentLikeRepository likeRepo;
     private final UserRepository userRepository;
-    private final CommentMapper commentMapper; // 👈 Now we actually use this!
+
     private final PageMapper pageMapper;
+    private final CommentMapper commentMapper;
 
-    @Override
-    @Transactional(readOnly = true)
-    public PagedResponse<CommentResponse> getCommentsByPostId(UUID postId, UUID userId, Pageable pageable) {
-        Page<Comment> rootPage = commentRepository.findRootComments(postId, pageable);
-        List<Comment> rootComments = rootPage.getContent();
-
-        // 2. Batch Optimization: Find ALL likes by this user on this POST
-        Set<UUID> likedCommentIds = new HashSet<>();
-        if (userId != null) {
-            // This ensures we capture likes for both Roots AND Nested Replies
-            likedCommentIds = commentRepository.findLikedCommentIdsByPostId(postId, userId);
+    public UUID createRoot(UUID postId, UUID userId, String content) {
+        boolean isUserExists = userRepository.existsById(userId);
+        if (!isUserExists) {
+            throw new AccessDeniedException("User does not exist");
         }
 
-        // 3. Map Recursively
-        final Set<UUID> finalLikedIds = likedCommentIds;
-        List<CommentResponse> responseList = rootComments.stream()
-                .map(c -> mapToResponseRecursive(c, finalLikedIds))
-                .toList();
-
-        return pageMapper.toPagedResponse(new PageImpl<>(responseList, pageable, rootPage.getTotalElements()));
+        if (content.isBlank()) {
+            throw new IllegalArgumentException("Content cannot be blank");
+        }
+        Comment root = Comment.createRoot(postId, userId, content);
+        return commentRepo.save(root).getId();
     }
 
-    // --- Recursive Mapper using MapStruct ---
-    private CommentResponse mapToResponseRecursive(Comment comment, Set<UUID> likedIds) {
-        boolean isLiked = likedIds.contains(comment.getId());
+    @Transactional(readOnly = true)
+    public PagedResponse<CommentResponse> getComments(
+            UUID postId,
+            UUID userId,
+            Pageable pageable
+    ) {
+        Page<CommentWithDetails> roots =
+                commentRepo.findRootComments(postId, userId, pageable);
 
-        // 1. Recursively map replies
-        List<CommentResponse> replies = comment.getReplies().stream()
-                .map(child -> mapToResponseRecursive(child, likedIds))
-                .toList();
+        List<CommentWithDetails> replies =
+                commentRepo.findAllReplies(postId, userId);
 
-        // 2. Delegate to MapStruct for the DTO creation
-        return commentMapper.toTreeResponse(comment, isLiked, replies);
-    }
+        // 1) map ALL comments to DTOs
+        Map<UUID, CommentResponse> dtoMap = new HashMap<>();
 
-    // ... createComment, toggleLike, etc. (No changes needed) ...
+        roots.forEach(c ->
+                dtoMap.put(c.comment().getId(), commentMapper.toCommentResponse(c))
+        );
 
-    @Override
-    @Transactional
-    public CommentResponse createComment(UUID postId, UUID userId, CreateCommentRequest request) {
-        Post post = postRepository.getReferenceById(postId);
-        User author = userRepository.getReferenceById(userId);
+        replies.forEach(c ->
+                dtoMap.put(c.comment().getId(), commentMapper.toCommentResponse(c))
+        );
 
-        Comment comment = commentMapper.toComment(request);
-        comment.setPost(post);
-        comment.setAuthor(author);
+        // 2) attach replies
+        replies.forEach(c -> {
+            Comment parent = c.comment().getParent();
+            if (parent != null) {
+                CommentResponse parentDto = dtoMap.get(parent.getId());
+                CommentResponse childDto  = dtoMap.get(c.comment().getId());
 
-        if (request.parentCommentId() != null) {
-            if (!commentRepository.existsById(request.parentCommentId())) {
-                throw new EntityNotFoundException("Parent comment not found");
+                if (parentDto != null) {
+                    parentDto.getReplies().add(childDto);
+                }
             }
-            comment.setParent(commentRepository.getReferenceById(request.parentCommentId()));
+        });
+
+        // 3) page result
+        Page<CommentResponse> page = roots.map(
+                c -> dtoMap.get(c.comment().getId())
+        );
+
+        return pageMapper.toPagedResponse(page);
+    }
+
+
+    public UUID reply(UUID postId, UUID parentId, UUID userId, String content) {
+        boolean isUserExists = userRepository.existsById(userId);
+        if (!isUserExists) {
+            throw new AccessDeniedException("User does not exist");
         }
 
-        Comment savedComment = commentRepository.save(comment);
-        postRepository.incrementCommentsCount(postId);
-
-        return commentMapper.toCommentResponse(savedComment, false);
-    }
-
-    @Override
-    @Transactional
-    public void toggleLike(UUID commentId, UUID userId) {
-        if (!commentRepository.existsById(commentId)) {
-            throw new EntityNotFoundException(String.format(COMMENT_NOT_FOUND, commentId));
+        if (content.isBlank()) {
+            throw new IllegalArgumentException("Content cannot be blank");
         }
-        if (commentRepository.existsLikeByCommentIdAndUserId(commentId, userId)) {
-            commentRepository.removeLike(commentId, userId);
-        } else {
-            commentRepository.addLike(commentId, userId);
+
+        Comment root = commentRepo.findByIdAndPostId(parentId, postId)
+                .orElseThrow();
+
+        if (root.getReplyCount() >= MAX_DEPTH) {
+            throw new IllegalStateException("Max depth reached");
         }
-    }
 
-    @Override
-    @Transactional(readOnly = true)
-    public CommentResponse getCommentById(UUID postId, UUID commentId) {
-        Comment comment = commentRepository.findByIdAndPostId(commentId, postId)
-                .orElseThrow(() -> new EntityNotFoundException(String.format(COMMENT_NOT_FOUND, commentId)));
-        return mapToResponseRecursive(comment, Collections.emptySet());
-    }
+        Comment reply = Comment.createReply(postId, userId, root, content);
 
-    @Override
-    @Transactional
-    public CommentResponse updateComment(UUID postId, UUID commentId, UUID userId, CreateCommentRequest request) {
-        Comment comment = commentRepository.findByIdAndPostId(commentId, postId)
-                .orElseThrow(() -> new EntityNotFoundException(String.format(COMMENT_NOT_FOUND, commentId)));
-        validateOwnership(comment, userId);
-        comment.setContent(request.content());
-        return commentMapper.toCommentResponse(comment, false);
-    }
-
-    @Override
-    @Transactional
-    public void deleteComment(UUID postId, UUID commentId, UUID userId) {
-        Comment comment = commentRepository.findByIdAndPostId(commentId, postId)
-                .orElseThrow(() -> new EntityNotFoundException(String.format(COMMENT_NOT_FOUND, commentId)));
-        validateOwnership(comment, userId);
-        commentRepository.delete(comment);
-        postRepository.decrementCommentsCount(postId);
-    }
-
-    private void validateOwnership(Comment comment, UUID userId) {
-        if (!comment.getAuthor().getId().equals(userId)) {
-            throw new AccessDeniedException("You are not authorized to modify this comment");
+        if (!reply.belongsToPost(postId)){
+            throw new IllegalStateException("Comment does not belong to post");
         }
+
+        root.addReply(reply);
+        commentRepo.incrementReplyCount(root.getId());
+        commentRepo.save(root);
+
+        return reply.getId();
+    }
+
+    public void delete(UUID postId, UUID commentId, UUID userId) {
+        Comment c = commentRepo.findById(commentId).orElseThrow();
+
+        if (!c.isAuthor(userId)) {
+            throw new AccessDeniedException("Not owner");
+        }
+
+        if (!c.belongsToPost(postId)){
+            throw new IllegalStateException("Comment does not belong to post");
+        }
+
+        Comment root = c.getParent();
+        commentRepo.decrementReplyCount(root.getId());
+        commentRepo.delete(c);
+    }
+
+    public void like(UUID commentId, UUID userId) {
+        boolean isUserExists = userRepository.existsById(userId);
+        if (!isUserExists) {
+            throw new AccessDeniedException("User does not exist");
+        }
+
+        Comment c = commentRepo.findById(commentId).orElseThrow(
+                () -> new EntityNotFoundException("Comment not found")
+        );
+        if (c.isDeleted()) return;
+
+        if (likeRepo.existsByCommentIdAndUserId(commentId, userId)) return;
+
+        likeRepo.save(new CommentLike(commentId, userId));
+        commentRepo.incrementLike(commentId);
+    }
+
+    public void unlike(UUID commentId, UUID userId) {
+        boolean isUserExists = userRepository.existsById(userId);
+        if (!isUserExists) {
+            throw new AccessDeniedException("User does not exist");
+        }
+
+        if (!likeRepo.existsByCommentIdAndUserId(commentId, userId)) return;
+
+        likeRepo.deleteByCommentIdAndUserId(commentId, userId);
+        commentRepo.decrementLike(commentId);
     }
 }

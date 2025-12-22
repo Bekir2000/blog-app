@@ -1,0 +1,141 @@
+### Variables
+@baseUrl = http://localhost:8080/api/v1/posts
+@authToken = {{access_token}}
+
+# ==========================================
+# GROUP 1: READING & FEED (FILTERS)
+# ==========================================
+
+### 1. Get Main Feed (All Posts)
+GET {{baseUrl}}?page=0&size=10
+Authorization: Bearer {{authToken}}
+
+### 2. Search by Author Name (Case Insensitive)
+# Finds posts by "Admin", "John", "Smith", etc.
+GET {{baseUrl}}?authorName=Admin+User
+Authorization: Bearer {{authToken}}
+
+### 3. Filter by Category
+# Must match your Enum values exactly (e.g., TECHNOLOGY, LIFESTYLE)
+GET {{baseUrl}}?category=TECHNOLOGY
+Authorization: Bearer {{authToken}}
+
+### 4. Search by Title (Partial Match)
+# Finds posts containing "Java" in the title
+GET {{baseUrl}}?title=Unweaving
+Authorization: Bearer {{authToken}}
+
+### 5. Filter by Tag
+# Finds posts that have the specific tag "Spring"
+GET {{baseUrl}}?tag=SQR
+Authorization: Bearer {{authToken}}
+
+### 6. Combined Advanced Search
+# Find "TECHNOLOGY" posts, about "Java", written by "Admin"
+GET {{baseUrl}}?category=TECHNOLOGY&title=Java&authorName=Admin
+Authorization: Bearer {{authToken}}
+
+### 7. Get Single Published Post
+# (Note: This might fail 404 until you complete Group 2 steps)
+GET {{baseUrl}}/{{postId}}
+Authorization: Bearer {{authToken}}
+
+# ==========================================
+# GROUP 2: PUBLISHING LIFECYCLE (HAPPY PATH)
+# ==========================================
+
+### 8. Create New Post (First Draft)
+POST {{baseUrl}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "title": "The Future of Java",
+  "content": "This is the initial content regarding the latest JVM updates...",
+  "imageUrl": "https://example.com/images/java-future.png",
+  "category": "TECHNOLOGY",
+  "tags": ["Java", "JVM", "Backend"]
+}
+
+> {%
+    client.global.set("postId", response.body.postId);
+    client.global.set("draftId", response.body.draftId);
+    client.log("Captured Post ID: " + client.global.get("postId"));
+    client.log("Captured Draft ID: " + client.global.get("draftId"));
+%}
+
+### 9. Save/Update Draft
+PUT {{baseUrl}}/{{postId}}/drafts/{{draftId}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "title": "The Future of Java (Final Polish)",
+  "content": "Final polish before publishing. Added section on Virtual Threads.",
+  "imageUrl": "https://example.com/images/java-final.png",
+  "category": "CODING",
+  "tags": ["Java 21", "Virtual Threads", "Performance"]
+}
+
+### 10. Publish the Draft
+PATCH {{baseUrl}}/{{postId}}/drafts/{{draftId}}/publish
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+# ==========================================
+# GROUP 3: VERSIONING & DRAFT MANAGEMENT
+# ==========================================
+
+### 11. Get My Drafts List
+GET {{baseUrl}}/drafts?page=0&size=10
+Authorization: Bearer {{authToken}}
+
+### 12. Add New Draft Version to Existing Post
+# Creates a v2 for the post created in Step 8
+POST {{baseUrl}}/{{postId}}/drafts
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "title": "The Future of Java (v2)",
+  "content": "Updated content with more details about Spring Boot 3...",
+  "imageUrl": "https://example.com/images/java-v2.png",
+  "category": "TUTORIAL",
+  "tags": ["Java", "Spring Boot", "Update"]
+}
+
+> {%
+    // Capture the NEW draft ID (v2), keeping the same postId
+    client.global.set("draftId", response.body.draftId);
+    client.log("Captured New Draft ID (v2): " + client.global.get("draftId"));
+%}
+
+### 13. Get Specific Draft Details
+GET {{baseUrl}}/{{postId}}/drafts/{{draftId}}
+Authorization: Bearer {{authToken}}
+
+
+# ==========================================
+# GROUP 4: CLEANUP & DELETION
+# ==========================================
+
+### 14. Delete Specific Draft
+DELETE {{baseUrl}}/{{postId}}/drafts/{{draftId}}
+Authorization: Bearer {{authToken}}
+
+### 15. Delete Entire Post (And all its drafts)
+DELETE {{baseUrl}}/{{postId}}
+Authorization: Bearer {{authToken}}
+
+# ==========================================
+# GROUP 5: INTERACTION (LIKES)
+# ==========================================
+
+### 16. Like a Post
+POST {{baseUrl}}/{{postId}}/like
+Authorization: Bearer {{authToken}}
+
+### 17. Unlike a Post
+DELETE {{baseUrl}}/{{postId}}/like
+Authorization: Bearer {{authToken}}
+

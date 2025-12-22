@@ -1,6 +1,7 @@
 package org.example.blogbackend.shared.config;
 
 import jakarta.servlet.http.HttpServletResponse;
+import org.example.blogbackend.user.model.entity.User;
 import org.example.blogbackend.user.repository.UserRepository;
 import org.example.blogbackend.shared.security.BlogUserDetailsService;
 import org.example.blogbackend.shared.security.JwtAuthenticationFilter;
@@ -39,7 +40,6 @@ public class SecurityConfig {
 
     @Bean
     public UserDetailsService userDetailsService(UserRepository userRepository) {
-
         return new BlogUserDetailsService(userRepository);
     }
 

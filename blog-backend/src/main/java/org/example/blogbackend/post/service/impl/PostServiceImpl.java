@@ -2,352 +2,266 @@ package org.example.blogbackend.post.service.impl;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.example.blogbackend.category.model.dto.request.CreateCategoryRequest;
-import org.example.blogbackend.category.model.entity.Category;
-import org.example.blogbackend.category.repository.CategoryRepository;
-import org.example.blogbackend.comment.model.SearchType;
-import org.example.blogbackend.post.dto.request.PostRequest;
-import org.example.blogbackend.post.dto.response.PostCardResponse;
-import org.example.blogbackend.post.dto.response.PostDetailResponse;
-import org.example.blogbackend.post.dto.response.PostResponse;
+import org.example.blogbackend.post.dto.request.PostDraftRequest;
+import org.example.blogbackend.post.dto.response.card.PostCardResponse;
+import org.example.blogbackend.post.dto.response.card.draft.DraftCardResponse;
+import org.example.blogbackend.post.dto.response.detail.PostDetailResponse;
+import org.example.blogbackend.post.dto.response.PostDraftResult;
+import org.example.blogbackend.post.dto.response.detail.draft.DraftDetailResponse;
 import org.example.blogbackend.post.mapper.PostMapper;
-import org.example.blogbackend.post.model.PostStatus;
+import org.example.blogbackend.post.model.Category;
 import org.example.blogbackend.post.model.entity.Post;
-import org.example.blogbackend.post.model.projection.PostCardView;
+import org.example.blogbackend.post.model.entity.PostLike;
+import org.example.blogbackend.post.model.entity.PostVersion;
+import org.example.blogbackend.post.model.projection.PostWithDetailsDto;
+import org.example.blogbackend.post.repository.PostLikeRepository;
 import org.example.blogbackend.post.repository.PostRepository;
+import org.example.blogbackend.post.repository.PostVersionRepository;
 import org.example.blogbackend.post.service.PostService;
 import org.example.blogbackend.shared.dto.PagedResponse;
 import org.example.blogbackend.shared.mapper.PageMapper;
-import org.example.blogbackend.tag.model.dto.request.CreateTagRequest;
-import org.example.blogbackend.tag.model.entity.Tag;
-import org.example.blogbackend.tag.repository.TagRepository;
 import org.example.blogbackend.user.model.entity.User;
 import org.example.blogbackend.user.repository.UserRepository;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class PostServiceImpl implements PostService {
 
-    private static final int WORDS_PER_MINUTE = 200;
-    private static final String POST_NOT_FOUND_MSG = "Post not found with ID: ";
-    private static final String USER_NOT_FOUND_MSG = "User not found with ID: ";
 
     private final PostRepository postRepository;
-    private final CategoryRepository categoryRepository;
-    private final TagRepository tagRepository;
+    private final PostVersionRepository postVersionRepository;
     private final UserRepository userRepository;
+    private final PostLikeRepository postLikeRepository;
+
     private final PostMapper postMapper;
     private final PageMapper pageMapper;
 
-    // =========================================================================
-    // WRITE OPERATIONS (Create, Update, Delete)
-    // =========================================================================
 
-    @Override
     @Transactional
-    public PostResponse createPost(PostRequest request, UUID userId) {
-        User author = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException(USER_NOT_FOUND_MSG + userId));
+    public PostDraftResult createPost(UUID authorId, PostDraftRequest req) {
+        User author = userRepository.findById(authorId)
+                .orElseThrow(() -> new EntityNotFoundException("Author not found with ID: " + authorId));
 
-        // Map unified DTO to Entity
-        Post post = postMapper.toEntity(request);
-        post.setAuthor(author);
+        // create the parent Post
+        Post post = Post.create(author);
+        PostVersion draft = PostVersion.createDraft(post, req.title(), req.content(), req.imageUrl());
 
-        // Fallback status if missing (though DTO validation should catch this)
-        if (post.getStatus() == null) {
-            post.setStatus(PostStatus.DRAFT);
-        }
+        draft.createDescription(req.content());
+        draft.setCategory(req.category());
+        draft.setTags(req.tags());
+        post.addVersion(draft);
 
-        // Logic Helpers
-        calculateAndSetReadingTime(post);
-        resolveCategory(post, request.category());
-        resolveTags(post, request.tags());
-
-        Post savedPost = postRepository.save(post);
-        return postMapper.toPostResponse(savedPost);
-    }
-
-
-    @Override
-    @Transactional
-    public PostResponse createRevision(UUID originalPostId, UUID userId) {
-        Post original = getPostEntity(originalPostId);
-        validateAuthorOwnership(original, userId);
-
-        if (original.getStatus() != PostStatus.PUBLISHED) {
-            throw new IllegalArgumentException("You can only create revisions of PUBLISHED posts.");
-        }
-
-        // Check if a draft already exists for this post to prevent duplicates
-        // (Optional logic, depends on preference. Here we just create a new one.)
-
-        // Clone the data into a new Draft entity
-        Post draft = Post.builder()
-                .title(original.getTitle())
-                .content(original.getContent())
-                .description(original.getDescription())
-                .imageUrl(original.getImageUrl())
-                .status(PostStatus.DRAFT) // Force status to DRAFT
-                .parentPost(original)     // ✅ Link to Parent
-                .author(original.getAuthor())
-                .category(original.getCategory())
-                .readingTime(original.getReadingTime())
-                .tags(new HashSet<>(original.getTags())) // Copy tags
-                .build();
-
-        Post savedDraft = postRepository.save(draft);
-        return postMapper.toPostResponse(savedDraft);
-    }
-
-    // =========================================================================
-    // 2. MERGE: Publish the Draft -> Overwrite the Parent
-    // =========================================================================
-    @Override
-    @Transactional
-    public PostResponse updatePost(UUID postId, PostRequest request, UUID userId) {
-        Post currentPost = getPostEntity(postId);
-        validateAuthorOwnership(currentPost, userId);
-
-        // CASE A: MERGING (Publishing a Revision)
-        // We are updating a Draft that has a Parent, and the user wants to PUBLISH it.
-        if (currentPost.getParentPost() != null && request.status() == PostStatus.PUBLISHED) {
-
-            Post livePost = currentPost.getParentPost();
-
-            // 1. Copy new content from Request -> Live Post
-            postMapper.updatePostFromRequest(request, livePost);
-
-            // 2. Re-calculate metadata for Live Post
-            calculateAndSetReadingTime(livePost);
-            resolveCategory(livePost, request.category());
-            resolveTags(livePost, request.tags());
-
-            // 3. Save the Live Post (It keeps its original ID, Likes, and Comments!)
-            Post updatedLivePost = postRepository.save(livePost);
-
-            // 4. Delete the temporary Draft
-            postRepository.delete(currentPost);
-
-            return postMapper.toPostResponse(updatedLivePost);
-        }
-
-        // CASE B: NORMAL UPDATE (Editing a normal draft or live post directly)
-        postMapper.updatePostFromRequest(request, currentPost);
-        calculateAndSetReadingTime(currentPost);
-        resolveCategory(currentPost, request.category());
-        resolveTags(currentPost, request.tags());
-
-        Post updatedPost = postRepository.save(currentPost);
-        return postMapper.toPostResponse(updatedPost);
+        postRepository.save(post);
+        return new PostDraftResult(post.getId(), draft.getId());
     }
 
     @Override
+    public PagedResponse<PostCardResponse> getPostCards(
+            UUID userId,
+            String authorName,
+            Category category,
+            String title,
+            String tag,
+            Pageable pageable
+    ) {
+        return pageMapper.toPagedResponse(
+                postRepository
+                        .findPublishedPosts(userId, title,category,tag, authorName, pageable)
+                        .map(postMapper::toPostCardResponse)
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public PostDetailResponse getPostById(UUID postId, UUID userId) {
+
+        PostWithDetailsDto postWithDetailsDto = postRepository.findPostWithDetails(postId, userId).orElseThrow(
+                () -> new EntityNotFoundException("Post not found with id: " + postId)
+        );
+
+        return postMapper.toPostDetailResponse(
+                postWithDetailsDto
+        );
+    }
+
     @Transactional
-    public void deletePost(UUID postId, UUID userId) {
-        Post post = getPostEntity(postId);
-        validateAuthorOwnership(post, userId);
+    public PostDraftResult saveExistingDraft(
+            UUID postId,
+            UUID draftId,
+            UUID userId,
+            PostDraftRequest req) {
+
+
+        PostVersion draft = postVersionRepository.findById(draftId).orElseThrow(
+                () -> new EntityNotFoundException("Draft not found with id: " + draftId)
+        );
+
+        if (!draft.belongsToPost(postId)) {
+            throw new IllegalArgumentException("Draft does not belong to the specified post ID");
+        }
+
+        if (!draft.getPost().isAuthor(userId)) {
+            throw new AccessDeniedException("You are not the author of this post");
+        }
+
+        draft.update(req.title(), req.content(), req.imageUrl());
+
+        draft.setCategory(req.category());
+        draft.setTags(req.tags());
+        draft.createDescription(req.content());
+        postVersionRepository.save(draft);
+
+        return new PostDraftResult(postId, draftId);
+    }
+
+    @Transactional
+    public PostDraftResult addNewDraft(
+            UUID postId,
+            UUID userId,
+            PostDraftRequest req
+            ) {
+
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("Post not found"));
+
+        if(!post.isAuthor(userId)){
+            throw new AccessDeniedException("You are not the author of this article");
+        }
+
+        PostVersion draft = PostVersion.createDraft(post, req.title(), req.content(), req.imageUrl());
+        draft.createDescription(req.content());
+
+        draft.setCategory(req.category());
+        draft.setTags(req.tags());
+        post.addVersion(draft);
+        postRepository.save(post);
+
+        return new PostDraftResult(post.getId(), draft.getId());
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<DraftCardResponse> getDrafts(UUID userId, Pageable pageable) {
+        return pageMapper.toPagedResponse(
+                postVersionRepository.findDraftsByUserId(userId, pageable)
+                        .map(postMapper::toDraftCardResponse)
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public DraftDetailResponse getDraftById(UUID postId, UUID draftId, UUID userId) {
+
+        PostVersion draft = postVersionRepository.findById(draftId).orElseThrow(
+                () -> new EntityNotFoundException("Draft not found with id: " + draftId)
+        );
+
+        if(!draft.getPost().isAuthor(userId)){
+            throw new AccessDeniedException("You are not the author of this article");
+        }
+
+        if(!draft.belongsToPost(postId)){
+            throw new IllegalArgumentException("Draft does not belong to the specified post ID");
+        }
+
+        if(!draft.isDraft()){
+            throw new IllegalStateException("No Draft");
+        }
+
+       return postMapper.toDraftDetailResponse(draft);
+    }
+
+
+
+    @Transactional
+    public void publish(UUID userId, UUID postId, UUID draftId) {
+        PostVersion draft = postVersionRepository.findById(draftId).orElseThrow(
+                () -> new EntityNotFoundException("Draft not found with id: " + draftId)
+        );
+
+        if (!draft.belongsToPost(postId)) {
+            throw new IllegalArgumentException("Draft does not belong to the post specified in the URL");
+        }
+
+        Post post = draft.getPost();
+        if (!post.isAuthor(userId)) {
+            throw new AccessDeniedException("You are not the author of this post");
+        }
+
+        if (!draft.isDraft()) {
+            throw new IllegalStateException("Version is already published or archived");
+        }
+
+        UUID oldPublishedVersionId = post.publishVersion(draft);
+
+        if(oldPublishedVersionId != null){
+            postVersionRepository.deleteById(oldPublishedVersionId);
+        }
+
+        post.calculateAndSetReadingTime(draft.getContent());
+
+        postRepository.save(post);
+    }
+
+    @Transactional
+    public void deletePost(UUID userId, UUID postId) {
+        Post post = postRepository.findById(postId).orElseThrow(
+                () -> new EntityNotFoundException("Post not found with id: " + postId)
+        );
+
+        if (!post.isAuthor(userId)) {
+            throw new AccessDeniedException("You are not the author of this post");
+        }
+
         postRepository.delete(post);
     }
 
     @Override
     @Transactional
-    public PostResponse toggleLike(UUID postId, UUID userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new EntityNotFoundException(USER_NOT_FOUND_MSG + userId);
-        }
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException(POST_NOT_FOUND_MSG + postId));
+    public void likePost(UUID postId, UUID userId) {
+        boolean isLiked = postLikeRepository.existsByPostIdAndUserId(postId, userId);
+        Post postProxy = postRepository.getReferenceById(postId);
 
-        boolean isLiked = postRepository.existsByPostIdAndUserId(postId, userId);
-
-        if (isLiked) {
-            postRepository.removeLike(postId, userId);
-            postRepository.decrementLikes(postId);
-            post.setLikes(Math.max(0, post.getLikes() - 1));
-        } else {
-            postRepository.addLike(postId, userId);
-            postRepository.incrementLikes(postId);
-            post.setLikes(post.getLikes() + 1);
+        if(!isLiked){
+            PostLike newLike = PostLike.create(postProxy, userId);
+            postLikeRepository.save(newLike);
+            postRepository.incrementLikeCount(postId);
         }
-        return postMapper.toPostResponse(post);
     }
 
-    // =========================================================================
-    // READ OPERATIONS
-    // =========================================================================
-
     @Override
-    @Transactional(readOnly = true)
-    public PostDetailResponse getPostById(UUID postId, UUID userId) {
-        Post post = getPostEntity(postId);
+    @Transactional
+    public void unlikePost(UUID postId, UUID userId) {
 
-        boolean isBookmarked = false;
-        boolean isFollowingAuthor = false;
-        boolean isLiked = false;
+        boolean isLiked = postLikeRepository.existsByPostIdAndUserId(postId, userId);
+        if(isLiked){
+            postLikeRepository.deleteByPostIdAndUserId(postId, userId);
+            postRepository.decrementLikeCount(postId);
+        }
+    }
 
-        if (userId != null) {
-            isBookmarked = userRepository.isBookmarked(userId, post.getId());
-            isFollowingAuthor = userRepository.isFollowing(userId, post.getAuthor().getId());
-            isLiked = userRepository.isLiked(userId, post.getId());
+    @Transactional
+    public void deleteDraft(UUID userId, UUID postId, UUID draftId) {
+
+        PostVersion draft = postVersionRepository.findById(draftId).orElseThrow(
+                () -> new EntityNotFoundException("Draft not found with id: " + draftId)
+        );
+
+        if (!draft.belongsToPost(postId)) {
+            throw new IllegalArgumentException("Draft does not belong to the specified post ID");
         }
 
-        return postMapper.toPostDetailResponse(post, isBookmarked, isFollowingAuthor, isLiked);
-    }
-
-    /**
-     * 1. Public Feed: Fetches PUBLISHED posts from ANY author
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public PagedResponse<PostCardResponse> getPostCards(
-            UUID userId, String query, SearchType searchType,
-            UUID categoryId, UUID tagId, Pageable pageable
-    ) {
-        return fetchAndMapPosts(
-                userId,          // Viewer
-                null,            // AuthorFilter (Null = Any)
-                PostStatus.PUBLISHED,
-                query, searchType, categoryId, tagId, pageable
-        );
-    }
-
-    /**
-     * 2. Drafts: Fetches DRAFT posts from CURRENT USER only
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public PagedResponse<PostCardResponse> getDraftPosts(UUID userId, Pageable pageable) {
-        return fetchAndMapPosts(
-                userId,          // Viewer
-                userId,          // AuthorFilter (Me)
-                PostStatus.DRAFT,
-                null, null, null, null, // No search/filters for drafts list
-                pageable
-        );
-    }
-
-    /**
-     * 3. My Published: Fetches PUBLISHED posts from CURRENT USER only
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public PagedResponse<PostCardResponse> getUserPublishedPosts(UUID userId, Pageable pageable) {
-        return fetchAndMapPosts(
-                userId,          // Viewer
-                userId,          // AuthorFilter (Me)
-                PostStatus.PUBLISHED,
-                null, null, null, null,
-                pageable
-        );
-    }
-
-    // =========================================================================
-    // SHARED PRIVATE ENGINE
-    // =========================================================================
-
-    private PagedResponse<PostCardResponse> fetchAndMapPosts(
-            UUID viewerId,
-            UUID authorFilterId,
-            PostStatus status,
-            String query,
-            SearchType searchType,
-            UUID categoryId,
-            UUID tagId,
-            Pageable pageable
-    ) {
-        String typeString = (searchType != null) ? searchType.name() : SearchType.MIXED.name();
-
-        Page<PostCardView> postCards = postRepository.findFilteredPosts(
-                status,
-                query,
-                authorFilterId,
-                typeString,
-                categoryId,
-                tagId,
-                pageable
-        );
-
-        // Bulk fetch bookmarks for efficiency
-        Set<UUID> postIds = postCards.getContent().stream()
-                .map(PostCardView::getId)
-                .collect(Collectors.toSet());
-
-        Set<UUID> bookmarkedPostIds = (viewerId != null && !postIds.isEmpty())
-                ? userRepository.findBookmarkedPostIdsByUserIdAndPostIdIn(viewerId, postIds)
-                : Collections.emptySet();
-
-        Page<PostCardResponse> responsePage = postCards.map(postCard ->
-                postMapper.toPostCardResponse(
-                        postCard,
-                        bookmarkedPostIds.contains(postCard.getId())
-                )
-        );
-
-        return pageMapper.toPagedResponse(responsePage);
-    }
-
-    // =========================================================================
-    // HELPERS
-    // =========================================================================
-
-    private Post getPostEntity(UUID postId) {
-        return postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException(POST_NOT_FOUND_MSG + postId));
-    }
-
-    private void validateAuthorOwnership(Post post, UUID userId) {
-        if (!post.getAuthor().getId().equals(userId)) {
+        if (!draft.getPost().isAuthor(userId)) {
             throw new AccessDeniedException("You are not the author of this post");
         }
-    }
 
-    private void calculateAndSetReadingTime(Post post) {
-        if (post.getContent() == null) {
-            post.setReadingTime(0);
-            return;
+        if (!draft.isDraft()) {
+            throw new IllegalStateException("Cannot delete published version");
         }
-        int wordCount = post.getContent().trim().split("\\s+").length;
-        int readingTime = (int) Math.ceil((double) wordCount / WORDS_PER_MINUTE);
-        post.setReadingTime(readingTime);
-    }
 
-    private void resolveCategory(Post post, CreateCategoryRequest categoryRequest) {
-        // If draft, category can be optional. If publishing, @Valid handles it.
-        // If logic reaches here with null, we just skip setting it or set a default.
-        if (categoryRequest == null || categoryRequest.name() == null) {
-            return;
-        }
-        String categoryName = categoryRequest.name();
-        Category category = categoryRepository.findByNameIgnoreCase(categoryName).orElse(
-                Category.builder().name(categoryName).build()
-        );
-        categoryRepository.save(category);
-        post.setCategory(category);
-    }
-
-    private void resolveTags(Post post, Set<CreateTagRequest> tagRequests) {
-        if (tagRequests == null || tagRequests.isEmpty()) {
-            return;
-        }
-        Set<String> tagNames = tagRequests.stream()
-                .map(CreateTagRequest::name)
-                .collect(Collectors.toSet());
-
-        if (!tagNames.isEmpty()) {
-            Set<Tag> newTags = tagRepository.findByNameNotIn(tagNames);
-            tagRepository.saveAll(newTags);
-            post.setTags(newTags);
-        }
+        postVersionRepository.delete(draft);
     }
 }

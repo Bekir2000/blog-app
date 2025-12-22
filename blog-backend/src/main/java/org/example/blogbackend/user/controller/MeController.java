@@ -1,14 +1,13 @@
 package org.example.blogbackend.user.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.example.blogbackend.shared.security.BlogUserDetails;
+import org.example.blogbackend.post.dto.response.card.PostCardResponse;
 import org.example.blogbackend.shared.dto.PagedResponse;
-import org.example.blogbackend.post.dto.response.PostCardResponse;
+import org.example.blogbackend.shared.security.BlogUserDetails;
 import org.example.blogbackend.user.mapper.UserMapper;
 import org.example.blogbackend.user.model.dto.CreateBookmarkRequest;
 import org.example.blogbackend.user.model.dto.response.UserResponse;
 import org.example.blogbackend.user.model.entity.User;
-import org.example.blogbackend.user.service.BookmarkService;
 import org.example.blogbackend.user.service.UserService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -25,62 +24,54 @@ import java.util.UUID;
 @RequestMapping("/api/v1/me")
 @RequiredArgsConstructor
 public class MeController {
+
     private final UserService userService;
-    private final UserMapper userMapper;
-    private final BookmarkService bookmarkService;
 
     @GetMapping
     public ResponseEntity<UserResponse> getProfile(@AuthenticationPrincipal BlogUserDetails userDetails) {
-        User user = userService.getById(userDetails.getUserId());
-        return ResponseEntity.ok(userMapper.toDto(user));
+        return ResponseEntity.ok(
+                userService.getById(userDetails.getUserId())
+        );
     }
-
-    // --- BOOKMARK ENDPOINTS ---
 
     @GetMapping("/bookmarks")
     public ResponseEntity<PagedResponse<PostCardResponse>> getBookmarkedPosts(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(defaultValue = "10") int size,
             @AuthenticationPrincipal BlogUserDetails blogUserDetails
     ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
         return ResponseEntity.ok(
-                bookmarkService.getBookmarksForUser(blogUserDetails.getUserId(), pageable)
+                userService.getBookmarksForUser(blogUserDetails.getUserId(), pageable)
         );
     }
 
     @PostMapping("/bookmarks")
-    public ResponseEntity<Void> bookmarkPost(@AuthenticationPrincipal BlogUserDetails blogUserDetails, @RequestBody CreateBookmarkRequest createBookmarkRequest) {
+    public ResponseEntity<Void> bookmarkPost(
+            @AuthenticationPrincipal BlogUserDetails blogUserDetails,
+            @RequestBody CreateBookmarkRequest createBookmarkRequest
+    ) {
         userService.createBookmark(createBookmarkRequest.postId(), blogUserDetails.getUserId());
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/bookmarks/{postId}")
-    public ResponseEntity<Void> unbookmarkPost(@AuthenticationPrincipal BlogUserDetails blogUserDetails, @PathVariable UUID postId) {
+    public ResponseEntity<Void> unbookmarkPost(
+            @AuthenticationPrincipal BlogUserDetails blogUserDetails,
+            @PathVariable UUID postId
+    ) {
         userService.deleteBookmark(postId, blogUserDetails.getUserId());
         return ResponseEntity.noContent().build();
     }
 
-    // --- FOLLOWING ENDPOINTS ---
-
-    /**
-     * GET /api/v1/me/following
-     * Returns the list of users the current user follows.
-     */
     @GetMapping("/following")
-    public ResponseEntity<List<UserResponse>> getMyFollowing(@AuthenticationPrincipal BlogUserDetails currentUser) {
-        Set<User> followingList = userService.getFollowingList(currentUser.getUserId());
+    public ResponseEntity<Set<UserResponse>> getMyFollowing(@AuthenticationPrincipal BlogUserDetails currentUser) {
         return ResponseEntity.ok(
-                followingList.stream()
-                        .map(userMapper::toDto)
-                        .toList()
+                userService.getFollowingList(currentUser.getUserId())
         );
     }
 
-    /**
-     * POST /api/v1/me/following/{targetUserId}
-     * Follows the user with the specific ID.
-     */
     @PostMapping("/following/{targetUserId}")
     public ResponseEntity<Void> followUser(
             @AuthenticationPrincipal BlogUserDetails currentUser,
@@ -90,10 +81,6 @@ public class MeController {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * DELETE /api/v1/me/following/{targetUserId}
-     * Unfollows the user with the specific ID.
-     */
     @DeleteMapping("/following/{targetUserId}")
     public ResponseEntity<Void> unfollowUser(
             @AuthenticationPrincipal BlogUserDetails currentUser,

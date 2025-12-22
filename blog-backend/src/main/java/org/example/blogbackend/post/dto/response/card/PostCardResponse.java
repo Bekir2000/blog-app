@@ -1,0 +1,23 @@
+package org.example.blogbackend.post.dto.response.card;
+
+import org.example.blogbackend.post.model.Category;
+
+import java.time.Instant;
+import java.util.Set;
+import java.util.UUID;
+
+public record PostCardResponse(
+        UUID id,
+        String title,
+        String description,
+        String imageUrl,
+
+        AuthorCardSummary author,
+        PostMetadata meta,
+
+        Category category,
+        String[] tags,
+
+        Instant createdAt,
+        Instant updatedAt
+){}

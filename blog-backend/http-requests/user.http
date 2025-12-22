@@ -1,0 +1,55 @@
+### Variables
+@host = http://localhost:8080/api/v1
+@auth_token = {{access_token}}
+@target_user_id = 550e8400-e29b-41d4-a716-446655440000
+# Replace with the ID of a post you want to bookmark
+@target_post_id = 123e4567-e89b-12d3-a456-426614174000
+
+# ---------------------------------------------------------
+# PROFILE ENDPOINTS
+# ---------------------------------------------------------
+
+### Get Current User Profile
+GET {{host}}/me
+Authorization: Bearer {{auth_token}}
+Accept: application/json
+
+### ---------------------------------------------------------
+# FOLLOWER SYSTEM
+# ---------------------------------------------------------
+
+### Get My Following List
+GET {{host}}/me/following
+Authorization: Bearer {{auth_token}}
+Accept: application/json
+
+### Follow a User
+POST {{host}}/me/following/{{target_user_id}}
+Authorization: Bearer {{auth_token}}
+
+### Unfollow a User
+DELETE {{host}}/me/following/{{target_user_id}}
+Authorization: Bearer {{auth_token}}
+
+### ---------------------------------------------------------
+# BOOKMARK SYSTEM
+# ---------------------------------------------------------
+
+### Get My Bookmarks (Paged)
+# Optional params: ?page=0&size=10
+GET {{host}}/me/bookmarks?page=0&size=5
+Authorization: Bearer {{auth_token}}
+Accept: application/json
+
+### Create a Bookmark
+POST {{host}}/me/bookmarks
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "postId": "{{target_post_id}}"
+}
+
+### Delete a Bookmark
+DELETE {{host}}/me/bookmarks/{{target_post_id}}
+Authorization: Bearer {{auth_token}}

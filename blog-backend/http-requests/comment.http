@@ -1,0 +1,74 @@
+### Variables
+@host = http://localhost:8080
+@postId = {{postId}}
+@authToken = {{access_token}}
+
+# -----------------------------------------------------
+# 1. Create Root Comment
+# -----------------------------------------------------
+POST {{host}}/api/posts/{{postId}}/comments
+Authorization: Bearer {{authToken}}
+Content-Type: text/plain
+
+This is a top-level comment content.
+
+> {%
+    // Automatically save the returned UUID to use in future requests
+    client.global.set("rootCommentId", response.body);
+%}
+
+###
+
+# -----------------------------------------------------
+# 2. Get All Comments (Paged)
+# -----------------------------------------------------
+GET {{host}}/api/posts/{{postId}}/comments?page=0&size=10
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+###
+
+# -----------------------------------------------------
+# 3. Reply to the Root Comment
+# -----------------------------------------------------
+POST {{host}}/api/posts/{{postId}}/comments/{{rootCommentId}}/reply
+Authorization: Bearer {{authToken}}
+Content-Type: text/plain
+
+This is a reply to the previous comment.
+
+> {%
+    client.global.set("replyCommentId", response.body);
+%}
+
+###
+
+# -----------------------------------------------------
+# 4. Like a Comment
+# -----------------------------------------------------
+POST {{host}}/api/posts/{{postId}}/comments/{{rootCommentId}}/like
+Authorization: Bearer {{authToken}}
+
+###
+
+# -----------------------------------------------------
+# 5. Unlike a Comment
+# -----------------------------------------------------
+DELETE {{host}}/api/posts/{{postId}}/comments/{{rootCommentId}}/like
+Authorization: Bearer {{authToken}}
+
+###
+
+# -----------------------------------------------------
+# 6. Delete a Reply
+# -----------------------------------------------------
+DELETE {{host}}/api/posts/{{postId}}/comments/{{replyCommentId}}
+Authorization: Bearer {{authToken}}
+
+###
+
+# -----------------------------------------------------
+# 7. Delete the Root Comment
+# -----------------------------------------------------
+DELETE {{host}}/api/posts/{{postId}}/comments/{{rootCommentId}}
+Authorization: Bearer {{authToken}}

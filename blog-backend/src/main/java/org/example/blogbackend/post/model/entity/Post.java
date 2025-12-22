@@ -2,21 +2,13 @@ package org.example.blogbackend.post.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.example.blogbackend.category.model.entity.Category;
-import org.example.blogbackend.comment.model.entity.Comment;
-import org.example.blogbackend.tag.model.entity.Tag;
 import org.example.blogbackend.user.model.entity.User;
-import org.example.blogbackend.post.model.PostStatus;
 
 import java.time.Instant;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Entity
 @Table(name = "posts")
-@Getter
-@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
@@ -26,81 +18,44 @@ public class Post {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @EqualsAndHashCode.Include
+    @Getter
     private UUID id;
 
     @Column(nullable = false)
-    private String title;
-
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String content;
-
-    // ✅ FIXED: Changed nullable to true so Drafts can have empty descriptions
-    @Column(nullable = true, columnDefinition = "TEXT")
-    private String description;
+    @Getter
+    private int likeCount;
 
     @Column(nullable = false)
-    private int views;
+    @Getter
+    private int commentCount;
 
     @Column(nullable = false)
-    private int likes;
-
-    @Column(nullable = false)
-    private int commentsCount;
-
-    @Column(nullable = false)
+    @Getter
     private int readingTime;
 
-    @OneToMany(mappedBy = "post", orphanRemoval = true)
-    @Builder.Default
-    private Set<Comment> comments = new HashSet<>();
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "published_version_id", unique = true)
+    @Getter
+    private PostVersion publishedVersion;
 
-    // Already nullable by default, but explicit is good
-    @Column(nullable = true)
-    private String imageUrl;
-
-    @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private PostStatus status;
+    @OneToMany(
+            mappedBy = "post",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private Set<PostVersion> versions = new HashSet<>();
 
     @ManyToOne
     @JoinColumn(name = "author_id", nullable = false)
+    @Getter
     private User author;
 
-    // ✅ FIXED: Changed nullable to true so Drafts can exist without a Category
-    @ManyToOne
-    @JoinColumn(name = "category_id", nullable = true)
-    private Category category;
-
-    @ManyToMany
-    @JoinTable(
-            name = "post_tags",
-            joinColumns = @JoinColumn(name = "post_id"),
-            inverseJoinColumns = @JoinColumn(name = "tag_id")
-    )
-    private Set<Tag> tags = new HashSet<>();
-
-    @ManyToMany
-    @JoinTable(
-            name = "posts_liked_by",
-            joinColumns = @JoinColumn(name = "post_id"),
-            inverseJoinColumns = @JoinColumn(name = "user_id")
-    )
-    @Builder.Default
-    private Set<User> likedBy = new HashSet<>();
-
-    // ✅ PARENT LINK (For Revision/Fork Workflow)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_post_id")
-    private Post parentPost;
-
-    public int getLikeCount() {
-        return likedBy.size();
-    }
-
     @Column(nullable = false)
+    @Getter
     private Instant createdAt;
 
     @Column(nullable = false)
+    @Getter
     private Instant updatedAt;
 
     @PrePersist
@@ -115,13 +70,32 @@ public class Post {
         this.updatedAt = Instant.now();
     }
 
-    void update(Post post){
-        this.title = post.getTitle();
-        this.content = post.getContent();
-        this.description = post.getDescription();
-        this.imageUrl = post.getImageUrl();
-        this.status = post.getStatus();
-        this.category = post.getCategory(); // Ensure category updates too
-        this.updatedAt = Instant.now();
+    private Post(User author) {
+        this.author = author;
+    }
+
+    public static Post create(User author) {
+        return new Post(author);
+    }
+
+    public boolean isAuthor(UUID authorId) {
+        return author.getId().equals(authorId);
+    }
+
+    public void calculateAndSetReadingTime(String content) {
+        this.readingTime = content.split("\\s+").length / 200;
+    }
+
+    public void addVersion(PostVersion version) {
+        this.versions.add(version);
+    }
+
+    public UUID publishVersion(PostVersion version) {
+        version.publish();
+        PostVersion oldPublishedVersion = this.publishedVersion;
+        this.publishedVersion = version;
+
+        if(oldPublishedVersion != null) return oldPublishedVersion.getId();
+        return null;
     }
 }

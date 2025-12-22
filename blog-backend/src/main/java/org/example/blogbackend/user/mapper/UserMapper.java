@@ -11,6 +11,6 @@ public interface UserMapper {
 
     // Explicitly tell MapStruct to use the user.isOnline() method
     @Mapping(target = "isOnline", expression = "java(user.isOnline())")
-    UserResponse toDto(User user);
+    UserResponse toUserResponse(User user);
 
 }

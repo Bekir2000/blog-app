@@ -1,0 +1,76 @@
+### Configuration
+@host = localhost:8080
+
+### 1. Register a new user
+POST {{host}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "beki32@gmail.com",
+  "name": "bekir2",
+  "password": "password",
+  "profileImageUrl": ""
+}
+
+> {%
+    // Store access token
+    client.global.set("access_token", response.body.token);
+
+    // Store refresh token from cookie
+    const cookieHeader = response.headers.valueOf("Set-Cookie");
+    if (cookieHeader) {
+        client.global.set("refresh_token", cookieHeader);
+    }
+%}
+
+### 2. Login
+POST {{host}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@test.com",
+  "password": "admin"
+}
+
+> {%
+    // Store access token (Note: using 'accessToken' property per your input)
+    client.global.set("access_token", response.body.accessToken);
+
+    // Store refresh token from cookie
+    const cookieHeader = response.headers.valueOf("Set-Cookie");
+    if (cookieHeader) {
+        client.global.set("refresh_token", cookieHeader);
+    }
+%}
+
+### 3. Refresh Access Token Only
+POST {{host}}/api/v1/auth/refresh-access
+Authorization: Bearer {{access_token}}
+Cookie: {{refresh_token}}
+
+> {%
+    if (response.body.token) {
+        client.global.set("access_token", response.body.token);
+    }
+%}
+
+### 4. Refresh Both Tokens
+POST {{host}}/api/v1/auth/refresh-both
+Authorization: Bearer {{access_token}}
+Cookie: {{refresh_token}}
+
+> {%
+    // Update access token
+    client.global.set("access_token", response.body.token);
+
+    // Update refresh token if a new one is set
+    const cookieHeader = response.headers.valueOf("Set-Cookie");
+    if (cookieHeader) {
+        client.global.set("refresh_token", cookieHeader);
+    }
+%}
+
+### 5. Logout
+POST {{host}}/api/v1/auth/logout
+Authorization: Bearer {{access_token}}
+Cookie: {{refresh_token}}

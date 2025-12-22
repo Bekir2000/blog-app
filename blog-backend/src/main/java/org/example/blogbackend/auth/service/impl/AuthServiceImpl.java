@@ -34,7 +34,13 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public TokenPair register(RegisterRequest req) {
-        userService.register(req);
+        userService.register(
+                req.firstName(),
+                req.lastName(),
+                req.email(),
+                req.password(),
+                req.profileImageUrl()
+        );
         LoginRequest loginReq = new LoginRequest(req.email(), req.password());
         return login(loginReq.email(), loginReq.password());
     }

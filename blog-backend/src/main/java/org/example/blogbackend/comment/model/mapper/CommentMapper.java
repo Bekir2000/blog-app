@@ -1,40 +1,38 @@
 package org.example.blogbackend.comment.model.mapper;
 
 import org.example.blogbackend.comment.model.dto.request.CreateCommentRequest;
+import org.example.blogbackend.comment.model.dto.response.CommentMetaData;
 import org.example.blogbackend.comment.model.dto.response.CommentResponse;
 import org.example.blogbackend.comment.model.entity.Comment;
+import org.example.blogbackend.comment.model.projection.CommentWithDetails;
+import org.example.blogbackend.post.dto.response.card.AuthorCardSummary;
+import org.example.blogbackend.post.dto.response.detail.AuthorDetailSummary;
+import org.example.blogbackend.post.model.projection.PostWithDetailsDto;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-import java.util.List;
-
 @Mapper(componentModel = "spring")
-public interface CommentMapper {
+public abstract class CommentMapper {
 
-    // 1. Entity Creation Mapping
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "post", ignore = true)
-    @Mapping(target = "author", ignore = true)
-    @Mapping(target = "parent", ignore = true)
+
+
+    @Mapping(target = "id", source = "comment.id")
+    @Mapping(target = "content", source = "comment.content")
+    @Mapping(target = "postId", source = "comment.postId")
+    @Mapping(target = "author", source = ".")
+    @Mapping(target = "meta", source = ".")
     @Mapping(target = "replies", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "likedBy", ignore = true)
-    @Mapping(target = "likesCount", ignore = true)
-    @Mapping(target = "replyCount", ignore = true)
-    Comment toComment(CreateCommentRequest request);
+    public abstract CommentResponse toCommentResponse(CommentWithDetails c);
 
-    // 2. Simple Response Mapping
-    @Mapping(target = "likedByCurrentUser", source = "isLiked")
-    // Use the entity's formula values by default
+
+    @Mapping(target = "firstName", source = "authorFirstName")
+    @Mapping(target = "lastName", source = "authorLastName")
+    protected abstract AuthorCardSummary toAuthorDetailSummary(CommentWithDetails dto);
+
     @Mapping(target = "replyCount", source = "comment.replyCount")
-    @Mapping(target = "replies", ignore = true) // Simple mapping ignores tree
-    CommentResponse toCommentResponse(Comment comment, boolean isLiked);
+    @Mapping(target = "likeCount", source = "comment.likeCount")
+    protected abstract CommentMetaData toCommentMetaData(CommentWithDetails dto);
 
-    // 3. Tree Response Mapping (The one we use in the service)
-    @Mapping(target = "likedByCurrentUser", source = "isLiked")
-    @Mapping(target = "replies", source = "replies")
-    // We override the formula count with the actual list size for consistency
-    @Mapping(target = "replyCount", expression = "java((long) replies.size())")
-    CommentResponse toTreeResponse(Comment comment, boolean isLiked, List<CommentResponse> replies);
+
+
 }

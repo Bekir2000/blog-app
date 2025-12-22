@@ -10,9 +10,6 @@ public record UserResponse(
         UUID id,
 
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
-        String username,
-
-        @Schema(requiredMode = Schema.RequiredMode.REQUIRED)
         String firstName,
 
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED)

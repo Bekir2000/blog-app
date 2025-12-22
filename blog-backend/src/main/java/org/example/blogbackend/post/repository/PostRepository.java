@@ -1,8 +1,9 @@
 package org.example.blogbackend.post.repository;
 
-import org.example.blogbackend.post.model.PostStatus;
+import org.example.blogbackend.post.model.Category;
 import org.example.blogbackend.post.model.entity.Post;
-import org.example.blogbackend.post.model.projection.PostCardView;
+import org.example.blogbackend.post.model.projection.PublishedPostCardProjection;
+import org.example.blogbackend.post.model.projection.PostWithDetailsDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,79 +12,72 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface PostRepository extends JpaRepository<Post, UUID> {
 
-    // ========================================================================
-    // 1. DYNAMIC FEED QUERY (Handles all filters)
-    // ========================================================================
 
+    @Query("""
+   SELECT new org.example.blogbackend.post.model.projection.PostWithDetailsDto(
+       p,
+       (CASE WHEN EXISTS (SELECT 1 FROM Bookmark b WHERE b.post = p AND b.user.id = :userId) THEN true ELSE false END),
+       (CASE WHEN EXISTS (SELECT 1 FROM Follow f WHERE f.target = p.author AND f.follower.id = :userId) THEN true ELSE false END),
+       (CASE WHEN EXISTS (SELECT 1 FROM PostLike l WHERE l.post = p AND l.userId = :userId) THEN true ELSE false END)
+   )
+   FROM Post p
+   INNER JOIN FETCH p.publishedVersion
+   LEFT JOIN FETCH p.author
+   WHERE p.id = :postId
+""")
+    Optional<PostWithDetailsDto> findPostWithDetails(
+            @Param("postId") UUID postId,
+            @Param("userId") UUID userId
+    );
 
-
-        // ✅ ADDED 'DISTINCT' to ensure one Post doesn't take up multiple slots
-        @Query("""
-        SELECT DISTINCT p FROM Post p
-        LEFT JOIN p.tags t
-        WHERE p.status = :status
-        AND (:authorId IS NULL OR p.author.id = :authorId)
-        AND (:categoryId IS NULL OR p.category.id = :categoryId)
-        AND (:tagId IS NULL OR t.id = :tagId)
-        AND (:query IS NULL OR :query = '' OR
-            (:searchType = 'TITLE' AND LOWER(p.title) LIKE LOWER(CONCAT('%', :query, '%'))) OR
-            (:searchType = 'CONTENT' AND LOWER(p.content) LIKE LOWER(CONCAT('%', :query, '%'))) OR
-            ((:searchType IS NULL OR :searchType = 'MIXED') AND (LOWER(p.title) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(p.description) LIKE LOWER(CONCAT('%', :query, '%'))))
+    @Query("""
+        SELECT new org.example.blogbackend.post.model.projection.PublishedPostCardProjection(
+            p.id,
+            v.title,
+            v.description,
+            v.imageUrl,
+            a.firstName,
+            a.lastName,
+            a.profileImageUrl,
+            p.likeCount,
+            p.commentCount,
+            p.readingTime,
+            (CASE WHEN EXISTS (SELECT 1 FROM PostLike l WHERE l.post = p AND l.userId = :userId) THEN true ELSE false END),
+            (CASE WHEN EXISTS (SELECT 1 FROM Bookmark b WHERE b.post = p AND b.user.id = :userId) THEN true ELSE false END),
+            p.createdAt
         )
+        FROM Post p
+        INNER JOIN p.publishedVersion v
+        INNER JOIN p.author a
+        WHERE 
+            (:title IS NULL OR :title = '' OR LOWER(v.title) LIKE LOWER(CONCAT('%', :title, '%')))
+            AND (:category IS NULL OR v.category = :category)
+            
+            AND (:tag IS NULL OR :tag = '' OR :tag MEMBER OF v.tags)
+            
+            AND (:authorName IS NULL OR :authorName = '' OR LOWER(CONCAT(a.firstName, ' ', a.lastName)) LIKE LOWER(CONCAT('%', :authorName, '%')))
     """)
-        Page<PostCardView> findFilteredPosts(
-                @Param("status") PostStatus status,
-                @Param("query") String query,
-                @Param("authorId") UUID authorId,
-                @Param("searchType") String searchType,
-                @Param("categoryId") UUID categoryId,
-                @Param("tagId") UUID tagId,
-                Pageable pageable
-        );
-
-    // ========================================================================
-    // 2. USER SPECIFIC QUERIES
-    // ========================================================================
-
-    List<PostCardView> findProjectedByAuthor_IdAndStatus(UUID userId, PostStatus status);
-
-    @Query("SELECT p FROM User u JOIN u.bookmarkedPosts p WHERE u.id = :userId")
-    Page<PostCardView> findBookmarkedPostsByUserId(@Param("userId") UUID userId, Pageable pageable);
-
-    // ========================================================================
-    // 3. ATOMIC UPDATES & NATIVE LIKES
-    // ========================================================================
+    Page<PublishedPostCardProjection> findPublishedPosts(
+            @Param("userId") UUID userId,
+            @Param("title") String title,
+            @Param("category") Category category,
+            @Param("tag") String tag,
+            @Param("authorName") String authorName,
+            Pageable pageable
+    );
 
     @Modifying
-    @Query("UPDATE Post p SET p.commentsCount = p.commentsCount + 1 WHERE p.id = :postId")
-    void incrementCommentsCount(@Param("postId") UUID postId);
+    @Query("UPDATE Post p SET p.likeCount = p.likeCount + 1 WHERE p.id = :id")
+    void incrementLikeCount(@Param("id") UUID postId);
 
     @Modifying
-    @Query("UPDATE Post p SET p.commentsCount = p.commentsCount - 1 WHERE p.id = :postId AND p.commentsCount > 0")
-    void decrementCommentsCount(@Param("postId") UUID postId);
+    @Query("UPDATE Post p SET p.likeCount = p.likeCount - 1 WHERE p.id = :id")
+    void decrementLikeCount(@Param("id") UUID postId);
 
-    @Modifying
-    @Query("UPDATE Post p SET p.likes = p.likes + 1 WHERE p.id = :postId")
-    void incrementLikes(@Param("postId") UUID postId);
-
-    @Modifying
-    @Query("UPDATE Post p SET p.likes = p.likes - 1 WHERE p.id = :postId AND p.likes > 0")
-    void decrementLikes(@Param("postId") UUID postId);
-
-    @Query(value = "SELECT COUNT(1) > 0 FROM posts_liked_by WHERE post_id = :postId AND user_id = :userId", nativeQuery = true)
-    boolean existsByPostIdAndUserId(@Param("postId") UUID postId, @Param("userId") UUID userId);
-
-    @Modifying
-    @Query(value = "INSERT INTO posts_liked_by (post_id, user_id) VALUES (:postId, :userId)", nativeQuery = true)
-    void addLike(@Param("postId") UUID postId, @Param("userId") UUID userId);
-
-    @Modifying
-    @Query(value = "DELETE FROM posts_liked_by WHERE post_id = :postId AND user_id = :userId", nativeQuery = true)
-    void removeLike(@Param("postId") UUID postId, @Param("userId") UUID userId);
 }

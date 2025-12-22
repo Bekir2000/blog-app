@@ -47,7 +47,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         // Update the timestamp in the background
                         // (Ideally, wrap this in an async method for high-performance apps)
                         try {
-                            userRepository.updateLastActiveAt(parsed.getUserId(), Instant.now());
+//                            userRepository.updateLastActiveAt(parsed.getUserId(), Instant.now());
                         } catch (Exception e) {
                             // Don't fail the request if tracking fails
                             log.error("Failed to update user activity", e);

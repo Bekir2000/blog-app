@@ -3,11 +3,23 @@ package org.example.blogbackend.user.service.impl;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.example.blogbackend.auth.model.dto.request.RegisterRequest;
+import org.example.blogbackend.post.dto.response.card.PostCardResponse;
+import org.example.blogbackend.post.mapper.PostMapper;
 import org.example.blogbackend.post.model.entity.Post;
 import org.example.blogbackend.post.repository.PostRepository;
+import org.example.blogbackend.shared.dto.PagedResponse;
+import org.example.blogbackend.shared.mapper.PageMapper;
+import org.example.blogbackend.user.mapper.UserMapper;
+import org.example.blogbackend.user.model.dto.response.UserResponse;
+import org.example.blogbackend.user.model.entity.Bookmark;
+import org.example.blogbackend.user.model.entity.Follow;
 import org.example.blogbackend.user.model.entity.User;
+import org.example.blogbackend.user.repository.BookmarkRepository;
+import org.example.blogbackend.user.repository.FollowRepository;
 import org.example.blogbackend.user.repository.UserRepository;
 import org.example.blogbackend.user.service.UserService;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,103 +27,147 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final FollowRepository followRepository;
     private final PostRepository postRepository;
+    private final BookmarkRepository bookmarkRepository;
+
+    private final UserMapper userMapper;
+    private final PostMapper postMapper;
+    private final PageMapper pageMapper;
+
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional
-    public void register(RegisterRequest req) {
-        if (userRepository.existsByEmail(req.email())) {
+    public UUID register(String firstName,
+                         String lastName,
+                         String email,
+                         String password,
+                         String profileImageUrl) {
+
+        if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Email already exists");
         }
         User user = User.builder()
-                .email(req.email())
-                .username(req.username())
-                .firstName(req.firstName())
-                .lastName(req.lastName())
-                .profileImageUrl(req.profileImageUrl())
-                .password(passwordEncoder.encode(req.password()))
+                .email(email)
+                .firstName(firstName)
+                .lastName(lastName)
+                .profileImageUrl(profileImageUrl)
+                .password(passwordEncoder.encode(password))
                 .build();
 
-        userRepository.save(user);
+        return userRepository.save(user).getId();
     }
 
     @Override
-    public User getById(UUID id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + id));
-    }
+    public UserResponse getById(UUID id) {
 
-    // --- FOLLOW LOGIC ---
+        return userMapper.toUserResponse(
+                userRepository.findById(id)
+                        .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + id))
+        );
+    }
 
     @Override
     @Transactional
     public void followUser(UUID currentUserId, UUID targetUserId) {
-        if (currentUserId.equals(targetUserId)) {
-            throw new IllegalArgumentException("You cannot follow yourself");
+        List<User> users = userRepository.findAllById(List.of(currentUserId, targetUserId));
+
+        if (users.size() != 2) {
+            throw new EntityNotFoundException("One or both users not found");
         }
 
-        User currentUser = getById(currentUserId);
-        User targetUser = getById(targetUserId);
+        User user1 = users.get(0);
+        User user2 = users.get(1);
 
-        currentUser.follow(targetUser);
+        User follower = user1.getId().equals(currentUserId) ? user1 : user2;
+        User target = user2.getId().equals(targetUserId) ? user2 : user1;
 
-        // Saving the 'owner' of the relationship (currentUser) is sufficient
-        userRepository.save(currentUser);
+        Follow follow = new Follow();
+        follow.setFollower(follower);
+        follow.setTarget(target);
+
+        followRepository.save(follow);
     }
 
     @Override
     @Transactional
     public void unfollowUser(UUID currentUserId, UUID targetUserId) {
-        User currentUser = getById(currentUserId);
-        User targetUser = getById(targetUserId);
+        List<User> users = userRepository.findAllById(List.of(currentUserId, targetUserId));
 
-        currentUser.unfollow(targetUser);
+        if (users.size() != 2) {
+            throw new EntityNotFoundException("One or both users not found");
+        }
 
-        userRepository.save(currentUser);
+        long deletedCount = followRepository.deleteByFollowerIdAndTargetId(currentUserId, targetUserId);
+
+        if (deletedCount == 0) {
+            throw new EntityNotFoundException("Relationship not found (User was not following Target)");
+        }
     }
 
     @Override
-    @Transactional(readOnly = true) // Important for performance and Lazy Loading
-    public Set<User> getFollowingList(UUID userId) {
-        User user = getById(userId);
-        return user.getFollowing();
-    }
+    @Transactional(readOnly = true)
+    public Set<UserResponse> getFollowingList(UUID userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new EntityNotFoundException("User not found with ID: " + userId);
+        }
 
-    // --- BOOKMARK LOGIC ---
-
-    @Override
-    public List<Boolean> getPostBookmarkStatuses(UUID userId, Set<UUID> postIds) {
-        Set<UUID> bookmarked = userRepository.findBookmarkedPostIdsByUserIdAndPostIdIn(userId, postIds);
-        return postIds.stream().map(bookmarked::contains).toList();
+        return followRepository.findTargetsByFollowerId(userId).stream()
+                .map(userMapper::toUserResponse)
+                .collect(Collectors.toSet());
     }
 
     @Override
+    @Transactional
     public void createBookmark(UUID postId, UUID userId) {
-        Post post = findPostByIdOrThrow(postId);
-        User user = getById(userId);
 
-        user.bookmarkPost(post);
-        userRepository.save(user);
+        if (!userRepository.existsById(userId)) {
+            throw new EntityNotFoundException("User not found with ID: " + userId);
+        }
+
+        if (!postRepository.existsById(postId)) {
+            throw new EntityNotFoundException("Post not found with ID: " + postId);
+        }
+
+        Bookmark bookmark = new Bookmark();
+        bookmark.setUser(userRepository.getReferenceById(userId));
+        bookmark.setPost(postRepository.getReferenceById(postId));
+
+        try {
+            bookmarkRepository.save(bookmark);
+        } catch (DataIntegrityViolationException e) {
+            throw new IllegalStateException("You have already bookmarked this post");
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<PostCardResponse> getBookmarksForUser(
+            UUID userId,
+            Pageable pageable) {
+
+        return pageMapper.toPagedResponse(
+                bookmarkRepository
+                        .findBookmarksByUserId(userId, pageable)
+                        .map(postMapper::toPostCardResponse)
+        );
     }
 
     @Override
+    @Transactional
     public void deleteBookmark(UUID postId, UUID userId) {
-        Post post = findPostByIdOrThrow(postId);
-        User user = getById(userId);
 
-        user.unbookmarkPost(post);
-        userRepository.save(user);
-    }
+        int rowsAffected = bookmarkRepository.deleteByPostIdAndUserId(postId, userId);
 
-    private Post findPostByIdOrThrow(UUID id) {
-        return postRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Post not found with ID: " + id));
+        if (rowsAffected == 0) {
+            throw new EntityNotFoundException("Bookmark not found");
+        }
     }
 }
