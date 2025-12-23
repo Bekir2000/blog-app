@@ -55,6 +55,7 @@ public abstract class PostMapper {
 
     @Mapping(source = "authorFirstName", target = "firstName")
     @Mapping(source = "authorLastName", target = "lastName")
+    @Mapping(source = "authorImageUrl", target = "imageUrl")
     protected abstract AuthorCardSummary toAuthorCardSummary(PublishedPostCardProjection postCardProjection);
 
     protected abstract PostMetadata toPostMetadata(PublishedPostCardProjection postCardProjection);
