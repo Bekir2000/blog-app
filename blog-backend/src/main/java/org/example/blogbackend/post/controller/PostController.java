@@ -41,7 +41,7 @@ public class PostController {
     }
 
     @GetMapping
-    public ResponseEntity<PagedResponse<PostCardResponse>> getPostCards(
+    public ResponseEntity<PagedResponse<PostCardResponse>> getAllPostCards(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String authorName,

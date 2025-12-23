@@ -37,34 +37,42 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
     );
 
     @Query("""
-        SELECT new org.example.blogbackend.post.model.projection.PublishedPostCardProjection(
-            p.id,
-            v.title,
-            v.description,
-            v.imageUrl,
-            a.firstName,
-            a.lastName,
-            a.profileImageUrl,
-            p.likeCount,
-            p.commentCount,
-            p.readingTime,
-            (CASE WHEN EXISTS (SELECT 1 FROM PostLike l WHERE l.post = p AND l.userId = :userId) THEN true ELSE false END),
-            (CASE WHEN EXISTS (SELECT 1 FROM Bookmark b WHERE b.post = p AND b.user.id = :userId) THEN true ELSE false END),
-            p.createdAt
-        )
-        FROM Post p
-        INNER JOIN p.publishedVersion v
-        INNER JOIN p.author a
-        WHERE 
-            (:title IS NULL OR :title = '' OR LOWER(v.title) LIKE LOWER(CONCAT('%', :title, '%')))
-            AND (:category IS NULL OR v.category = :category)
-            
-            AND (:tag IS NULL OR :tag = '' OR :tag MEMBER OF v.tags)
-            
-            AND (:authorName IS NULL OR :authorName = '' OR LOWER(CONCAT(a.firstName, ' ', a.lastName)) LIKE LOWER(CONCAT('%', :authorName, '%')))
-    """)
+    SELECT new org.example.blogbackend.post.model.projection.PublishedPostCardProjection(
+        p.id,
+        v.title,
+        v.description,
+        v.imageUrl,
+        a.firstName,
+        a.lastName,
+        a.profileImageUrl,
+        p.likeCount,
+        p.commentCount,
+        p.readingTime,
+        
+        (CASE
+            WHEN :userId IS NULL THEN false
+            WHEN EXISTS (SELECT 1 FROM PostLike l WHERE l.post = p AND l.userId = :userId) THEN true
+            ELSE false
+        END),
+        (CASE
+            WHEN :userId IS NULL THEN false
+            WHEN EXISTS (SELECT 1 FROM Bookmark b WHERE b.post = p AND b.user.id = :userId) THEN true
+            ELSE false
+        END),
+
+        p.createdAt
+    )
+    FROM Post p
+    INNER JOIN p.publishedVersion v
+    INNER JOIN p.author a
+    WHERE 
+        (:title IS NULL OR :title = '' OR LOWER(v.title) LIKE LOWER(CONCAT('%', :title, '%')))
+        AND (:category IS NULL OR v.category = :category)
+        AND (:tag IS NULL OR :tag = '' OR :tag MEMBER OF v.tags)
+        AND (:authorName IS NULL OR :authorName = '' OR LOWER(CONCAT(a.firstName, ' ', a.lastName)) LIKE LOWER(CONCAT('%', :authorName, '%')))
+""")
     Page<PublishedPostCardProjection> findPublishedPosts(
-            @Param("userId") UUID userId,
+            @Param("userId") UUID userId, // Can safely pass null here now
             @Param("title") String title,
             @Param("category") Category category,
             @Param("tag") String tag,
