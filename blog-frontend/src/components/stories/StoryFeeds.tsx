@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  useGetDraftsInfinite,
-  useGetMyPublishedPostsInfinite,
+  useGetAllPostCardsInfinite,
+  useGetMyDraftsInfinite,
 } from "@/api/generated/client/post-controller/post-controller";
 import {
   PagedResponsePostCardResponse,
@@ -11,36 +11,29 @@ import {
 } from "@/api/generated/model";
 import { StoryList } from "./StoryList";
 
-// Define the structure of the response wrapper from Orval
-interface WrapperResponse {
-  data: PagedResponsePostCardResponse;
-  status: number;
-}
-
-// --- Shared Helper ---
+// Helper to standardise React Query Infinite Options
 const getInfiniteOptions = (initialData: PostCardResponse[]) => ({
   query: {
-    staleTime: 0,
+    staleTime: 0, // 5 minutes
     initialPageParam: 0,
-    // Explicitly type lastPage so we can access .data safely
-    getNextPageParam: (lastPage: WrapperResponse) => {
-      const responseData = lastPage.data;
-      if (!responseData || responseData.isLast) return undefined;
-      return (responseData.page ?? 0) + 1;
+    getNextPageParam: (lastPage: { data: PagedResponsePostCardResponse }) => {
+      const { page, isLast } = lastPage.data;
+      if (isLast || page === undefined) return undefined;
+      return page + 1;
     },
-    // Hydrate SSR data
+    // Hydrate Server Data into the Cache
     initialData: initialData
       ? {
           pages: [
             {
               status: 200,
-              headers: {} as any,
               data: {
                 content: initialData,
                 page: 0,
                 size: 5,
-                // Check if we fetched fewer than requested to determine if it's the last page
                 isLast: initialData.length < 5,
+                totalPages: 1,
+                totalElements: initialData.length,
               } as PagedResponsePostCardResponse,
             },
           ],
@@ -50,15 +43,13 @@ const getInfiniteOptions = (initialData: PostCardResponse[]) => ({
   },
 });
 
-// --- 1. Drafts Feed ---
 export function DraftsFeed({
   initialPosts,
-  currentUser,
 }: {
   initialPosts: PostCardResponse[];
   currentUser: UserResponse | null;
 }) {
-  const queryResult = useGetDraftsInfinite(
+  const queryResult = useGetMyDraftsInfinite(
     { size: 5 },
     getInfiniteOptions(initialPosts) as any
   );
@@ -72,7 +63,6 @@ export function DraftsFeed({
   );
 }
 
-// --- 2. Published Feed ---
 export function PublishedFeed({
   initialPosts,
   currentUser,
@@ -80,8 +70,11 @@ export function PublishedFeed({
   initialPosts: PostCardResponse[];
   currentUser: UserResponse | null;
 }) {
-  const queryResult = useGetMyPublishedPostsInfinite(
-    { size: 5 },
+  const queryResult = useGetAllPostCardsInfinite(
+    {
+      size: 5,
+      authorName: `${currentUser?.firstName} ${currentUser?.lastName}`,
+    },
     getInfiniteOptions(initialPosts) as any
   );
 

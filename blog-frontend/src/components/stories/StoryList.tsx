@@ -1,10 +1,12 @@
 "use client";
 
 import {
-  useCreateRevision, // ✅ New Hook (Make sure you regenerated API client)
+  useAddNewDraft,
+  useDeleteDraft,
   useDeletePost,
 } from "@/api/generated/client/post-controller/post-controller";
 import {
+  DraftCardResponse,
   PagedResponsePostCardResponse,
   PostCardResponse,
 } from "@/api/generated/model";
@@ -24,10 +26,8 @@ import { useEffect, useMemo } from "react";
 import { useInView } from "react-intersection-observer";
 import { toast } from "sonner";
 
-// Define the shape of one "page" of data from your API client
 type ApiPageResponse = {
   data: PagedResponsePostCardResponse;
-  status: number;
 };
 
 interface StoryListProps {
@@ -38,12 +38,12 @@ interface StoryListProps {
 
 export function StoryList({ initialPosts, queryResult, type }: StoryListProps) {
   const router = useRouter();
-  const { ref, inView } = useInView({ threshold: 0, rootMargin: "600px" });
+  const { ref, inView } = useInView({ threshold: 0, rootMargin: "400px" });
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } =
     queryResult;
 
-  // --- 1. Delete Mutation ---
+  // --- 1. Delete Post (For Published Stories) ---
   const { mutate: deletePost } = useDeletePost({
     mutation: {
       onSuccess: () => {
@@ -54,37 +54,65 @@ export function StoryList({ initialPosts, queryResult, type }: StoryListProps) {
     },
   });
 
-  // --- 2. Revision Mutation (Fork Logic) ---
-  const { mutate: createRevision, isPending: isCreatingRevision } =
-    useCreateRevision({
-      mutation: {
-        onSuccess: (response) => {
-          toast.success("Draft revision created");
-          // Redirect to the NEW draft ID
-          router.push(`/posts/${response.data.id}/edit`);
-        },
-        onError: () => toast.error("Could not create revision"),
+  // --- 2. Delete Draft (For Drafts/Revisions) ---
+  const { mutate: deleteDraft } = useDeleteDraft({
+    mutation: {
+      onSuccess: () => {
+        toast.success("Draft discarded");
+        refetch();
       },
-    });
+      onError: () => toast.error("Could not delete draft"),
+    },
+  });
+
+  // --- 3. Create Revision (Fork Logic) ---
+  const { mutate: addDraft, isPending: isAddingDraft } = useAddNewDraft({
+    mutation: {
+      onSuccess: (response) => {
+        toast.success("Revision created");
+        // Navigate to the editor with the NEW draft ID
+        router.push(
+          `/posts/${response.data.postId}/drafts/${response.data.draftId}/edit`
+        );
+      },
+      onError: () => toast.error("Could not create revision draft"),
+    },
+  });
 
   // --- Handlers ---
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this story?")) {
-      deletePost({ postId: id });
+
+  const handleDelete = (post: PostCardResponse | DraftCardResponse) => {
+    if (!confirm("Are you sure you want to delete this?")) return;
+
+    if (type === "PUBLISHED") {
+      deletePost({ postId: post.id! });
+    } else {
+      const draft = post as DraftCardResponse;
+      // Safety check for parent ID
+      const parentId = draft.postId || draft.id!;
+
+      deleteDraft({
+        postId: parentId,
+        draftId: draft.id!,
+      });
     }
   };
 
   const handleEdit = (post: PostCardResponse) => {
     if (type === "DRAFT") {
-      // Direct Edit
-      router.push(`/posts/${post.id}/edit`);
+      // Direct Edit: Navigate to existing draft
+      // @ts-ignore - Assuming API structure provides postId or logic handles it
+      const parentId = post.postId || post.id!;
+      router.push(`/posts/${parentId}/drafts/${post.id}/edit`);
     } else {
-      // Fork & Edit (Revision Workflow)
-      createRevision({ postId: post.id! });
+      // Published: Create a new Draft (Fork)
+      addDraft({
+        postId: post.id!,
+      });
     }
   };
 
-  // --- Infinite Scroll Trigger ---
+  // --- Infinite Scroll ---
   useEffect(() => {
     if (inView && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
@@ -93,99 +121,120 @@ export function StoryList({ initialPosts, queryResult, type }: StoryListProps) {
 
   // --- Data Merging ---
   const allPosts = useMemo(() => {
-    if (data && data.pages.length > 0) {
-      const rawPosts =
-        data.pages.flatMap((page) => page.data.content ?? []) || [];
-      const seen = new Set<string>();
-      return rawPosts.filter((post) => {
-        if (!post?.id || seen.has(post.id)) return false;
-        seen.add(post.id);
-        return true;
-      });
-    }
-    return initialPosts || [];
+    const fetchedPosts =
+      data?.pages.flatMap((page) => page.data.content ?? []) || [];
+    const combined = fetchedPosts.length > 0 ? fetchedPosts : initialPosts;
+
+    const seen = new Set<string>();
+    return combined.filter((post) => {
+      if (!post.id || seen.has(post.id)) return false;
+      seen.add(post.id);
+      return true;
+    });
   }, [data, initialPosts]);
 
+  // --- Empty State ---
   if (allPosts.length === 0 && !isFetchingNextPage) {
     return (
-      <div className="text-center py-20 text-gray-500">
-        You have no {type === "DRAFT" ? "drafts" : "published stories"}.
+      <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+        <p className="text-lg font-serif mb-2">
+          {type === "DRAFT" ? "No drafts yet." : "You haven't published yet."}
+        </p>
+        {type === "DRAFT" && (
+          <Button variant="link" asChild>
+            <Link href="/new-story">Write your first story</Link>
+          </Button>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 pb-10">
-      {allPosts.map((post) => (
-        <div key={post.id} className="group border-b border-gray-100 pb-6">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              {/* Logic: If Draft, clicking title edits. If Published, clicking title views it. */}
-              <Link
-                href={
-                  type === "DRAFT"
-                    ? `/posts/${post.id}/edit`
-                    : `/posts/${post.id}` // Assuming this is your public view route
-                }
-                className="block group-hover:opacity-75 transition-opacity"
-              >
-                <h3 className="font-bold text-lg mb-1">{post.title}</h3>
-                <p className="text-gray-500 text-sm line-clamp-1">
-                  {post.description || "No description"}
-                </p>
-              </Link>
-              <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
-                <span>
-                  {type === "DRAFT" ? "Last edited" : "Published"}{" "}
-                  {post.createdAt
-                    ? format(new Date(post.createdAt), "MMM d, yyyy")
-                    : "recently"}
-                </span>
-              </div>
-            </div>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <MoreHorizontal className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {/* View Action (Only for Published) */}
-                {type === "PUBLISHED" && (
-                  <DropdownMenuItem
-                    onClick={() => router.push(`/posts/${post.id}`)}
-                  >
-                    <Eye className="w-4 h-4 mr-2" /> View
-                  </DropdownMenuItem>
-                )}
-
-                {/* Edit Action */}
-                <DropdownMenuItem
+    <div className="space-y-6 pb-20">
+      {allPosts.map((post) => {
+        const displayDate =
+          type === "DRAFT" ? post.updatedAt ?? post.createdAt : post.createdAt;
+        return (
+          <div
+            key={post.id}
+            className="group border-b border-gray-100 pb-6 transition-all"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <div
                   onClick={() => handleEdit(post)}
-                  disabled={isCreatingRevision}
+                  className="cursor-pointer block group-hover:opacity-75 transition-opacity"
                 >
-                  <Edit2 className="w-4 h-4 mr-2" />
-                  {type === "PUBLISHED" ? "Edit Revision" : "Edit"}
-                </DropdownMenuItem>
+                  <h3 className="font-bold text-lg mb-2 font-serif text-gray-900 leading-tight">
+                    {post.title || "Untitled Story"}
+                  </h3>
+                  <p className="text-gray-500 text-sm line-clamp-2 font-serif">
+                    {post.description || "No description available..."}
+                  </p>
+                </div>
 
-                {/* Delete Action */}
-                <DropdownMenuItem
-                  onClick={() => handleDelete(post.id!)}
-                  className="text-red-600 focus:text-red-600"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" /> Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <div className="flex items-center gap-2 mt-3 text-xs text-gray-400 font-sans">
+                  <span>
+                    {type === "DRAFT" ? "Last edited" : "Published"}{" "}
+                    {displayDate
+                      ? format(new Date(displayDate), "MMM d, yyyy")
+                      : "Unknown date"}
+                  </span>
+                </div>
+              </div>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 -mr-2 text-gray-400 hover:text-black"
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  {type === "PUBLISHED" && (
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href={`/posts/${post.id}`}
+                        className="cursor-pointer"
+                      >
+                        <Eye className="w-4 h-4 mr-2" /> View Story
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+
+                  <DropdownMenuItem
+                    onClick={() => handleEdit(post)}
+                    disabled={isAddingDraft}
+                    className="cursor-pointer"
+                  >
+                    <Edit2 className="w-4 h-4 mr-2" />
+                    {type === "PUBLISHED" ? "Edit Revision" : "Edit Draft"}
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={() => handleDelete(post)}
+                    className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" /> Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
+      {/* Loading Skeleton */}
       {(isFetchingNextPage || hasNextPage) && (
-        <div ref={ref} className="space-y-6">
-          {[1, 2].map((i) => (
-            <div key={i} className="h-24 bg-gray-50 animate-pulse rounded-md" />
+        <div ref={ref} className="space-y-8 pt-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="animate-pulse flex flex-col gap-2">
+              <div className="h-6 bg-gray-100 rounded w-3/4" />
+              <div className="h-4 bg-gray-50 rounded w-full" />
+            </div>
           ))}
         </div>
       )}

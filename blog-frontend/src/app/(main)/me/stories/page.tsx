@@ -1,6 +1,6 @@
 import {
-  getDrafts,
-  getMyPublishedPosts,
+  getAllPostCards,
+  getMyDrafts,
 } from "@/api/generated/server/post-controller/post-controller";
 import { UserStoriesTabs } from "@/components/stories/UserStoriesTabs";
 import { getUser } from "@/lib/auth";
@@ -9,18 +9,20 @@ import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 export default async function StoriesPage() {
-  // 1. Fetch User First
   const currentUser = await getUser();
 
-  // 2. Security Guard: If not logged in, kick them out immediately
   if (!currentUser) {
-    redirect("/login?next=/me/stories"); // Redirect to login
+    redirect("/login?next=/me/stories");
   }
 
-  // 3. Only if logged in, fetch the data in parallel
+  // Fetch initial data server-side
   const [draftsRes, publishedRes] = await Promise.all([
-    getDrafts({ page: 0, size: 5 }),
-    getMyPublishedPosts({ page: 0, size: 5 }),
+    getMyDrafts({ page: 0, size: 5 }),
+    getAllPostCards({
+      page: 0,
+      size: 5,
+      authorName: `${currentUser.firstName} ${currentUser.lastName}`,
+    }),
   ]);
 
   return (
