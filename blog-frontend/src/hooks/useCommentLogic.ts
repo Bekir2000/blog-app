@@ -1,8 +1,12 @@
 "use client";
 
-import { useToggleLike1 } from "@/api/generated/client/comment-controller/comment-controller";
+import {
+  useLikeComment,
+  useUnlikeComment,
+} from "@/api/generated/client/comment-controller/comment-controller";
 import { useState } from "react";
 
+// --- 1. Updated Like Hook (Split into Like/Unlike) ---
 export function useCommentLike({
   commentId,
   postId,
@@ -14,7 +18,9 @@ export function useCommentLike({
   initialLiked: boolean;
   initialCount: number;
 }) {
-  const { mutate: toggleLike } = useToggleLike1();
+  const { mutate: likeComment } = useLikeComment();
+  const { mutate: unlikeComment } = useUnlikeComment();
+
   const [isLiked, setIsLiked] = useState(initialLiked);
   const [likesCount, setLikesCount] = useState(initialCount);
 
@@ -24,23 +30,39 @@ export function useCommentLike({
     const previousLiked = isLiked;
     const newIsLiked = !isLiked;
 
+    // Optimistic Update
     setIsLiked(newIsLiked);
     setLikesCount((prev) => (newIsLiked ? prev + 1 : prev - 1));
 
-    toggleLike(
-      { postId, commentId },
-      {
-        onError: () => {
-          setIsLiked(previousLiked);
-          setLikesCount((prev) => (previousLiked ? prev + 1 : prev - 1));
-        },
-      }
-    );
+    if (newIsLiked) {
+      // API: Like
+      likeComment(
+        { postId, commentId },
+        {
+          onError: () => {
+            setIsLiked(previousLiked);
+            setLikesCount((prev) => prev - 1);
+          },
+        }
+      );
+    } else {
+      // API: Unlike
+      unlikeComment(
+        { postId, commentId },
+        {
+          onError: () => {
+            setIsLiked(previousLiked);
+            setLikesCount((prev) => prev + 1);
+          },
+        }
+      );
+    }
   };
 
   return { isLiked, likesCount, handleLike };
 }
 
+// --- 2. Reply Form Hook (Unchanged) ---
 export function useReplyForm({
   commentId,
   onReplySubmit,

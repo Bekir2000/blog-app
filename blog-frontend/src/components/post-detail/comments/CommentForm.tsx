@@ -45,8 +45,7 @@ export function CommentForm({
   });
 
   const fullName = currentUser
-    ? `${currentUser.firstName} ${currentUser.lastName}`.trim() ||
-      currentUser.username
+    ? `${currentUser.firstName} ${currentUser.lastName}`.trim()
     : "";
   const initials = currentUser
     ? (currentUser.firstName?.[0] || "") + (currentUser.lastName?.[0] || "")

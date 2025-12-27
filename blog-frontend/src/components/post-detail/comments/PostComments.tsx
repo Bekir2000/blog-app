@@ -4,7 +4,7 @@ import { CommentResponse, UserResponse } from "@/api/generated/model";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect } from "react"; // 👈 Don't forget this
 import { useInView } from "react-intersection-observer";
 
 import { usePostComments } from "@/hooks/usePostComments";
@@ -14,8 +14,10 @@ import { CommentItem } from "./CommentItem";
 interface PostCommentsProps {
   postId: string;
   currentUser?: UserResponse | null;
-  commentsCount?: number;
+  initialCount?: number; // Renamed for clarity, logic remains similar
+  onCountChange?: (count: number) => void; // 👈 NEW PROP
 }
+
 export interface CommentWithChildren extends CommentResponse {
   replies?: CommentWithChildren[];
 }
@@ -23,16 +25,16 @@ export interface CommentWithChildren extends CommentResponse {
 export function PostComments({
   postId,
   currentUser,
-  commentsCount = 0,
+  initialCount = 0,
+  onCountChange, // 👈 Destructure new prop
 }: PostCommentsProps) {
   const {
     comments,
+    totalCount, // This comes from usePostComments (React Query)
     isLoading,
-    isError,
     isCreating,
-    isDeleting, // 👈 Exported loading state
     addComment,
-    handleDelete, // 👈 Exported function
+    handleDelete,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -45,13 +47,23 @@ export function PostComments({
     rootMargin: "100px",
   });
 
+  // 1. Pagination Trigger
   useEffect(() => {
     if (inView && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
   }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const displayCount = commentsCount;
+  // 2. Sync Count to Parent (PostDetail) 👇 NEW LOGIC
+  useEffect(() => {
+    // Only update parent if totalCount is a valid number (fetched successfully)
+    if (typeof totalCount === "number" && onCountChange) {
+      onCountChange(totalCount);
+    }
+  }, [totalCount, onCountChange]);
+
+  // Determine what to show locally in the header
+  const displayCount = totalCount !== undefined ? totalCount : initialCount;
 
   return (
     <section className="mt-12 space-y-8" id="comments">
@@ -61,13 +73,13 @@ export function PostComments({
         Comments ({displayCount})
       </h3>
 
-      {/* Main Form: Submits ROOT comments (parentId undefined) */}
       <CommentForm
         currentUser={currentUser}
         onSubmit={(content) => addComment(content)}
         isSubmitting={isCreating}
       />
 
+      {/* ... Rest of the render logic is identical to previous version ... */}
       <div className="space-y-6">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, i) => (
@@ -87,7 +99,6 @@ export function PostComments({
                 postId={postId}
                 comment={comment as CommentWithChildren}
                 currentUserId={currentUser?.id}
-                // 👇 Handle Nested Replies here
                 onReplySubmit={(content, parentId) =>
                   addComment(content, parentId)
                 }

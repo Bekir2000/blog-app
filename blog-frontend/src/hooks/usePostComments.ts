@@ -1,12 +1,12 @@
 "use client";
 
 import {
-  getGetAllCommentsInfiniteQueryKey,
+  getGetCommentsInfiniteQueryKey,
   useCreateComment,
-  useDeleteComment, // 👈 Import this
-  useGetAllCommentsInfinite,
+  useDeleteComment,
+  useGetCommentsInfinite,
+  useReplyComment,
 } from "@/api/generated/client/comment-controller/comment-controller";
-import { CreateCommentRequest } from "@/api/generated/model";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface UsePostCommentsProps {
@@ -15,8 +15,9 @@ interface UsePostCommentsProps {
 
 export function usePostComments({ postId }: UsePostCommentsProps) {
   const queryClient = useQueryClient();
+  const queryKey = getGetCommentsInfiniteQueryKey(postId);
 
-  // 1. Fetch Comments (Infinite Scroll for Root Level)
+  // 1. Fetch Comments
   const {
     data,
     fetchNextPage,
@@ -24,84 +25,87 @@ export function usePostComments({ postId }: UsePostCommentsProps) {
     isFetchingNextPage,
     isLoading,
     isError,
-  } = useGetAllCommentsInfinite(
+  } = useGetCommentsInfinite(
     postId,
-    {
-      size: 10,
-      sort: ["createdAt,desc"],
-    },
+    { size: 10 },
     {
       query: {
         initialPageParam: 0,
-        getNextPageParam: (lastPageResponse) => {
-          const { isLast, page } = lastPageResponse.data;
-          if (isLast) return undefined;
-          return (page ?? 0) + 1;
+        getNextPageParam: (lastPage) => {
+          const { isLast, page } = lastPage.data;
+          return isLast ? undefined : (page ?? 0) + 1;
         },
       },
     }
   );
 
-  // 2. Create Comment Mutation
-  const { mutateAsync: createCommentAsync, isPending: isCreating } =
+  // 2. Create Root Comment Mutation
+  const { mutateAsync: createRootAsync, isPending: isCreatingRoot } =
     useCreateComment({
       mutation: {
         onSuccess: () => {
-          // Refresh list to show new comment (root or nested)
-          queryClient.invalidateQueries({
-            queryKey: getGetAllCommentsInfiniteQueryKey(postId),
-          });
+          queryClient.invalidateQueries({ queryKey });
         },
       },
     });
 
-  // 3. Delete Comment Mutation 👇 (NEW)
-  const { mutateAsync: deleteCommentAsync, isPending: isDeleting } =
-    useDeleteComment({
-      mutation: {
-        onSuccess: () => {
-          // Refresh list to remove the deleted comment
-          queryClient.invalidateQueries({
-            queryKey: getGetAllCommentsInfiniteQueryKey(postId),
-          });
-        },
+  // 3. Reply Mutation
+  const { mutateAsync: replyAsync, isPending: isReplying } = useReplyComment({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey });
       },
-    });
+    },
+  });
+
+  // 4. Delete Mutation
+  const { mutateAsync: deleteAsync, isPending: isDeleting } = useDeleteComment({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey });
+      },
+    },
+  });
 
   // --- Helpers ---
 
   const addComment = async (content: string, parentCommentId?: string) => {
-    const payload: CreateCommentRequest = {
-      content,
-      parentCommentId,
-    };
-    return createCommentAsync({
-      postId,
-      data: payload,
-    });
+    if (parentCommentId) {
+      return replyAsync({
+        postId: postId,
+        commentId: parentCommentId,
+        data: { content },
+      });
+    } else {
+      return createRootAsync({
+        postId,
+        data: { content },
+      });
+    }
   };
 
-  // 👇 Wrapper for delete
   const handleDelete = async (commentId: string) => {
-    return deleteCommentAsync({
+    return deleteAsync({
       postId,
       commentId,
     });
   };
 
-  // 4. Flatten pages
-  const comments =
-    data?.pages.flatMap((pageResponse) => pageResponse.data.content || []) ||
-    [];
+  const comments = data?.pages.flatMap((page) => page.data.content || []) || [];
+
+  // 👇 NEW: Extract total count from the first page of the response
+  // Adjust 'totalElements' if your API calls it 'total' or 'count'
+  const totalCount = data?.pages[0]?.data?.totalElements;
 
   return {
     comments,
+    totalCount, // 👈 Exporting the live count
     isLoading,
     isError,
-    isCreating,
-    isDeleting, // 👈 Exported loading state
+    isCreating: isCreatingRoot || isReplying,
+    isDeleting,
     addComment,
-    handleDelete, // 👈 Exported function
+    handleDelete,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,

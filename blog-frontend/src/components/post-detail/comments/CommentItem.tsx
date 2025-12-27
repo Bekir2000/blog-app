@@ -12,7 +12,7 @@ import { Flag, MoreHorizontal, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { CommentResponse } from "@/api/generated/model";
-import { useCommentLike } from "@/hooks/useCommentLogic";
+import { useCommentLike } from "@/hooks/useCommentLike";
 import { CommentActions } from "./CommentActions";
 import { CommentReplyForm } from "./CommentReplyForm";
 
@@ -41,17 +41,14 @@ export function CommentItem({
   const { isLiked, likesCount, handleLike } = useCommentLike({
     commentId: comment.id,
     postId,
-    initialLiked: comment.likedByCurrentUser || false,
-    initialCount: comment.likesCount || 0,
+    initialLiked: comment.meta?.likedByCurrentUser || false,
+    initialCount: comment.meta?.likeCount || 0,
   });
 
   if (!comment.author || !comment.id) return null;
 
   const { author } = comment;
-  const fullName =
-    author.firstName && author.lastName
-      ? `${author.firstName} ${author.lastName}`
-      : author.username;
+  const fullName = `${author.firstName} ${author.lastName}`;
   const initials = (author.firstName?.[0] || "") + (author.lastName?.[0] || "");
   const isOwnComment = currentUserId === author.id;
 
@@ -60,7 +57,7 @@ export function CommentItem({
       {/* 1. Main Comment Content */}
       <div className="group flex gap-3 items-start">
         <Avatar className="h-8 w-8 border border-border/50">
-          <AvatarImage src={author.profileImageUrl || ""} alt={fullName} />
+          <AvatarImage src={author.imageUrl || ""} alt={fullName} />
           <AvatarFallback className="text-[10px] font-medium uppercase">
             {initials}
           </AvatarFallback>
