@@ -51,17 +51,28 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UUID register(String firstName, String lastName, String email, String password, String profileImageUrl) {
-        if (userRepository.existsByEmail(email)) {
+    public UUID register(String firstName,
+                         String lastName,
+                         String email,
+                         String password,
+                         String profileImageUrl) {
+
+        // 1. Validate Format First (Fast check)
+        // This throws IllegalArgumentException if the email format is invalid.
+        String cleanEmail = sanitizer.validateEmail(email);
+
+        // 2. Check Database (Expensive check)
+        // We use the cleaned email to check existence
+        if (userRepository.existsByEmail(cleanEmail)) {
             throw new IllegalArgumentException("Email already exists");
         }
 
-        // Cleaner calls
+        // 3. Sanitize other inputs
         String cleanFirstName = sanitizer.sanitizeText(firstName);
         String cleanLastName = sanitizer.sanitizeText(lastName);
-        String cleanEmail = sanitizer.sanitizeText(email);
         String cleanProfileImage = sanitizer.sanitizeUrl(profileImageUrl);
 
+        // 4. Build and Save
         User user = User.builder()
                 .email(cleanEmail)
                 .firstName(cleanFirstName)

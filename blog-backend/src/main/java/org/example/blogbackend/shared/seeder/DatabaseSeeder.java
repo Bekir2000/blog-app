@@ -16,6 +16,14 @@ import java.util.*;
 @Configuration
 public class DatabaseSeeder {
 
+    private static final String[] VALID_UNSPLASH_IDS = {
+            "photo-1493612276216-ee3925520721",
+            "photo-1579353977828-2a4eab54c85a",
+            "photo-1517694712202-14dd9538aa97",
+            "photo-1488590528505-98d2b5aba04b",
+            "photo-1461749280684-dccba630e2f6"
+    };
+
     @Bean
     CommandLineRunner seedDatabase(
             UserService userService,
@@ -23,15 +31,13 @@ public class DatabaseSeeder {
             UserRepository userRepository
     ) {
         return args -> {
-            // Light check to prevent re-seeding on restart
             if (userRepository.count() == 0) {
                 Faker faker = new Faker();
                 System.out.println("🌱 Seeding database strictly via Services...");
 
-                // --- 1. Register Users & Capture IDs ---
                 List<UUID> userIds = new ArrayList<>();
 
-                // 1.1 Admin
+                // --- 1.1 Admin ---
                 UUID adminId = userService.register(
                         "Admin",
                         "User",
@@ -41,53 +47,67 @@ public class DatabaseSeeder {
                 );
                 userIds.add(adminId);
 
-                // 1.2 Random Users
+                // --- 1.2 Random Users ---
                 for (int i = 0; i < 10; i++) {
                     boolean isMale = faker.bool().bool();
                     String gender = isMale ? "men" : "women";
-                    UUID newUserId = userService.register(
-                            isMale ? faker.name().maleFirstName() : faker.name().femaleFirstName(),
-                            faker.name().lastName(),
-                            faker.internet().emailAddress(),
-                            "password",
-                            "https://randomuser.me/api/portraits/" + gender + "/" + faker.number().numberBetween(1, 99) + ".jpg"
-                    );
-                    userIds.add(newUserId);
+                    String firstName = isMale ? faker.name().maleFirstName() : faker.name().femaleFirstName();
+                    String lastName = faker.name().lastName();
+
+                    // FIX: Strip everything except letters/numbers before making email
+                    // e.g. "O'Connor" -> "oconnor"
+                    String cleanFirst = firstName.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+                    String cleanLast = lastName.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+
+                    String email = cleanFirst + "." + cleanLast + i + "@example.com";
+
+                    try {
+                        UUID newUserId = userService.register(
+                                firstName,
+                                lastName,
+                                email,
+                                "password",
+                                "https://randomuser.me/api/portraits/" + gender + "/" + faker.number().numberBetween(1, 99) + ".jpg"
+                        );
+                        userIds.add(newUserId);
+                    } catch (Exception e) {
+                        System.err.println("Skipping user due to error: " + e.getMessage());
+                    }
                 }
 
                 System.out.println("✅ Registered " + userIds.size() + " users.");
 
-                // --- 2. Create Interactions (Follows) ---
-                // Admin follows everyone
+                // --- 2. Follows ---
                 for (UUID targetId : userIds) {
                     if (!targetId.equals(adminId)) {
                         userService.followUser(adminId, targetId);
                     }
                 }
 
-                // --- 3. Create Posts (Draft -> Publish) ---
+                // --- 3. Create Posts ---
                 List<PostDraftResult> createdPosts = new ArrayList<>();
-                Category[] categories = Category.values(); // Cache enum values
+                Category[] categories = Category.values();
 
                 for (int i = 0; i < 50; i++) {
-                    // Pick random author
                     UUID authorId = userIds.get(faker.number().numberBetween(0, userIds.size()));
 
                     String title = faker.book().title();
-                    String content = "<h1>" + faker.lorem().sentence() + "</h1><p>" + faker.lorem().paragraph(10) + "</p>";
-                    String imageUrl = "https://picsum.photos/seed/" + (i + 1) + "/800/600";
+                    // Ensure minimum title length
+                    if(title.length() < 5) title = title + " - " + faker.lorem().word();
 
-                    // Pick Random Category
+                    String content = "<h1>" + faker.lorem().sentence() + "</h1><p>" + faker.lorem().paragraph(10) + "</p>";
+
+                    String randomUnsplashId = VALID_UNSPLASH_IDS[i % VALID_UNSPLASH_IDS.length];
+                    String imageUrl = "https://images.unsplash.com/" + randomUnsplashId + "?auto=format&fit=crop&w=800&q=80";
+
                     Category randomCategory = categories[faker.number().numberBetween(0, categories.length)];
 
-                    // Generate Random Tags
                     Set<String> tags = new HashSet<>();
                     int tagCount = faker.number().numberBetween(1, 4);
                     for(int t=0; t<tagCount; t++) {
                         tags.add(faker.programmingLanguage().name());
                     }
 
-                    // A. Create Draft (Using the updated Request Object)
                     PostDraftRequest postDraftRequest = new PostDraftRequest(
                             title,
                             content,
@@ -96,12 +116,9 @@ public class DatabaseSeeder {
                             tags
                     );
 
-                    // Pass the object, not the individual strings
                     PostDraftResult result = postService.createPost(authorId, postDraftRequest);
                     createdPosts.add(result);
 
-                    // B. Publish (Service Method)
-                    // We publish 90% of posts to have content for the feed, keep 10% as drafts
                     if (faker.number().numberBetween(1, 100) > 10) {
                         postService.publish(authorId, result.postId(), result.draftId());
                     }
@@ -109,22 +126,14 @@ public class DatabaseSeeder {
 
                 System.out.println("✅ Created " + createdPosts.size() + " posts via service logic.");
 
-                // --- 4. Likes & Bookmarks ---
+                // --- 4. Likes ---
                 for (PostDraftResult post : createdPosts) {
-                    // 4.1 Random Likes
                     int interactions = faker.number().numberBetween(0, 5);
                     for (int k = 0; k < interactions; k++) {
                         UUID randomUser = userIds.get(faker.number().numberBetween(0, userIds.size()));
                         try {
                             postService.likePost(post.postId(), randomUser);
-                        } catch (Exception ignored) {
-                            // Ignore if user already liked
-                        }
-                    }
-
-                    // 4.2 Admin Bookmarks (Randomly)
-                    if (faker.bool().bool()) {
-                        //userService.createBookmark(post.postId(), adminId);
+                        } catch (Exception ignored) { }
                     }
                 }
 
