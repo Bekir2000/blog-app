@@ -10,6 +10,7 @@ import org.example.blogbackend.comment.model.projection.CommentWithDetails;
 import org.example.blogbackend.comment.repository.CommentLikeRepository;
 import org.example.blogbackend.comment.repository.CommentRepository;
 import org.example.blogbackend.comment.service.CommentService;
+import org.example.blogbackend.post.repository.PostRepository;
 import org.example.blogbackend.shared.dto.PagedResponse;
 import org.example.blogbackend.shared.mapper.PageMapper;
 import org.example.blogbackend.user.repository.UserRepository;
@@ -32,6 +33,7 @@ public class CommentServiceImpl implements CommentService {
     private final CommentRepository commentRepo;
     private final CommentLikeRepository likeRepo;
     private final UserRepository userRepository;
+    private final PostRepository postRepository;
 
     private final PageMapper pageMapper;
     private final CommentMapper commentMapper;
@@ -46,6 +48,8 @@ public class CommentServiceImpl implements CommentService {
             throw new IllegalArgumentException("Content cannot be blank");
         }
         Comment root = Comment.createRoot(postId, userId, content);
+        commentRepo.incrementReplyCount(root.getId());
+        postRepository.incrementCommentCount(postId);
         return commentRepo.save(root).getId();
     }
 
@@ -119,13 +123,16 @@ public class CommentServiceImpl implements CommentService {
 
         root.addReply(reply);
         commentRepo.incrementReplyCount(root.getId());
+        postRepository.incrementCommentCount(postId);
         commentRepo.save(root);
 
         return reply.getId();
     }
 
     public void delete(UUID postId, UUID commentId, UUID userId) {
-        Comment c = commentRepo.findById(commentId).orElseThrow();
+        Comment c = commentRepo.findById(commentId).orElseThrow(
+                () -> new EntityNotFoundException("Comment not found")
+        );
 
         if (!c.isAuthor(userId)) {
             throw new AccessDeniedException("Not owner");
@@ -137,6 +144,7 @@ public class CommentServiceImpl implements CommentService {
 
         Comment root = c.getParent();
         commentRepo.decrementReplyCount(root.getId());
+        postRepository.decrementCommentCount(postId);
         commentRepo.delete(c);
     }
 

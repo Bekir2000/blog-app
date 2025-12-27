@@ -122,8 +122,7 @@ public class PostServiceImpl implements PostService {
     @Transactional
     public PostDraftResult addNewDraft(
             UUID postId,
-            UUID userId,
-            PostDraftRequest req
+            UUID userId
             ) {
 
         Post post = postRepository.findById(postId)
@@ -133,14 +132,8 @@ public class PostServiceImpl implements PostService {
             throw new AccessDeniedException("You are not the author of this article");
         }
 
-        PostVersion draft = PostVersion.createDraft(post, req.title(), req.content(), req.imageUrl());
-        draft.createDescription(req.content());
-
-        draft.setCategory(req.category());
-        draft.setTags(req.tags());
-        post.addVersion(draft);
-        postRepository.save(post);
-
+        PostVersion draft = post.createDraftFromPublishedVersion();
+        postVersionRepository.save(draft);
         return new PostDraftResult(post.getId(), draft.getId());
     }
 
@@ -202,7 +195,7 @@ public class PostServiceImpl implements PostService {
         }
 
         post.calculateAndSetReadingTime(draft.getContent());
-
+        post.validatePostForPublishing(draft);
         postRepository.save(post);
     }
 

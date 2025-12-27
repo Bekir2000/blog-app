@@ -25,7 +25,7 @@ public interface PostService {
     );
     PostDetailResponse getPostById(UUID postId, UUID userId);
     PostDraftResult saveExistingDraft(UUID postId, UUID draftId, UUID userId, PostDraftRequest req);
-    PostDraftResult addNewDraft(UUID postId, UUID userId, PostDraftRequest req);
+    PostDraftResult addNewDraft(UUID postId, UUID userId);
     DraftDetailResponse getDraftById(UUID postId, UUID draftId, UUID userId);
     PagedResponse<DraftCardResponse> getDrafts(UUID userId, Pageable pageable);
     void publish(UUID userId, UUID postId, UUID draftId);

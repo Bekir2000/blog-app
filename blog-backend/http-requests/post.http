@@ -1,6 +1,8 @@
 ### Variables
 @baseUrl = http://localhost:8080/api/v1/posts
 @authToken = {{access_token}}
+@postId = {{postId}}
+@draftId = {{draftId}}
 
 # ==========================================
 # GROUP 1: READING & FEED (FILTERS)
@@ -52,7 +54,6 @@ Content-Type: application/json
 {
   "title": "The Future of Java",
   "content": "This is the initial content regarding the latest JVM updates...",
-  "imageUrl": "https://example.com/images/java-future.png",
   "category": "TECHNOLOGY",
   "tags": ["Java", "JVM", "Backend"]
 }
@@ -91,18 +92,9 @@ GET {{baseUrl}}/drafts?page=0&size=10
 Authorization: Bearer {{authToken}}
 
 ### 12. Add New Draft Version to Existing Post
-# Creates a v2 for the post created in Step 8
+# Creates a v2 for the post created in Step 8n
 POST {{baseUrl}}/{{postId}}/drafts
 Authorization: Bearer {{authToken}}
-Content-Type: application/json
-
-{
-  "title": "The Future of Java (v2)",
-  "content": "Updated content with more details about Spring Boot 3...",
-  "imageUrl": "https://example.com/images/java-v2.png",
-  "category": "TUTORIAL",
-  "tags": ["Java", "Spring Boot", "Update"]
-}
 
 > {%
     // Capture the NEW draft ID (v2), keeping the same postId

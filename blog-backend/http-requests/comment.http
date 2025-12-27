@@ -8,9 +8,11 @@
 # -----------------------------------------------------
 POST {{host}}/api/posts/{{postId}}/comments
 Authorization: Bearer {{authToken}}
-Content-Type: text/plain
+Content-Type: application/json
 
-This is a top-level comment content.
+{
+  "content": "This is a root comment."
+}
 
 > {%
     // Automatically save the returned UUID to use in future requests
@@ -33,9 +35,11 @@ Content-Type: application/json
 # -----------------------------------------------------
 POST {{host}}/api/posts/{{postId}}/comments/{{rootCommentId}}/reply
 Authorization: Bearer {{authToken}}
-Content-Type: text/plain
+Content-Type: application/json
 
-This is a reply to the previous comment.
+{
+  "content": "This is a reply to the previous comment."
+}
 
 > {%
     client.global.set("replyCommentId", response.body);

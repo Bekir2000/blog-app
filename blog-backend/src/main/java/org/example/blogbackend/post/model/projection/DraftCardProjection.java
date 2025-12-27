@@ -5,6 +5,7 @@ import java.util.UUID;
 
 public record DraftCardProjection(
         UUID id,
+        UUID postId,
         String title,
         String imageUrl,
         String description,

@@ -1,9 +1,9 @@
 package org.example.blogbackend.post.dto.response.card;
 
+import org.example.blogbackend.post.dto.response.AuthorSummary;
 import org.example.blogbackend.post.model.Category;
 
 import java.time.Instant;
-import java.util.Set;
 import java.util.UUID;
 
 public record PostCardResponse(
@@ -12,7 +12,7 @@ public record PostCardResponse(
         String description,
         String imageUrl,
 
-        AuthorCardSummary author,
+        AuthorSummary author,
         PostMetadata meta,
 
         Category category,

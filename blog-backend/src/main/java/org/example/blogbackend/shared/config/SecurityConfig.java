@@ -1,7 +1,6 @@
 package org.example.blogbackend.shared.config;
 
 import jakarta.servlet.http.HttpServletResponse;
-import org.example.blogbackend.user.model.entity.User;
 import org.example.blogbackend.user.repository.UserRepository;
 import org.example.blogbackend.shared.security.BlogUserDetailsService;
 import org.example.blogbackend.shared.security.JwtAuthenticationFilter;
@@ -87,7 +86,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:3000",
                 "http://192.168.2.34:3000")); // ✅Next.js frontend
-        configuration.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET","POST","PUT", "PATCH", "DELETE","OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
 

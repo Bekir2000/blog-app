@@ -35,8 +35,9 @@ public class PostController {
             @PathVariable UUID postId,
             @AuthenticationPrincipal BlogUserDetails userDetails) {
 
+        UUID userId = userDetails == null ? null : userDetails.getUserId();
         return ResponseEntity.ok(
-                postService.getPostById(postId, userDetails.getUserId())
+                postService.getPostById(postId, userId)
         );
     }
 
@@ -104,13 +105,11 @@ public class PostController {
     @PostMapping("/{postId}/drafts")
     public ResponseEntity<PostDraftResult> addNewDraft(
             @PathVariable UUID postId,
-            @Valid @RequestBody PostDraftRequest draftRequest,
             @AuthenticationPrincipal BlogUserDetails userDetails){
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 postService.addNewDraft(
                         postId,
-                        userDetails.getUserId(),
-                        draftRequest
+                        userDetails.getUserId()
                 )
         );
     }

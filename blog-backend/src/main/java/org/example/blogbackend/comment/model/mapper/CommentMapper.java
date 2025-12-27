@@ -1,13 +1,9 @@
 package org.example.blogbackend.comment.model.mapper;
 
-import org.example.blogbackend.comment.model.dto.request.CreateCommentRequest;
 import org.example.blogbackend.comment.model.dto.response.CommentMetaData;
 import org.example.blogbackend.comment.model.dto.response.CommentResponse;
-import org.example.blogbackend.comment.model.entity.Comment;
 import org.example.blogbackend.comment.model.projection.CommentWithDetails;
-import org.example.blogbackend.post.dto.response.card.AuthorCardSummary;
-import org.example.blogbackend.post.dto.response.detail.AuthorDetailSummary;
-import org.example.blogbackend.post.model.projection.PostWithDetailsDto;
+import org.example.blogbackend.post.dto.response.AuthorSummary;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -25,9 +21,11 @@ public abstract class CommentMapper {
     public abstract CommentResponse toCommentResponse(CommentWithDetails c);
 
 
+    @Mapping(target = "id", source = "authorId")
     @Mapping(target = "firstName", source = "authorFirstName")
     @Mapping(target = "lastName", source = "authorLastName")
-    protected abstract AuthorCardSummary toAuthorDetailSummary(CommentWithDetails dto);
+    @Mapping(target = "imageUrl", source = "authorImageUrl")
+    protected abstract AuthorSummary toAuthorDetailSummary(CommentWithDetails dto);
 
     @Mapping(target = "replyCount", source = "comment.replyCount")
     @Mapping(target = "likeCount", source = "comment.likeCount")

@@ -3,7 +3,7 @@ package org.example.blogbackend.shared.seeder;
 import net.datafaker.Faker;
 import org.example.blogbackend.post.dto.request.PostDraftRequest;
 import org.example.blogbackend.post.dto.response.PostDraftResult;
-import org.example.blogbackend.post.model.Category; // Import your Enum
+import org.example.blogbackend.post.model.Category;
 import org.example.blogbackend.post.service.PostService;
 import org.example.blogbackend.user.repository.UserRepository;
 import org.example.blogbackend.user.service.UserService;
@@ -74,7 +74,7 @@ public class DatabaseSeeder {
                     UUID authorId = userIds.get(faker.number().numberBetween(0, userIds.size()));
 
                     String title = faker.book().title();
-                    String content = "<h1>" + title + "</h1><p>" + faker.lorem().paragraph(5) + "</p>";
+                    String content = "<h1>" + faker.lorem().sentence() + "</h1><p>" + faker.lorem().paragraph(10) + "</p>";
                     String imageUrl = "https://picsum.photos/seed/" + (i + 1) + "/800/600";
 
                     // Pick Random Category
@@ -124,7 +124,7 @@ public class DatabaseSeeder {
 
                     // 4.2 Admin Bookmarks (Randomly)
                     if (faker.bool().bool()) {
-                        userService.createBookmark(post.postId(), adminId);
+                        //userService.createBookmark(post.postId(), adminId);
                     }
                 }
 

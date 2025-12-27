@@ -2,10 +2,9 @@ package org.example.blogbackend.user.service.impl;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.example.blogbackend.auth.model.dto.request.RegisterRequest;
 import org.example.blogbackend.post.dto.response.card.PostCardResponse;
 import org.example.blogbackend.post.mapper.PostMapper;
-import org.example.blogbackend.post.model.entity.Post;
+import org.example.blogbackend.post.model.Category;
 import org.example.blogbackend.post.repository.PostRepository;
 import org.example.blogbackend.shared.dto.PagedResponse;
 import org.example.blogbackend.shared.mapper.PageMapper;
@@ -20,6 +19,7 @@ import org.example.blogbackend.user.repository.UserRepository;
 import org.example.blogbackend.user.service.UserService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -71,7 +71,7 @@ public class UserServiceImpl implements UserService {
 
         return userMapper.toUserResponse(
                 userRepository.findById(id)
-                        .orElseThrow(() -> new EntityNotFoundException("User not found with ID: " + id))
+                        .orElseThrow(() -> new BadCredentialsException("User not found"))
         );
     }
 
@@ -151,11 +151,21 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public PagedResponse<PostCardResponse> getBookmarksForUser(
             UUID userId,
+            String title,
+            Category category,
+            String tag,
+            String authorName,
             Pageable pageable) {
 
         return pageMapper.toPagedResponse(
                 bookmarkRepository
-                        .findBookmarksByUserId(userId, pageable)
+                        .findBookmarksByUserId(
+                                userId,
+                                title,
+                                category,
+                                tag,
+                                authorName,
+                                pageable)
                         .map(postMapper::toPostCardResponse)
         );
     }

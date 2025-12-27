@@ -98,4 +98,39 @@ public class Post {
         if(oldPublishedVersion != null) return oldPublishedVersion.getId();
         return null;
     }
+
+    public PostVersion createDraftFromPublishedVersion(){
+        if(publishedVersion == null) return PostVersion.createDraft(this, "", "", "");
+
+        PostVersion draft = PostVersion.createDraft(
+                this,
+                publishedVersion.getTitle(),
+                publishedVersion.getContent(),
+                publishedVersion.getImageUrl()
+        );
+        draft.setCategory(publishedVersion.getCategory());
+        draft.createDescription(publishedVersion.getContent());
+        draft.setTags(publishedVersion.getTags());
+        return draft;
+    }
+
+    public void validatePostForPublishing(PostVersion draft) {
+        if (draft.getTitle() == null || draft.getTitle().trim().length() < 5) {
+            throw new IllegalStateException("Cannot publish: Title must be at least 5 characters long");
+        }
+
+        if (draft.getContent() == null || draft.getContent().trim().length() < 20) {
+            throw new IllegalStateException("Cannot publish: Content is too short (min 20 chars)");
+        }
+
+        if (draft.getCategory() == null) {
+            throw new IllegalStateException("Cannot publish: A category must be selected");
+        }
+
+        if (draft.getDescription() == null || draft.getDescription().isBlank()) {
+            // Auto-generate description if missing? Or throw error?
+            // draft.createDescription(draft.getContent());
+            throw new IllegalStateException("Cannot publish: Description is required");
+        }
+    }
 }

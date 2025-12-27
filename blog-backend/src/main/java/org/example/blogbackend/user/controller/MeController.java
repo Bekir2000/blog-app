@@ -2,12 +2,11 @@ package org.example.blogbackend.user.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.blogbackend.post.dto.response.card.PostCardResponse;
+import org.example.blogbackend.post.model.Category;
 import org.example.blogbackend.shared.dto.PagedResponse;
 import org.example.blogbackend.shared.security.BlogUserDetails;
-import org.example.blogbackend.user.mapper.UserMapper;
 import org.example.blogbackend.user.model.dto.CreateBookmarkRequest;
 import org.example.blogbackend.user.model.dto.response.UserResponse;
-import org.example.blogbackend.user.model.entity.User;
 import org.example.blogbackend.user.service.UserService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -16,7 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -38,12 +36,22 @@ public class MeController {
     public ResponseEntity<PagedResponse<PostCardResponse>> getBookmarkedPosts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String tag,
+            @RequestParam(required = false) String authorName,
+            @RequestParam(required = false) Category category,
             @AuthenticationPrincipal BlogUserDetails blogUserDetails
     ) {
+        UUID userId = blogUserDetails == null ? null : blogUserDetails.getUserId();
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-
         return ResponseEntity.ok(
-                userService.getBookmarksForUser(blogUserDetails.getUserId(), pageable)
+                userService.getBookmarksForUser(
+                        userId,
+                        title,
+                        category,
+                        tag,
+                        authorName,
+                        pageable)
         );
     }
 
