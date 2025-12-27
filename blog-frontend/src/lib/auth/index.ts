@@ -73,9 +73,9 @@ export async function signOut(): Promise<void> {
   await clearAuthCookies();
 }
 
-export async function getUser(): Promise<UserResponse | null> {
+export async function getUser(): Promise<UserResponse | undefined> {
   const accessToken = await getAccessToken();
-  if (!accessToken) return null;
+  if (!accessToken) return undefined;
   const user = await getProfile();
   return user;
 }

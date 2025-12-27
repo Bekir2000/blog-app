@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { signOut } from "@/lib/auth";
-import { CreditCard, LogOut, Settings, User } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 interface UserNavProps {
   user: UserResponse;
@@ -28,11 +28,12 @@ export function UserNav({ user }: UserNavProps) {
           <Avatar className="h-10 w-10 border border-gray-200 hover:border-gray-400 transition-colors">
             <AvatarImage
               src={user.profileImageUrl || "/avatar.jpg"}
-              alt={user.username}
+              alt={user.firstName || "User Avatar"}
               className="object-cover"
             />
             <AvatarFallback>
-              {user.username.charAt(0).toUpperCase()}
+              {user.firstName?.charAt(0).toUpperCase() || "U"}{" "}
+              {user.lastName?.charAt(0).toUpperCase() || ""}
             </AvatarFallback>
           </Avatar>
         </Button>
@@ -42,7 +43,9 @@ export function UserNav({ user }: UserNavProps) {
         {/* User Info Header */}
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.username}</p>
+            <p className="text-sm font-medium leading-none">
+              {user.firstName} {user.lastName}
+            </p>
             {user.email && (
               <p className="text-xs leading-none text-muted-foreground">
                 {user.email}
@@ -55,21 +58,21 @@ export function UserNav({ user }: UserNavProps) {
 
         {/* Menu Items */}
         <DropdownMenuGroup>
-          <DropdownMenuItem className="cursor-pointer">
+          {/* <DropdownMenuItem className="cursor-pointer">
             <User className="mr-2 h-4 w-4" />
             <span>Profile</span>
             <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
-          </DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer">
+          </DropdownMenuItem> */}
+          {/* <DropdownMenuItem className="cursor-pointer">
             <CreditCard className="mr-2 h-4 w-4" />
             <span>Billing</span>
             <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
-          </DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer">
+          </DropdownMenuItem> */}
+          {/* <DropdownMenuItem className="cursor-pointer">
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
             <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
-          </DropdownMenuItem>
+          </DropdownMenuItem> */}
         </DropdownMenuGroup>
 
         <DropdownMenuSeparator />

@@ -2,12 +2,12 @@ import {
   useFollowUser,
   useUnfollowUser,
 } from "@/api/generated/client/me-controller/me-controller";
-import { UserResponse } from "@/api/generated/model";
+import { AuthorSummary, UserResponse } from "@/api/generated/model";
 import { useState } from "react";
 import { toast } from "sonner";
 
 interface UsePostFollowProps {
-  author: UserResponse | undefined;
+  author: AuthorSummary | undefined;
   currentUser: UserResponse | null | undefined;
   initialIsFollowing?: boolean;
 }

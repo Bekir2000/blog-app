@@ -1,9 +1,11 @@
+"use client";
+
 import {
   useBookmarkPost,
   useUnbookmarkPost,
 } from "@/api/generated/client/me-controller/me-controller";
 import { InfiniteData, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 interface UsePostBookmarkProps {
@@ -17,94 +19,84 @@ export function usePostBookmark({
 }: UsePostBookmarkProps) {
   const queryClient = useQueryClient();
 
-  // 1. LOCAL STATE: This makes the UI react INSTANTLY, just like your Follow button
+  // 1. Local state for instant feedback (no waiting for API)
   const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
 
-  // Sync state if you navigate to a different post
-  useEffect(() => {
-    setIsBookmarked(initialIsBookmarked);
-  }, [initialIsBookmarked]);
-
-  const { mutate: bookmark, isPending: isBookmarkPending } = useBookmarkPost();
-  const { mutate: unbookmark, isPending: isUnbookmarkPending } =
+  // 2. Mutations
+  const { mutate: bookmarkApi, isPending: isBookmarkLoading } =
+    useBookmarkPost();
+  const { mutate: unbookmarkApi, isPending: isUnbookmarkLoading } =
     useUnbookmarkPost();
 
-  const isBookmarkLoading = isBookmarkPending || isUnbookmarkPending;
+  const toggleBookmark = () => {
+    if (!postId) return;
 
-  const toggleBookmark = async () => {
-    // Debugging: Check if function is called
-    console.log("🖱️ Bookmark Toggle Clicked for ID:", postId);
+    // A. Optimistic Update (Local)
+    const previousState = isBookmarked;
+    const newState = !isBookmarked;
+    setIsBookmarked(newState);
 
-    if (!postId) {
-      toast.error("Error: No Post ID found");
-      return;
-    }
+    // B. Optimistic Update (Global Cache)
+    // This fixes the "delay" by updating the Feed list immediately
+    updateAllCaches(postId, newState);
 
-    const nextState = !isBookmarked;
-
-    // 2. OPTIMISTIC UPDATE (Local) - Immediate visual change
-    setIsBookmarked(nextState);
-
-    // 3. GLOBAL CACHE UPDATE - Syncs Home Feed / History in background
-    updateAllCaches(nextState);
-
-    // 4. API CALL
-    if (isBookmarked) {
-      // Was true, now unbookmarking
-      unbookmark(
-        { postId },
+    // C. API Call
+    if (newState) {
+      bookmarkApi(
+        { data: { postId } },
         {
-          onError: (err) => {
-            console.error("❌ Unbookmark Failed", err);
-            setIsBookmarked(true); // Revert local
-            updateAllCaches(true); // Revert global
-            toast.error("Failed to remove bookmark");
-          },
+          onError: () => revert(previousState),
         }
       );
     } else {
-      // Was false, now bookmarking
-      bookmark(
-        { data: { postId } },
+      unbookmarkApi(
+        { postId },
         {
-          onError: (err) => {
-            console.error("❌ Bookmark Failed", err);
-            setIsBookmarked(false); // Revert local
-            updateAllCaches(false); // Revert global
-            toast.error("Failed to save bookmark");
-          },
+          onError: () => revert(previousState),
         }
       );
     }
   };
 
-  const updateAllCaches = (newState: boolean) => {
-    const listKeys = [["posts"], ["me", "bookmarks"]];
-    listKeys.forEach((key) => {
-      queryClient.setQueriesData<InfiniteData<any>>(
-        { queryKey: key },
-        (oldData) => {
-          if (!oldData) return oldData;
-          return {
-            ...oldData,
-            pages: oldData.pages.map((page) => ({
-              ...page,
-              data: {
-                ...page.data,
-                content: page.data.content?.map((p: any) =>
-                  p.id === postId ? { ...p, isBookmarked: newState } : p
-                ),
-              },
-            })),
-          };
-        }
-      );
-    });
+  // Helper: Revert changes if API fails
+  const revert = (previousState: boolean) => {
+    setIsBookmarked(previousState);
+    updateAllCaches(postId, previousState);
+    toast.error("Failed to update bookmark");
+  };
+
+  // Helper: Find EVERY query that looks like a post list and update this specific post
+  const updateAllCaches = (targetPostId: string, newBookmarkState: boolean) => {
+    queryClient.setQueriesData<InfiniteData<any>>(
+      { queryKey: ["posts"] }, // <--- Matches "posts", "posts infinite", etc.
+      (oldData) => {
+        if (!oldData) return oldData;
+
+        // Handle Infinite Query Structure (pages -> content)
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page) => ({
+            ...page,
+            data: {
+              ...page.data,
+              content: page.data.content?.map((post: any) =>
+                post.id === targetPostId
+                  ? {
+                      ...post,
+                      meta: { ...post.meta, isBookmarked: newBookmarkState },
+                    }
+                  : post
+              ),
+            },
+          })),
+        };
+      }
+    );
   };
 
   return {
-    isBookmarked, // Return local state
-    isBookmarkLoading,
+    isBookmarked,
+    isBookmarkLoading: isBookmarkLoading || isUnbookmarkLoading,
     toggleBookmark,
   };
 }

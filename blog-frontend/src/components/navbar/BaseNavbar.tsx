@@ -6,7 +6,7 @@ import { ReactNode } from "react";
 import { UserNav } from "./UserNav"; // Import your UserNav component
 
 interface BaseNavbarProps {
-  user: UserResponse | null; // ✅ New Prop
+  user: UserResponse | undefined;
   left: ReactNode;
   center?: ReactNode;
   actions?: ReactNode; // Renamed from 'right' to 'actions' for clarity

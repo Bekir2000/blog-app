@@ -1,4 +1,7 @@
-import { useToggleLike } from "@/api/generated/client/post-controller/post-controller"; // <--- CHECK THIS NAME in your generated file
+import {
+  useLikePost,
+  useUnlikePost,
+} from "@/api/generated/client/post-controller/post-controller";
 import { InfiniteData, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -16,56 +19,71 @@ export function usePostLike({
 }: UsePostLikeProps) {
   const queryClient = useQueryClient();
 
-  // 1. Local State for Instant Feedback
+  // 1. Initialize both mutations
+  const { mutate: likePostApi } = useLikePost();
+  const { mutate: unlikePostApi } = useUnlikePost();
+
+  // 2. Local State
   const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [likeCount, setLikeCount] = useState(initialLikeCount);
 
-  // Sync state if navigating between posts
+  // Sync state if initial props change (e.g. navigation)
   useEffect(() => {
     setIsLiked(initialIsLiked);
     setLikeCount(initialLikeCount);
   }, [initialIsLiked, initialLikeCount]);
 
-  // 2. Orval Mutation
-  // Assuming the generated hook is named 'useLikePost' based on 'PUT .../like'
-  const { mutate: toggleLikeApi, isPending } = useToggleLike();
-
   const handleToggleLike = async () => {
     if (!postId) return;
 
-    // A. Calculate New State
+    // A. Capture Previous State (for Rollback)
     const previousLiked = isLiked;
     const previousCount = likeCount;
 
+    // B. Calculate New State
     const newLiked = !isLiked;
     const newCount = newLiked ? likeCount + 1 : likeCount - 1;
 
-    // B. Optimistic Update (Local)
+    // C. Optimistic Update (Local + Global Cache)
     setIsLiked(newLiked);
     setLikeCount(newCount);
-
-    // C. Global Cache Update (Sync Home Feed / Lists)
     updateAllCaches(newLiked, newCount);
 
-    // D. API Call
-    toggleLikeApi(
-      { postId }, // Adjust based on your generated function signature
-      {
-        onError: () => {
-          // Revert on failure
-          setIsLiked(previousLiked);
-          setLikeCount(previousCount);
-          updateAllCaches(previousLiked, previousCount);
-          toast.error("Failed to update like");
-        },
-      }
-    );
+    // D. API Call (Conditional)
+    if (newLiked) {
+      // User is LIKING
+      likePostApi(
+        { postId },
+        {
+          onError: () => {
+            revertState(previousLiked, previousCount);
+          },
+        }
+      );
+    } else {
+      // User is UNLIKING
+      unlikePostApi(
+        { postId },
+        {
+          onError: () => {
+            revertState(previousLiked, previousCount);
+          },
+        }
+      );
+    }
+  };
+
+  const revertState = (prevLiked: boolean, prevCount: number) => {
+    setIsLiked(prevLiked);
+    setLikeCount(prevCount);
+    updateAllCaches(prevLiked, prevCount);
+    toast.error("Failed to update like");
   };
 
   const updateAllCaches = (liked: boolean, count: number) => {
-    // Update Infinite Lists (Home Feed, Search, etc.)
+    // Update Infinite Lists (Home Feed, Search results, Profile lists)
     queryClient.setQueriesData<InfiniteData<any>>(
-      { queryKey: ["posts"] }, // Fuzzy match for all post lists
+      { queryKey: ["posts"] }, // Matches any key starting with "posts"
       (oldData) => {
         if (!oldData) return oldData;
         return {
@@ -87,7 +105,6 @@ export function usePostLike({
   return {
     isLiked,
     likeCount,
-    isLikePending: isPending,
     handleToggleLike,
   };
 }

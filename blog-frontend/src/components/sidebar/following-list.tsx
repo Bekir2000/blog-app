@@ -46,7 +46,7 @@ export function FollowingList({ initialItems }: FollowingListProps) {
                 <div className="relative">
                   <img
                     src={user.profileImageUrl}
-                    alt={user.username}
+                    alt={user.firstName || "User Avatar"}
                     className="w-8 h-8 rounded-full object-cover"
                   />
                   {/* The Green Dot - Now Dynamic */}
@@ -55,7 +55,7 @@ export function FollowingList({ initialItems }: FollowingListProps) {
                   )}
                 </div>
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {user.username}
+                  {user.firstName} {user.lastName}
                 </span>
               </div>
             </SidebarMenuItem>

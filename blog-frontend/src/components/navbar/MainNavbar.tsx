@@ -1,9 +1,7 @@
-import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { getUser } from "@/lib/auth";
-import { Bell, SquarePenIcon } from "lucide-react";
+import { SquarePenIcon } from "lucide-react";
 import Link from "next/link";
-import { InfoTooltip } from "../InfoTooltip";
 import { BrandLogo } from "../ui/brand-logo";
 import { BaseNavbar } from "./BaseNavbar";
 import { NavbarSearch } from "./NavBarSearch";
@@ -13,7 +11,7 @@ export async function MainNavbar() {
 
   return (
     <BaseNavbar
-      user={user} // ✅ Pass user here
+      user={user}
       left={
         <>
           <SidebarTrigger />
@@ -31,7 +29,7 @@ export async function MainNavbar() {
             <SquarePenIcon className="w-4 h-4" /> Write
           </Link>
 
-          <InfoTooltip message="Notifications">
+          {/* <InfoTooltip message="Notifications">
             <Button
               variant="ghost"
               size="icon"
@@ -39,7 +37,7 @@ export async function MainNavbar() {
             >
               <Bell className="w-5 h-5" />
             </Button>
-          </InfoTooltip>
+          </InfoTooltip> */}
         </>
       }
     />
