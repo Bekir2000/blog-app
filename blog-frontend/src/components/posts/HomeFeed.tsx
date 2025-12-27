@@ -6,34 +6,45 @@ import {
 } from "@/api/generated/client/post-controller/post-controller";
 import { PostCardResponse, UserResponse } from "@/api/generated/model";
 import { PostsGrid } from "@/components/posts/PostGrid";
+import { getPostFiltersFromParams } from "@/lib/search-utils";
 import { useSearchParams } from "next/navigation";
+import { useMemo } from "react";
 
 interface HomeFeedProps {
   initialPosts: PostCardResponse[] | null;
-  currentUser: UserResponse | null;
-  searchQuery?: string;
+  currentUser: UserResponse | undefined;
+  // removed legacy searchQuery prop since we read from URL now
 }
 
 export function HomeFeed({ initialPosts, currentUser }: HomeFeedProps) {
   const searchParams = useSearchParams();
-  const searchQuery = searchParams.get("query") ?? "";
+
+  // 1. Memoize the filters object.
+  // This ensures we have a stable object unless the URL parameters actually change.
+  const filters = useMemo(() => {
+    return getPostFiltersFromParams(Object.fromEntries(searchParams.entries()));
+  }, [searchParams.toString()]); // Re-run only when URL string changes
 
   const queryResult = useGetAllPostCardsInfinite(
-    { size: 5 },
+    // Pass filters here for Orval's internal type safety
+    {
+      size: 5,
+      ...filters,
+    },
     {
       query: {
-        // Ensure the key relies on the user ID and query
-        queryKey: ["posts", "infinite", currentUser?.id, searchQuery || "all"],
-
-        // Fetch immediately in background to keep data fresh
+        // 2. CRITICAL FIX: Add 'filters' to the queryKey.
+        // Now, if category changes from 'TECH' to 'NEWS', the key changes, and it refetches.
+        queryKey: ["posts", "infinite", currentUser?.id, filters],
         staleTime: 0,
         refetchOnMount: true,
 
         queryFn: async ({ pageParam = 0 }) => {
+          console.log("Fetching with filters:", filters);
           return getAllPostCards({
             page: Number(pageParam),
             size: 5,
-            query: searchQuery,
+            ...filters, // Spread: authorName, category, tag, title
           });
         },
 

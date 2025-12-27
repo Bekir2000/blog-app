@@ -1,21 +1,15 @@
-import { getAllPostCards } from "@/api/generated/server/post-controller/post-controller";
+import { PostCardResponse, UserResponse } from "@/api/generated/model";
 import { InfoTooltip } from "@/components/InfoTooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getUser } from "@/lib/auth";
 import { HomeFeed } from "./HomeFeed";
 
-export async function FeedTabs({ searchQuery }: { searchQuery: string }) {
-  const postsPage = await getAllPostCards({
-    query: searchQuery,
-    page: 0,
-    size: 5,
-  });
+interface FeedTabsProps {
+  postCards: PostCardResponse[];
+  currentUser?: UserResponse | undefined;
+}
 
-  const postCards = postsPage.content ?? [];
-  const currentUser = await getUser();
-
+export function FeedTabs({ postCards, currentUser }: FeedTabsProps) {
   return (
-    // Updated: Changed w-3xl to w-full
     <Tabs defaultValue="foryou" className="w-full">
       <TabsList>
         <InfoTooltip message="Recommended stories based on your reading history">
@@ -27,7 +21,15 @@ export async function FeedTabs({ searchQuery }: { searchQuery: string }) {
       </TabsList>
 
       <TabsContent value="foryou" className="pt-4">
+        {/* Pass the pre-fetched posts down */}
         <HomeFeed initialPosts={postCards} currentUser={currentUser} />
+      </TabsContent>
+
+      <TabsContent value="featured" className="pt-4">
+        {/* You can add a different filtered list here later */}
+        <div className="py-8 text-center text-muted-foreground">
+          No featured posts yet.
+        </div>
       </TabsContent>
     </Tabs>
   );
