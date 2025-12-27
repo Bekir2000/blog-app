@@ -4,23 +4,19 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import type { UserResponse } from './userResponse';
-import type { CategoryResponse } from './categoryResponse';
-import type { TagResponse } from './tagResponse';
+import type { AuthorSummary } from './authorSummary';
+import type { PostMetadata } from './postMetadata';
+import type { PostCardResponseCategory } from './postCardResponseCategory';
 
 export interface PostCardResponse {
   id?: string;
   title?: string;
   description?: string;
   imageUrl?: string;
-  author?: UserResponse;
-  category?: CategoryResponse;
-  tags?: TagResponse[];
-  views?: number;
-  likes?: number;
-  commentsCount?: number;
-  readingTime?: number;
-  isBookmarked?: boolean;
+  author?: AuthorSummary;
+  meta?: PostMetadata;
+  category?: PostCardResponseCategory;
+  tags?: string[];
   createdAt?: string;
   updatedAt?: string;
 }

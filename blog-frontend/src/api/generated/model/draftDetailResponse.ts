@@ -4,12 +4,14 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import type { PostDraftRequestCategory } from './postDraftRequestCategory';
+import type { DraftDetailResponseCategory } from './draftDetailResponseCategory';
 
-export interface PostDraftRequest {
+export interface DraftDetailResponse {
+  id?: string;
+  postId?: string;
   title?: string;
   content?: string;
   imageUrl?: string;
-  category?: PostDraftRequestCategory;
+  category?: DraftDetailResponseCategory;
   tags?: string[];
 }

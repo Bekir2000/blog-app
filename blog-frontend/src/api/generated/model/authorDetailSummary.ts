@@ -5,10 +5,10 @@
  * OpenAPI spec version: v0
  */
 
-export interface RegisterRequest {
+export interface AuthorDetailSummary {
+  id?: string;
   firstName?: string;
   lastName?: string;
-  email?: string;
-  password?: string;
-  profileImageUrl?: string;
+  imageUrl?: string;
+  isFollowed?: boolean;
 }

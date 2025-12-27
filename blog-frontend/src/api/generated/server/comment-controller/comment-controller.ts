@@ -5,9 +5,8 @@
  * OpenAPI spec version: v0
  */
 import type {
-  CommentResponse,
   CreateCommentRequest,
-  GetAllCommentsParams,
+  GetCommentsParams,
   PagedResponseCommentResponse
 } from '../../model';
 
@@ -15,42 +14,12 @@ import { serverFetch } from '../../../../lib/api-client';
 
 
 
-  export const getCommentById = (
+  export const getComments = (
     postId: string,
-    commentId: string,
- ) => {
-      return serverFetch<CommentResponse>(
-      {url: `/api/v1/posts/${postId}/comments/${commentId}`, method: 'GET'
-    },
-      );
-    }
-  export const updateComment = (
-    postId: string,
-    commentId: string,
-    createCommentRequest: CreateCommentRequest,
- ) => {
-      return serverFetch<CommentResponse>(
-      {url: `/api/v1/posts/${postId}/comments/${commentId}`, method: 'PUT',
-      headers: {'Content-Type': 'application/json', },
-      data: createCommentRequest
-    },
-      );
-    }
-  export const deleteComment = (
-    postId: string,
-    commentId: string,
- ) => {
-      return serverFetch<void>(
-      {url: `/api/v1/posts/${postId}/comments/${commentId}`, method: 'DELETE'
-    },
-      );
-    }
-  export const getAllComments = (
-    postId: string,
-    params?: GetAllCommentsParams,
+    params?: GetCommentsParams,
  ) => {
       return serverFetch<PagedResponseCommentResponse>(
-      {url: `/api/v1/posts/${postId}/comments`, method: 'GET',
+      {url: `/api/posts/${postId}/comments`, method: 'GET',
         params
     },
       );
@@ -59,25 +28,55 @@ import { serverFetch } from '../../../../lib/api-client';
     postId: string,
     createCommentRequest: CreateCommentRequest,
  ) => {
-      return serverFetch<CommentResponse>(
-      {url: `/api/v1/posts/${postId}/comments`, method: 'POST',
+      return serverFetch<string>(
+      {url: `/api/posts/${postId}/comments`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: createCommentRequest
     },
       );
     }
-  export const toggleLike1 = (
+  export const replyComment = (
+    postId: string,
+    commentId: string,
+    createCommentRequest: CreateCommentRequest,
+ ) => {
+      return serverFetch<string>(
+      {url: `/api/posts/${postId}/comments/${commentId}/reply`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createCommentRequest
+    },
+      );
+    }
+  export const likeComment = (
     postId: string,
     commentId: string,
  ) => {
       return serverFetch<void>(
-      {url: `/api/v1/posts/${postId}/comments/${commentId}/like`, method: 'POST'
+      {url: `/api/posts/${postId}/comments/${commentId}/like`, method: 'POST'
     },
       );
     }
-  export type GetCommentByIdResult = NonNullable<Awaited<ReturnType<typeof getCommentById>>>
-export type UpdateCommentResult = NonNullable<Awaited<ReturnType<typeof updateComment>>>
-export type DeleteCommentResult = NonNullable<Awaited<ReturnType<typeof deleteComment>>>
-export type GetAllCommentsResult = NonNullable<Awaited<ReturnType<typeof getAllComments>>>
+  export const unlikeComment = (
+    postId: string,
+    commentId: string,
+ ) => {
+      return serverFetch<void>(
+      {url: `/api/posts/${postId}/comments/${commentId}/like`, method: 'DELETE'
+    },
+      );
+    }
+  export const deleteComment = (
+    postId: string,
+    commentId: string,
+ ) => {
+      return serverFetch<void>(
+      {url: `/api/posts/${postId}/comments/${commentId}`, method: 'DELETE'
+    },
+      );
+    }
+  export type GetCommentsResult = NonNullable<Awaited<ReturnType<typeof getComments>>>
 export type CreateCommentResult = NonNullable<Awaited<ReturnType<typeof createComment>>>
-export type ToggleLike1Result = NonNullable<Awaited<ReturnType<typeof toggleLike1>>>
+export type ReplyCommentResult = NonNullable<Awaited<ReturnType<typeof replyComment>>>
+export type LikeCommentResult = NonNullable<Awaited<ReturnType<typeof likeComment>>>
+export type UnlikeCommentResult = NonNullable<Awaited<ReturnType<typeof unlikeComment>>>
+export type DeleteCommentResult = NonNullable<Awaited<ReturnType<typeof deleteComment>>>

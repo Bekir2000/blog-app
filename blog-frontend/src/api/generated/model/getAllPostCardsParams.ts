@@ -4,13 +4,13 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import type { GetAllPostCardsSearchType } from './getAllPostCardsSearchType';
+import type { GetAllPostCardsCategory } from './getAllPostCardsCategory';
 
 export type GetAllPostCardsParams = {
-query?: string;
-searchType?: GetAllPostCardsSearchType;
-categoryId?: string;
-tagId?: string;
 page?: number;
 size?: number;
+authorName?: string;
+category?: GetAllPostCardsCategory;
+title?: string;
+tag?: string;
 };

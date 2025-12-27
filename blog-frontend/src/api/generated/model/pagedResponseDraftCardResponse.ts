@@ -4,10 +4,10 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import type { CommentResponse } from './commentResponse';
+import type { DraftCardResponse } from './draftCardResponse';
 
-export interface PagedResponseCommentResponse {
-  content?: CommentResponse[];
+export interface PagedResponseDraftCardResponse {
+  content?: DraftCardResponse[];
   page?: number;
   size?: number;
   totalElements?: number;

@@ -29,13 +29,14 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  DraftDetailResponse,
   GetAllPostCardsParams,
-  GetDraftsParams,
-  GetMyPublishedPostsParams,
+  GetMyDraftsParams,
+  PagedResponseDraftCardResponse,
   PagedResponsePostCardResponse,
   PostDetailResponse,
-  PostRequest,
-  PostResponse
+  PostDraftRequest,
+  PostDraftResult
 } from '../../model';
 
 import { clientFetch } from '../../../../lib/api-client';
@@ -45,29 +46,31 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
-export type getPostByIdResponse200 = {
-  data: PostDetailResponse
+export type getDraftByIdResponse200 = {
+  data: DraftDetailResponse
   status: 200
 }
     
-export type getPostByIdResponseSuccess = (getPostByIdResponse200) & {
+export type getDraftByIdResponseSuccess = (getDraftByIdResponse200) & {
   headers: Headers;
 };
 ;
 
-export type getPostByIdResponse = (getPostByIdResponseSuccess)
+export type getDraftByIdResponse = (getDraftByIdResponseSuccess)
 
-export const getGetPostByIdUrl = (postId: string,) => {
+export const getGetDraftByIdUrl = (postId: string,
+    draftId: string,) => {
 
 
   
 
-  return `/api/v1/posts/${postId}`
+  return `/api/v1/posts/${postId}/drafts/${draftId}`
 }
 
-export const getPostById = async (postId: string, options?: RequestInit): Promise<getPostByIdResponse> => {
+export const getDraftById = async (postId: string,
+    draftId: string, options?: RequestInit): Promise<getDraftByIdResponse> => {
   
-  return clientFetch<getPostByIdResponse>(getGetPostByIdUrl(postId),
+  return clientFetch<getDraftByIdResponse>(getGetDraftByIdUrl(postId,draftId),
   {      
     ...options,
     method: 'GET'
@@ -80,72 +83,79 @@ export const getPostById = async (postId: string, options?: RequestInit): Promis
 
 
 
-export const getGetPostByIdInfiniteQueryKey = (postId?: string,) => {
+export const getGetDraftByIdInfiniteQueryKey = (postId?: string,
+    draftId?: string,) => {
     return [
-    'infinite', `/api/v1/posts/${postId}`
+    'infinite', `/api/v1/posts/${postId}/drafts/${draftId}`
     ] as const;
     }
 
-export const getGetPostByIdQueryKey = (postId?: string,) => {
+export const getGetDraftByIdQueryKey = (postId?: string,
+    draftId?: string,) => {
     return [
-    `/api/v1/posts/${postId}`
+    `/api/v1/posts/${postId}/drafts/${draftId}`
     ] as const;
     }
 
     
-export const getGetPostByIdInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getPostById>>>, TError = unknown>(postId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+export const getGetDraftByIdInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getDraftById>>>, TError = unknown>(postId: string,
+    draftId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDraftById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetPostByIdInfiniteQueryKey(postId);
+  const queryKey =  queryOptions?.queryKey ?? getGetDraftByIdInfiniteQueryKey(postId,draftId);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPostById>>> = ({ signal }) => getPostById(postId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDraftById>>> = ({ signal }) => getDraftById(postId,draftId, { signal, ...requestOptions });
 
       
 
       
 
-   return  { queryKey, queryFn, enabled: !!(postId), ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: !!(postId && draftId), ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDraftById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetPostByIdInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getPostById>>>
-export type GetPostByIdInfiniteQueryError = unknown
+export type GetDraftByIdInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getDraftById>>>
+export type GetDraftByIdInfiniteQueryError = unknown
 
 
-export function useGetPostByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPostById>>>, TError = unknown>(
- postId: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>> & Pick<
+export function useGetDraftByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDraftById>>>, TError = unknown>(
+ postId: string,
+    draftId: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDraftById>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getPostById>>,
+          Awaited<ReturnType<typeof getDraftById>>,
           TError,
-          Awaited<ReturnType<typeof getPostById>>
+          Awaited<ReturnType<typeof getDraftById>>
         > , 'initialData'
       >, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetPostByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPostById>>>, TError = unknown>(
- postId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>> & Pick<
+export function useGetDraftByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDraftById>>>, TError = unknown>(
+ postId: string,
+    draftId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDraftById>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getPostById>>,
+          Awaited<ReturnType<typeof getDraftById>>,
           TError,
-          Awaited<ReturnType<typeof getPostById>>
+          Awaited<ReturnType<typeof getDraftById>>
         > , 'initialData'
       >, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetPostByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPostById>>>, TError = unknown>(
- postId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+export function useGetDraftByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDraftById>>>, TError = unknown>(
+ postId: string,
+    draftId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDraftById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetPostByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPostById>>>, TError = unknown>(
- postId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+export function useGetDraftByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDraftById>>>, TError = unknown>(
+ postId: string,
+    draftId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDraftById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient 
  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetPostByIdInfiniteQueryOptions(postId,options)
+  const queryOptions = getGetDraftByIdInfiniteQueryOptions(postId,draftId,options)
 
   const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -157,59 +167,64 @@ export function useGetPostByIdInfinite<TData = InfiniteData<Awaited<ReturnType<t
 
 
 
-export const getGetPostByIdQueryOptions = <TData = Awaited<ReturnType<typeof getPostById>>, TError = unknown>(postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+export const getGetDraftByIdQueryOptions = <TData = Awaited<ReturnType<typeof getDraftById>>, TError = unknown>(postId: string,
+    draftId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDraftById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetPostByIdQueryKey(postId);
+  const queryKey =  queryOptions?.queryKey ?? getGetDraftByIdQueryKey(postId,draftId);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPostById>>> = ({ signal }) => getPostById(postId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDraftById>>> = ({ signal }) => getDraftById(postId,draftId, { signal, ...requestOptions });
 
       
 
       
 
-   return  { queryKey, queryFn, enabled: !!(postId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: !!(postId && draftId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDraftById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetPostByIdQueryResult = NonNullable<Awaited<ReturnType<typeof getPostById>>>
-export type GetPostByIdQueryError = unknown
+export type GetDraftByIdQueryResult = NonNullable<Awaited<ReturnType<typeof getDraftById>>>
+export type GetDraftByIdQueryError = unknown
 
 
-export function useGetPostById<TData = Awaited<ReturnType<typeof getPostById>>, TError = unknown>(
- postId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>> & Pick<
+export function useGetDraftById<TData = Awaited<ReturnType<typeof getDraftById>>, TError = unknown>(
+ postId: string,
+    draftId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDraftById>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getPostById>>,
+          Awaited<ReturnType<typeof getDraftById>>,
           TError,
-          Awaited<ReturnType<typeof getPostById>>
+          Awaited<ReturnType<typeof getDraftById>>
         > , 'initialData'
       >, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetPostById<TData = Awaited<ReturnType<typeof getPostById>>, TError = unknown>(
- postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>> & Pick<
+export function useGetDraftById<TData = Awaited<ReturnType<typeof getDraftById>>, TError = unknown>(
+ postId: string,
+    draftId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDraftById>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getPostById>>,
+          Awaited<ReturnType<typeof getDraftById>>,
           TError,
-          Awaited<ReturnType<typeof getPostById>>
+          Awaited<ReturnType<typeof getDraftById>>
         > , 'initialData'
       >, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetPostById<TData = Awaited<ReturnType<typeof getPostById>>, TError = unknown>(
- postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+export function useGetDraftById<TData = Awaited<ReturnType<typeof getDraftById>>, TError = unknown>(
+ postId: string,
+    draftId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDraftById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetPostById<TData = Awaited<ReturnType<typeof getPostById>>, TError = unknown>(
- postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+export function useGetDraftById<TData = Awaited<ReturnType<typeof getDraftById>>, TError = unknown>(
+ postId: string,
+    draftId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDraftById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetPostByIdQueryOptions(postId,options)
+  const queryOptions = getGetDraftByIdQueryOptions(postId,draftId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -221,47 +236,49 @@ export function useGetPostById<TData = Awaited<ReturnType<typeof getPostById>>, 
 
 
 
-export type updatePostResponse200 = {
-  data: PostResponse
+export type safeDraftResponse200 = {
+  data: PostDraftResult
   status: 200
 }
     
-export type updatePostResponseSuccess = (updatePostResponse200) & {
+export type safeDraftResponseSuccess = (safeDraftResponse200) & {
   headers: Headers;
 };
 ;
 
-export type updatePostResponse = (updatePostResponseSuccess)
+export type safeDraftResponse = (safeDraftResponseSuccess)
 
-export const getUpdatePostUrl = (postId: string,) => {
+export const getSafeDraftUrl = (postId: string,
+    draftId: string,) => {
 
 
   
 
-  return `/api/v1/posts/${postId}`
+  return `/api/v1/posts/${postId}/drafts/${draftId}`
 }
 
-export const updatePost = async (postId: string,
-    postRequest: PostRequest, options?: RequestInit): Promise<updatePostResponse> => {
+export const safeDraft = async (postId: string,
+    draftId: string,
+    postDraftRequest: PostDraftRequest, options?: RequestInit): Promise<safeDraftResponse> => {
   
-  return clientFetch<updatePostResponse>(getUpdatePostUrl(postId),
+  return clientFetch<safeDraftResponse>(getSafeDraftUrl(postId,draftId),
   {      
     ...options,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      postRequest,)
+      postDraftRequest,)
   }
 );}
 
 
 
 
-export const getUpdatePostMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePost>>, TError,{postId: string;data: PostRequest}, TContext>, request?: SecondParameter<typeof clientFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof updatePost>>, TError,{postId: string;data: PostRequest}, TContext> => {
+export const getSafeDraftMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof safeDraft>>, TError,{postId: string;draftId: string;data: PostDraftRequest}, TContext>, request?: SecondParameter<typeof clientFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof safeDraft>>, TError,{postId: string;draftId: string;data: PostDraftRequest}, TContext> => {
 
-const mutationKey = ['updatePost'];
+const mutationKey = ['safeDraft'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -271,10 +288,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePost>>, {postId: string;data: PostRequest}> = (props) => {
-          const {postId,data} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof safeDraft>>, {postId: string;draftId: string;data: PostDraftRequest}> = (props) => {
+          const {postId,draftId,data} = props ?? {};
 
-          return  updatePost(postId,data,requestOptions)
+          return  safeDraft(postId,draftId,data,requestOptions)
         }
 
         
@@ -282,46 +299,48 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type UpdatePostMutationResult = NonNullable<Awaited<ReturnType<typeof updatePost>>>
-    export type UpdatePostMutationBody = PostRequest
-    export type UpdatePostMutationError = unknown
+    export type SafeDraftMutationResult = NonNullable<Awaited<ReturnType<typeof safeDraft>>>
+    export type SafeDraftMutationBody = PostDraftRequest
+    export type SafeDraftMutationError = unknown
 
-    export const useUpdatePost = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePost>>, TError,{postId: string;data: PostRequest}, TContext>, request?: SecondParameter<typeof clientFetch>}
+    export const useSafeDraft = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof safeDraft>>, TError,{postId: string;draftId: string;data: PostDraftRequest}, TContext>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof updatePost>>,
+        Awaited<ReturnType<typeof safeDraft>>,
         TError,
-        {postId: string;data: PostRequest},
+        {postId: string;draftId: string;data: PostDraftRequest},
         TContext
       > => {
 
-      const mutationOptions = getUpdatePostMutationOptions(options);
+      const mutationOptions = getSafeDraftMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }
-    export type deletePostResponse200 = {
+    export type deleteDraftResponse200 = {
   data: void
   status: 200
 }
     
-export type deletePostResponseSuccess = (deletePostResponse200) & {
+export type deleteDraftResponseSuccess = (deleteDraftResponse200) & {
   headers: Headers;
 };
 ;
 
-export type deletePostResponse = (deletePostResponseSuccess)
+export type deleteDraftResponse = (deleteDraftResponseSuccess)
 
-export const getDeletePostUrl = (postId: string,) => {
+export const getDeleteDraftUrl = (postId: string,
+    draftId: string,) => {
 
 
   
 
-  return `/api/v1/posts/${postId}`
+  return `/api/v1/posts/${postId}/drafts/${draftId}`
 }
 
-export const deletePost = async (postId: string, options?: RequestInit): Promise<deletePostResponse> => {
+export const deleteDraft = async (postId: string,
+    draftId: string, options?: RequestInit): Promise<deleteDraftResponse> => {
   
-  return clientFetch<deletePostResponse>(getDeletePostUrl(postId),
+  return clientFetch<deleteDraftResponse>(getDeleteDraftUrl(postId,draftId),
   {      
     ...options,
     method: 'DELETE'
@@ -333,11 +352,11 @@ export const deletePost = async (postId: string, options?: RequestInit): Promise
 
 
 
-export const getDeletePostMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePost>>, TError,{postId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof deletePost>>, TError,{postId: string}, TContext> => {
+export const getDeleteDraftMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDraft>>, TError,{postId: string;draftId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteDraft>>, TError,{postId: string;draftId: string}, TContext> => {
 
-const mutationKey = ['deletePost'];
+const mutationKey = ['deleteDraft'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -347,10 +366,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deletePost>>, {postId: string}> = (props) => {
-          const {postId} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteDraft>>, {postId: string;draftId: string}> = (props) => {
+          const {postId,draftId} = props ?? {};
 
-          return  deletePost(postId,requestOptions)
+          return  deleteDraft(postId,draftId,requestOptions)
         }
 
         
@@ -358,96 +377,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type DeletePostMutationResult = NonNullable<Awaited<ReturnType<typeof deletePost>>>
+    export type DeleteDraftMutationResult = NonNullable<Awaited<ReturnType<typeof deleteDraft>>>
     
-    export type DeletePostMutationError = unknown
+    export type DeleteDraftMutationError = unknown
 
-    export const useDeletePost = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePost>>, TError,{postId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
+    export const useDeleteDraft = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDraft>>, TError,{postId: string;draftId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof deletePost>>,
+        Awaited<ReturnType<typeof deleteDraft>>,
         TError,
-        {postId: string},
+        {postId: string;draftId: string},
         TContext
       > => {
 
-      const mutationOptions = getDeletePostMutationOptions(options);
-
-      return useMutation(mutationOptions, queryClient);
-    }
-    export type toggleLikeResponse200 = {
-  data: PostResponse
-  status: 200
-}
-    
-export type toggleLikeResponseSuccess = (toggleLikeResponse200) & {
-  headers: Headers;
-};
-;
-
-export type toggleLikeResponse = (toggleLikeResponseSuccess)
-
-export const getToggleLikeUrl = (postId: string,) => {
-
-
-  
-
-  return `/api/v1/posts/${postId}/like`
-}
-
-export const toggleLike = async (postId: string, options?: RequestInit): Promise<toggleLikeResponse> => {
-  
-  return clientFetch<toggleLikeResponse>(getToggleLikeUrl(postId),
-  {      
-    ...options,
-    method: 'PUT'
-    
-    
-  }
-);}
-
-
-
-
-export const getToggleLikeMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof toggleLike>>, TError,{postId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof toggleLike>>, TError,{postId: string}, TContext> => {
-
-const mutationKey = ['toggleLike'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-      
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof toggleLike>>, {postId: string}> = (props) => {
-          const {postId} = props ?? {};
-
-          return  toggleLike(postId,requestOptions)
-        }
-
-        
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type ToggleLikeMutationResult = NonNullable<Awaited<ReturnType<typeof toggleLike>>>
-    
-    export type ToggleLikeMutationError = unknown
-
-    export const useToggleLike = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof toggleLike>>, TError,{postId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
- , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof toggleLike>>,
-        TError,
-        {postId: string},
-        TContext
-      > => {
-
-      const mutationOptions = getToggleLikeMutationOptions(options);
+      const mutationOptions = getDeleteDraftMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }
@@ -634,19 +577,19 @@ export function useGetAllPostCards<TData = Awaited<ReturnType<typeof getAllPostC
 
 
 
-export type createPostResponse200 = {
-  data: PostResponse
+export type createFirstDraftResponse200 = {
+  data: PostDraftResult
   status: 200
 }
     
-export type createPostResponseSuccess = (createPostResponse200) & {
+export type createFirstDraftResponseSuccess = (createFirstDraftResponse200) & {
   headers: Headers;
 };
 ;
 
-export type createPostResponse = (createPostResponseSuccess)
+export type createFirstDraftResponse = (createFirstDraftResponseSuccess)
 
-export const getCreatePostUrl = () => {
+export const getCreateFirstDraftUrl = () => {
 
 
   
@@ -654,26 +597,26 @@ export const getCreatePostUrl = () => {
   return `/api/v1/posts`
 }
 
-export const createPost = async (postRequest: PostRequest, options?: RequestInit): Promise<createPostResponse> => {
+export const createFirstDraft = async (postDraftRequest: PostDraftRequest, options?: RequestInit): Promise<createFirstDraftResponse> => {
   
-  return clientFetch<createPostResponse>(getCreatePostUrl(),
+  return clientFetch<createFirstDraftResponse>(getCreateFirstDraftUrl(),
   {      
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(
-      postRequest,)
+      postDraftRequest,)
   }
 );}
 
 
 
 
-export const getCreatePostMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPost>>, TError,{data: PostRequest}, TContext>, request?: SecondParameter<typeof clientFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createPost>>, TError,{data: PostRequest}, TContext> => {
+export const getCreateFirstDraftMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFirstDraft>>, TError,{data: PostDraftRequest}, TContext>, request?: SecondParameter<typeof clientFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createFirstDraft>>, TError,{data: PostDraftRequest}, TContext> => {
 
-const mutationKey = ['createPost'];
+const mutationKey = ['createFirstDraft'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -683,10 +626,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPost>>, {data: PostRequest}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createFirstDraft>>, {data: PostDraftRequest}> = (props) => {
           const {data} = props ?? {};
 
-          return  createPost(data,requestOptions)
+          return  createFirstDraft(data,requestOptions)
         }
 
         
@@ -694,46 +637,46 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CreatePostMutationResult = NonNullable<Awaited<ReturnType<typeof createPost>>>
-    export type CreatePostMutationBody = PostRequest
-    export type CreatePostMutationError = unknown
+    export type CreateFirstDraftMutationResult = NonNullable<Awaited<ReturnType<typeof createFirstDraft>>>
+    export type CreateFirstDraftMutationBody = PostDraftRequest
+    export type CreateFirstDraftMutationError = unknown
 
-    export const useCreatePost = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPost>>, TError,{data: PostRequest}, TContext>, request?: SecondParameter<typeof clientFetch>}
+    export const useCreateFirstDraft = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createFirstDraft>>, TError,{data: PostDraftRequest}, TContext>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof createPost>>,
+        Awaited<ReturnType<typeof createFirstDraft>>,
         TError,
-        {data: PostRequest},
+        {data: PostDraftRequest},
         TContext
       > => {
 
-      const mutationOptions = getCreatePostMutationOptions(options);
+      const mutationOptions = getCreateFirstDraftMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }
-    export type createRevisionResponse200 = {
-  data: PostResponse
+    export type likePostResponse200 = {
+  data: void
   status: 200
 }
     
-export type createRevisionResponseSuccess = (createRevisionResponse200) & {
+export type likePostResponseSuccess = (likePostResponse200) & {
   headers: Headers;
 };
 ;
 
-export type createRevisionResponse = (createRevisionResponseSuccess)
+export type likePostResponse = (likePostResponseSuccess)
 
-export const getCreateRevisionUrl = (postId: string,) => {
+export const getLikePostUrl = (postId: string,) => {
 
 
   
 
-  return `/api/v1/posts/${postId}/revision`
+  return `/api/v1/posts/${postId}/like`
 }
 
-export const createRevision = async (postId: string, options?: RequestInit): Promise<createRevisionResponse> => {
+export const likePost = async (postId: string, options?: RequestInit): Promise<likePostResponse> => {
   
-  return clientFetch<createRevisionResponse>(getCreateRevisionUrl(postId),
+  return clientFetch<likePostResponse>(getLikePostUrl(postId),
   {      
     ...options,
     method: 'POST'
@@ -745,11 +688,11 @@ export const createRevision = async (postId: string, options?: RequestInit): Pro
 
 
 
-export const getCreateRevisionMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRevision>>, TError,{postId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof createRevision>>, TError,{postId: string}, TContext> => {
+export const getLikePostMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof likePost>>, TError,{postId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof likePost>>, TError,{postId: string}, TContext> => {
 
-const mutationKey = ['createRevision'];
+const mutationKey = ['likePost'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
@@ -759,10 +702,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createRevision>>, {postId: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof likePost>>, {postId: string}> = (props) => {
           const {postId} = props ?? {};
 
-          return  createRevision(postId,requestOptions)
+          return  likePost(postId,requestOptions)
         }
 
         
@@ -770,53 +713,276 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type CreateRevisionMutationResult = NonNullable<Awaited<ReturnType<typeof createRevision>>>
+    export type LikePostMutationResult = NonNullable<Awaited<ReturnType<typeof likePost>>>
     
-    export type CreateRevisionMutationError = unknown
+    export type LikePostMutationError = unknown
 
-    export const useCreateRevision = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRevision>>, TError,{postId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
+    export const useLikePost = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof likePost>>, TError,{postId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient): UseMutationResult<
-        Awaited<ReturnType<typeof createRevision>>,
+        Awaited<ReturnType<typeof likePost>>,
         TError,
         {postId: string},
         TContext
       > => {
 
-      const mutationOptions = getCreateRevisionMutationOptions(options);
+      const mutationOptions = getLikePostMutationOptions(options);
 
       return useMutation(mutationOptions, queryClient);
     }
-    export type getMyPublishedPostsResponse200 = {
-  data: PagedResponsePostCardResponse
+    export type unlikePostResponse200 = {
+  data: void
   status: 200
 }
     
-export type getMyPublishedPostsResponseSuccess = (getMyPublishedPostsResponse200) & {
+export type unlikePostResponseSuccess = (unlikePostResponse200) & {
   headers: Headers;
 };
 ;
 
-export type getMyPublishedPostsResponse = (getMyPublishedPostsResponseSuccess)
+export type unlikePostResponse = (unlikePostResponseSuccess)
 
-export const getGetMyPublishedPostsUrl = (params?: GetMyPublishedPostsParams,) => {
-  const normalizedParams = new URLSearchParams();
+export const getUnlikePostUrl = (postId: string,) => {
 
-  Object.entries(params || {}).forEach(([key, value]) => {
-    
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
+  
 
-  return stringifiedParams.length > 0 ? `/api/v1/posts/published?${stringifiedParams}` : `/api/v1/posts/published`
+  return `/api/v1/posts/${postId}/like`
 }
 
-export const getMyPublishedPosts = async (params?: GetMyPublishedPostsParams, options?: RequestInit): Promise<getMyPublishedPostsResponse> => {
+export const unlikePost = async (postId: string, options?: RequestInit): Promise<unlikePostResponse> => {
   
-  return clientFetch<getMyPublishedPostsResponse>(getGetMyPublishedPostsUrl(params),
+  return clientFetch<unlikePostResponse>(getUnlikePostUrl(postId),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getUnlikePostMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlikePost>>, TError,{postId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unlikePost>>, TError,{postId: string}, TContext> => {
+
+const mutationKey = ['unlikePost'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unlikePost>>, {postId: string}> = (props) => {
+          const {postId} = props ?? {};
+
+          return  unlikePost(postId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnlikePostMutationResult = NonNullable<Awaited<ReturnType<typeof unlikePost>>>
+    
+    export type UnlikePostMutationError = unknown
+
+    export const useUnlikePost = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlikePost>>, TError,{postId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof unlikePost>>,
+        TError,
+        {postId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getUnlikePostMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type addNewDraftResponse200 = {
+  data: PostDraftResult
+  status: 200
+}
+    
+export type addNewDraftResponseSuccess = (addNewDraftResponse200) & {
+  headers: Headers;
+};
+;
+
+export type addNewDraftResponse = (addNewDraftResponseSuccess)
+
+export const getAddNewDraftUrl = (postId: string,) => {
+
+
+  
+
+  return `/api/v1/posts/${postId}/drafts`
+}
+
+export const addNewDraft = async (postId: string, options?: RequestInit): Promise<addNewDraftResponse> => {
+  
+  return clientFetch<addNewDraftResponse>(getAddNewDraftUrl(postId),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getAddNewDraftMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addNewDraft>>, TError,{postId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addNewDraft>>, TError,{postId: string}, TContext> => {
+
+const mutationKey = ['addNewDraft'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addNewDraft>>, {postId: string}> = (props) => {
+          const {postId} = props ?? {};
+
+          return  addNewDraft(postId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddNewDraftMutationResult = NonNullable<Awaited<ReturnType<typeof addNewDraft>>>
+    
+    export type AddNewDraftMutationError = unknown
+
+    export const useAddNewDraft = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addNewDraft>>, TError,{postId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof addNewDraft>>,
+        TError,
+        {postId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getAddNewDraftMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type publishPostResponse200 = {
+  data: string
+  status: 200
+}
+    
+export type publishPostResponseSuccess = (publishPostResponse200) & {
+  headers: Headers;
+};
+;
+
+export type publishPostResponse = (publishPostResponseSuccess)
+
+export const getPublishPostUrl = (postId: string,
+    draftId: string,) => {
+
+
+  
+
+  return `/api/v1/posts/${postId}/drafts/${draftId}/publish`
+}
+
+export const publishPost = async (postId: string,
+    draftId: string, options?: RequestInit): Promise<publishPostResponse> => {
+  
+  return clientFetch<publishPostResponse>(getPublishPostUrl(postId,draftId),
+  {      
+    ...options,
+    method: 'PATCH'
+    
+    
+  }
+);}
+
+
+
+
+export const getPublishPostMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishPost>>, TError,{postId: string;draftId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof publishPost>>, TError,{postId: string;draftId: string}, TContext> => {
+
+const mutationKey = ['publishPost'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof publishPost>>, {postId: string;draftId: string}> = (props) => {
+          const {postId,draftId} = props ?? {};
+
+          return  publishPost(postId,draftId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PublishPostMutationResult = NonNullable<Awaited<ReturnType<typeof publishPost>>>
+    
+    export type PublishPostMutationError = unknown
+
+    export const usePublishPost = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishPost>>, TError,{postId: string;draftId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof publishPost>>,
+        TError,
+        {postId: string;draftId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPublishPostMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type getPostByIdResponse200 = {
+  data: PostDetailResponse
+  status: 200
+}
+    
+export type getPostByIdResponseSuccess = (getPostByIdResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getPostByIdResponse = (getPostByIdResponseSuccess)
+
+export const getGetPostByIdUrl = (postId: string,) => {
+
+
+  
+
+  return `/api/v1/posts/${postId}`
+}
+
+export const getPostById = async (postId: string, options?: RequestInit): Promise<getPostByIdResponse> => {
+  
+  return clientFetch<getPostByIdResponse>(getGetPostByIdUrl(postId),
   {      
     ...options,
     method: 'GET'
@@ -829,72 +995,72 @@ export const getMyPublishedPosts = async (params?: GetMyPublishedPostsParams, op
 
 
 
-export const getGetMyPublishedPostsInfiniteQueryKey = (params?: GetMyPublishedPostsParams,) => {
+export const getGetPostByIdInfiniteQueryKey = (postId?: string,) => {
     return [
-    'infinite', `/api/v1/posts/published`, ...(params ? [params]: [])
+    'infinite', `/api/v1/posts/${postId}`
     ] as const;
     }
 
-export const getGetMyPublishedPostsQueryKey = (params?: GetMyPublishedPostsParams,) => {
+export const getGetPostByIdQueryKey = (postId?: string,) => {
     return [
-    `/api/v1/posts/published`, ...(params ? [params]: [])
+    `/api/v1/posts/${postId}`
     ] as const;
     }
 
     
-export const getGetMyPublishedPostsInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getMyPublishedPosts>>, GetMyPublishedPostsParams['page']>, TError = unknown>(params?: GetMyPublishedPostsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyPublishedPosts>>, TError, TData, QueryKey, GetMyPublishedPostsParams['page']>>, request?: SecondParameter<typeof clientFetch>}
+export const getGetPostByIdInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getPostById>>>, TError = unknown>(postId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetMyPublishedPostsInfiniteQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getGetPostByIdInfiniteQueryKey(postId);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyPublishedPosts>>, QueryKey, GetMyPublishedPostsParams['page']> = ({ signal, pageParam }) => getMyPublishedPosts({...params, 'page': pageParam || params?.['page']}, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPostById>>> = ({ signal }) => getPostById(postId, { signal, ...requestOptions });
 
       
 
       
 
-   return  { queryKey, queryFn, ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyPublishedPosts>>, TError, TData, QueryKey, GetMyPublishedPostsParams['page']> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: !!(postId), ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetMyPublishedPostsInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getMyPublishedPosts>>>
-export type GetMyPublishedPostsInfiniteQueryError = unknown
+export type GetPostByIdInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getPostById>>>
+export type GetPostByIdInfiniteQueryError = unknown
 
 
-export function useGetMyPublishedPostsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getMyPublishedPosts>>, GetMyPublishedPostsParams['page']>, TError = unknown>(
- params: undefined |  GetMyPublishedPostsParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyPublishedPosts>>, TError, TData, QueryKey, GetMyPublishedPostsParams['page']>> & Pick<
+export function useGetPostByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPostById>>>, TError = unknown>(
+ postId: string, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getMyPublishedPosts>>,
+          Awaited<ReturnType<typeof getPostById>>,
           TError,
-          Awaited<ReturnType<typeof getMyPublishedPosts>>, QueryKey
+          Awaited<ReturnType<typeof getPostById>>
         > , 'initialData'
       >, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetMyPublishedPostsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getMyPublishedPosts>>, GetMyPublishedPostsParams['page']>, TError = unknown>(
- params?: GetMyPublishedPostsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyPublishedPosts>>, TError, TData, QueryKey, GetMyPublishedPostsParams['page']>> & Pick<
+export function useGetPostByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPostById>>>, TError = unknown>(
+ postId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getMyPublishedPosts>>,
+          Awaited<ReturnType<typeof getPostById>>,
           TError,
-          Awaited<ReturnType<typeof getMyPublishedPosts>>, QueryKey
+          Awaited<ReturnType<typeof getPostById>>
         > , 'initialData'
       >, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetMyPublishedPostsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getMyPublishedPosts>>, GetMyPublishedPostsParams['page']>, TError = unknown>(
- params?: GetMyPublishedPostsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyPublishedPosts>>, TError, TData, QueryKey, GetMyPublishedPostsParams['page']>>, request?: SecondParameter<typeof clientFetch>}
+export function useGetPostByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPostById>>>, TError = unknown>(
+ postId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetMyPublishedPostsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getMyPublishedPosts>>, GetMyPublishedPostsParams['page']>, TError = unknown>(
- params?: GetMyPublishedPostsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyPublishedPosts>>, TError, TData, QueryKey, GetMyPublishedPostsParams['page']>>, request?: SecondParameter<typeof clientFetch>}
+export function useGetPostByIdInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getPostById>>>, TError = unknown>(
+ postId: string, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient 
  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetMyPublishedPostsInfiniteQueryOptions(params,options)
+  const queryOptions = getGetPostByIdInfiniteQueryOptions(postId,options)
 
   const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -906,59 +1072,59 @@ export function useGetMyPublishedPostsInfinite<TData = InfiniteData<Awaited<Retu
 
 
 
-export const getGetMyPublishedPostsQueryOptions = <TData = Awaited<ReturnType<typeof getMyPublishedPosts>>, TError = unknown>(params?: GetMyPublishedPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPublishedPosts>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+export const getGetPostByIdQueryOptions = <TData = Awaited<ReturnType<typeof getPostById>>, TError = unknown>(postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetMyPublishedPostsQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getGetPostByIdQueryKey(postId);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyPublishedPosts>>> = ({ signal }) => getMyPublishedPosts(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPostById>>> = ({ signal }) => getPostById(postId, { signal, ...requestOptions });
 
       
 
       
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyPublishedPosts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, enabled: !!(postId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetMyPublishedPostsQueryResult = NonNullable<Awaited<ReturnType<typeof getMyPublishedPosts>>>
-export type GetMyPublishedPostsQueryError = unknown
+export type GetPostByIdQueryResult = NonNullable<Awaited<ReturnType<typeof getPostById>>>
+export type GetPostByIdQueryError = unknown
 
 
-export function useGetMyPublishedPosts<TData = Awaited<ReturnType<typeof getMyPublishedPosts>>, TError = unknown>(
- params: undefined |  GetMyPublishedPostsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPublishedPosts>>, TError, TData>> & Pick<
+export function useGetPostById<TData = Awaited<ReturnType<typeof getPostById>>, TError = unknown>(
+ postId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getMyPublishedPosts>>,
+          Awaited<ReturnType<typeof getPostById>>,
           TError,
-          Awaited<ReturnType<typeof getMyPublishedPosts>>
+          Awaited<ReturnType<typeof getPostById>>
         > , 'initialData'
       >, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetMyPublishedPosts<TData = Awaited<ReturnType<typeof getMyPublishedPosts>>, TError = unknown>(
- params?: GetMyPublishedPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPublishedPosts>>, TError, TData>> & Pick<
+export function useGetPostById<TData = Awaited<ReturnType<typeof getPostById>>, TError = unknown>(
+ postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getMyPublishedPosts>>,
+          Awaited<ReturnType<typeof getPostById>>,
           TError,
-          Awaited<ReturnType<typeof getMyPublishedPosts>>
+          Awaited<ReturnType<typeof getPostById>>
         > , 'initialData'
       >, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetMyPublishedPosts<TData = Awaited<ReturnType<typeof getMyPublishedPosts>>, TError = unknown>(
- params?: GetMyPublishedPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPublishedPosts>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+export function useGetPostById<TData = Awaited<ReturnType<typeof getPostById>>, TError = unknown>(
+ postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetMyPublishedPosts<TData = Awaited<ReturnType<typeof getMyPublishedPosts>>, TError = unknown>(
- params?: GetMyPublishedPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyPublishedPosts>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+export function useGetPostById<TData = Awaited<ReturnType<typeof getPostById>>, TError = unknown>(
+ postId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPostById>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetMyPublishedPostsQueryOptions(params,options)
+  const queryOptions = getGetPostByIdQueryOptions(postId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -970,19 +1136,95 @@ export function useGetMyPublishedPosts<TData = Awaited<ReturnType<typeof getMyPu
 
 
 
-export type getDraftsResponse200 = {
-  data: PagedResponsePostCardResponse
+export type deletePostResponse200 = {
+  data: void
   status: 200
 }
     
-export type getDraftsResponseSuccess = (getDraftsResponse200) & {
+export type deletePostResponseSuccess = (deletePostResponse200) & {
   headers: Headers;
 };
 ;
 
-export type getDraftsResponse = (getDraftsResponseSuccess)
+export type deletePostResponse = (deletePostResponseSuccess)
 
-export const getGetDraftsUrl = (params?: GetDraftsParams,) => {
+export const getDeletePostUrl = (postId: string,) => {
+
+
+  
+
+  return `/api/v1/posts/${postId}`
+}
+
+export const deletePost = async (postId: string, options?: RequestInit): Promise<deletePostResponse> => {
+  
+  return clientFetch<deletePostResponse>(getDeletePostUrl(postId),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getDeletePostMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePost>>, TError,{postId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deletePost>>, TError,{postId: string}, TContext> => {
+
+const mutationKey = ['deletePost'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deletePost>>, {postId: string}> = (props) => {
+          const {postId} = props ?? {};
+
+          return  deletePost(postId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeletePostMutationResult = NonNullable<Awaited<ReturnType<typeof deletePost>>>
+    
+    export type DeletePostMutationError = unknown
+
+    export const useDeletePost = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deletePost>>, TError,{postId: string}, TContext>, request?: SecondParameter<typeof clientFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deletePost>>,
+        TError,
+        {postId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeletePostMutationOptions(options);
+
+      return useMutation(mutationOptions, queryClient);
+    }
+    export type getMyDraftsResponse200 = {
+  data: PagedResponseDraftCardResponse
+  status: 200
+}
+    
+export type getMyDraftsResponseSuccess = (getMyDraftsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type getMyDraftsResponse = (getMyDraftsResponseSuccess)
+
+export const getGetMyDraftsUrl = (params?: GetMyDraftsParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -997,9 +1239,9 @@ export const getGetDraftsUrl = (params?: GetDraftsParams,) => {
   return stringifiedParams.length > 0 ? `/api/v1/posts/drafts?${stringifiedParams}` : `/api/v1/posts/drafts`
 }
 
-export const getDrafts = async (params?: GetDraftsParams, options?: RequestInit): Promise<getDraftsResponse> => {
+export const getMyDrafts = async (params?: GetMyDraftsParams, options?: RequestInit): Promise<getMyDraftsResponse> => {
   
-  return clientFetch<getDraftsResponse>(getGetDraftsUrl(params),
+  return clientFetch<getMyDraftsResponse>(getGetMyDraftsUrl(params),
   {      
     ...options,
     method: 'GET'
@@ -1012,72 +1254,72 @@ export const getDrafts = async (params?: GetDraftsParams, options?: RequestInit)
 
 
 
-export const getGetDraftsInfiniteQueryKey = (params?: GetDraftsParams,) => {
+export const getGetMyDraftsInfiniteQueryKey = (params?: GetMyDraftsParams,) => {
     return [
     'infinite', `/api/v1/posts/drafts`, ...(params ? [params]: [])
     ] as const;
     }
 
-export const getGetDraftsQueryKey = (params?: GetDraftsParams,) => {
+export const getGetMyDraftsQueryKey = (params?: GetMyDraftsParams,) => {
     return [
     `/api/v1/posts/drafts`, ...(params ? [params]: [])
     ] as const;
     }
 
     
-export const getGetDraftsInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getDrafts>>, GetDraftsParams['page']>, TError = unknown>(params?: GetDraftsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDrafts>>, TError, TData, QueryKey, GetDraftsParams['page']>>, request?: SecondParameter<typeof clientFetch>}
+export const getGetMyDraftsInfiniteQueryOptions = <TData = InfiniteData<Awaited<ReturnType<typeof getMyDrafts>>, GetMyDraftsParams['page']>, TError = unknown>(params?: GetMyDraftsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyDrafts>>, TError, TData, QueryKey, GetMyDraftsParams['page']>>, request?: SecondParameter<typeof clientFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetDraftsInfiniteQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getGetMyDraftsInfiniteQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDrafts>>, QueryKey, GetDraftsParams['page']> = ({ signal, pageParam }) => getDrafts({...params, 'page': pageParam || params?.['page']}, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyDrafts>>, QueryKey, GetMyDraftsParams['page']> = ({ signal, pageParam }) => getMyDrafts({...params, 'page': pageParam || params?.['page']}, { signal, ...requestOptions });
 
       
 
       
 
-   return  { queryKey, queryFn, ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDrafts>>, TError, TData, QueryKey, GetDraftsParams['page']> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyDrafts>>, TError, TData, QueryKey, GetMyDraftsParams['page']> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetDraftsInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getDrafts>>>
-export type GetDraftsInfiniteQueryError = unknown
+export type GetMyDraftsInfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof getMyDrafts>>>
+export type GetMyDraftsInfiniteQueryError = unknown
 
 
-export function useGetDraftsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDrafts>>, GetDraftsParams['page']>, TError = unknown>(
- params: undefined |  GetDraftsParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDrafts>>, TError, TData, QueryKey, GetDraftsParams['page']>> & Pick<
+export function useGetMyDraftsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getMyDrafts>>, GetMyDraftsParams['page']>, TError = unknown>(
+ params: undefined |  GetMyDraftsParams, options: { query:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyDrafts>>, TError, TData, QueryKey, GetMyDraftsParams['page']>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getDrafts>>,
+          Awaited<ReturnType<typeof getMyDrafts>>,
           TError,
-          Awaited<ReturnType<typeof getDrafts>>, QueryKey
+          Awaited<ReturnType<typeof getMyDrafts>>, QueryKey
         > , 'initialData'
       >, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetDraftsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDrafts>>, GetDraftsParams['page']>, TError = unknown>(
- params?: GetDraftsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDrafts>>, TError, TData, QueryKey, GetDraftsParams['page']>> & Pick<
+export function useGetMyDraftsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getMyDrafts>>, GetMyDraftsParams['page']>, TError = unknown>(
+ params?: GetMyDraftsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyDrafts>>, TError, TData, QueryKey, GetMyDraftsParams['page']>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getDrafts>>,
+          Awaited<ReturnType<typeof getMyDrafts>>,
           TError,
-          Awaited<ReturnType<typeof getDrafts>>, QueryKey
+          Awaited<ReturnType<typeof getMyDrafts>>, QueryKey
         > , 'initialData'
       >, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetDraftsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDrafts>>, GetDraftsParams['page']>, TError = unknown>(
- params?: GetDraftsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDrafts>>, TError, TData, QueryKey, GetDraftsParams['page']>>, request?: SecondParameter<typeof clientFetch>}
+export function useGetMyDraftsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getMyDrafts>>, GetMyDraftsParams['page']>, TError = unknown>(
+ params?: GetMyDraftsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyDrafts>>, TError, TData, QueryKey, GetMyDraftsParams['page']>>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetDraftsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getDrafts>>, GetDraftsParams['page']>, TError = unknown>(
- params?: GetDraftsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getDrafts>>, TError, TData, QueryKey, GetDraftsParams['page']>>, request?: SecondParameter<typeof clientFetch>}
+export function useGetMyDraftsInfinite<TData = InfiniteData<Awaited<ReturnType<typeof getMyDrafts>>, GetMyDraftsParams['page']>, TError = unknown>(
+ params?: GetMyDraftsParams, options?: { query?:Partial<UseInfiniteQueryOptions<Awaited<ReturnType<typeof getMyDrafts>>, TError, TData, QueryKey, GetMyDraftsParams['page']>>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient 
  ):  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetDraftsInfiniteQueryOptions(params,options)
+  const queryOptions = getGetMyDraftsInfiniteQueryOptions(params,options)
 
   const query = useInfiniteQuery(queryOptions, queryClient) as  UseInfiniteQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -1089,59 +1331,59 @@ export function useGetDraftsInfinite<TData = InfiniteData<Awaited<ReturnType<typ
 
 
 
-export const getGetDraftsQueryOptions = <TData = Awaited<ReturnType<typeof getDrafts>>, TError = unknown>(params?: GetDraftsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDrafts>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+export const getGetMyDraftsQueryOptions = <TData = Awaited<ReturnType<typeof getMyDrafts>>, TError = unknown>(params?: GetMyDraftsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyDrafts>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetDraftsQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getGetMyDraftsQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDrafts>>> = ({ signal }) => getDrafts(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyDrafts>>> = ({ signal }) => getMyDrafts(params, { signal, ...requestOptions });
 
       
 
       
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDrafts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyDrafts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
 }
 
-export type GetDraftsQueryResult = NonNullable<Awaited<ReturnType<typeof getDrafts>>>
-export type GetDraftsQueryError = unknown
+export type GetMyDraftsQueryResult = NonNullable<Awaited<ReturnType<typeof getMyDrafts>>>
+export type GetMyDraftsQueryError = unknown
 
 
-export function useGetDrafts<TData = Awaited<ReturnType<typeof getDrafts>>, TError = unknown>(
- params: undefined |  GetDraftsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDrafts>>, TError, TData>> & Pick<
+export function useGetMyDrafts<TData = Awaited<ReturnType<typeof getMyDrafts>>, TError = unknown>(
+ params: undefined |  GetMyDraftsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyDrafts>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getDrafts>>,
+          Awaited<ReturnType<typeof getMyDrafts>>,
           TError,
-          Awaited<ReturnType<typeof getDrafts>>
+          Awaited<ReturnType<typeof getMyDrafts>>
         > , 'initialData'
       >, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetDrafts<TData = Awaited<ReturnType<typeof getDrafts>>, TError = unknown>(
- params?: GetDraftsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDrafts>>, TError, TData>> & Pick<
+export function useGetMyDrafts<TData = Awaited<ReturnType<typeof getMyDrafts>>, TError = unknown>(
+ params?: GetMyDraftsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyDrafts>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof getDrafts>>,
+          Awaited<ReturnType<typeof getMyDrafts>>,
           TError,
-          Awaited<ReturnType<typeof getDrafts>>
+          Awaited<ReturnType<typeof getMyDrafts>>
         > , 'initialData'
       >, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
-export function useGetDrafts<TData = Awaited<ReturnType<typeof getDrafts>>, TError = unknown>(
- params?: GetDraftsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDrafts>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+export function useGetMyDrafts<TData = Awaited<ReturnType<typeof getMyDrafts>>, TError = unknown>(
+ params?: GetMyDraftsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyDrafts>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 
-export function useGetDrafts<TData = Awaited<ReturnType<typeof getDrafts>>, TError = unknown>(
- params?: GetDraftsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDrafts>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
+export function useGetMyDrafts<TData = Awaited<ReturnType<typeof getMyDrafts>>, TError = unknown>(
+ params?: GetMyDraftsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyDrafts>>, TError, TData>>, request?: SecondParameter<typeof clientFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetDraftsQueryOptions(params,options)
+  const queryOptions = getGetMyDraftsQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

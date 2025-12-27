@@ -4,15 +4,13 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import type { UserResponse } from './userResponse';
+import type { AuthorSummary } from './authorSummary';
+import type { CommentMetaData } from './commentMetaData';
 
 export interface CommentResponse {
   id?: string;
   content?: string;
-  author?: UserResponse;
+  author?: AuthorSummary;
   postId?: string;
-  likesCount?: number;
-  replyCount?: number;
-  likedByCurrentUser?: boolean;
-  replies?: unknown[];
+  meta?: CommentMetaData;
 }

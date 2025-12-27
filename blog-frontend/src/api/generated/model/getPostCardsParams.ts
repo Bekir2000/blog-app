@@ -4,13 +4,13 @@
  * OpenAPI definition
  * OpenAPI spec version: v0
  */
-import type { GetBookmarkedPostsCategory } from './getBookmarkedPostsCategory';
+import type { GetPostCardsCategory } from './getPostCardsCategory';
 
-export type GetBookmarkedPostsParams = {
+export type GetPostCardsParams = {
 page?: number;
 size?: number;
+authorName?: string;
+category?: GetPostCardsCategory;
 title?: string;
 tag?: string;
-authorName?: string;
-category?: GetBookmarkedPostsCategory;
 };

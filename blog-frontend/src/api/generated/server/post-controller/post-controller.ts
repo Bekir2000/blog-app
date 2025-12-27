@@ -5,51 +5,47 @@
  * OpenAPI spec version: v0
  */
 import type {
+  DraftDetailResponse,
   GetAllPostCardsParams,
-  GetDraftsParams,
-  GetMyPublishedPostsParams,
+  GetMyDraftsParams,
+  PagedResponseDraftCardResponse,
   PagedResponsePostCardResponse,
   PostDetailResponse,
-  PostRequest,
-  PostResponse
+  PostDraftRequest,
+  PostDraftResult
 } from '../../model';
 
 import { serverFetch } from '../../../../lib/api-client';
 
 
 
-  export const getPostById = (
+  export const getDraftById = (
     postId: string,
+    draftId: string,
  ) => {
-      return serverFetch<PostDetailResponse>(
-      {url: `/api/v1/posts/${postId}`, method: 'GET'
+      return serverFetch<DraftDetailResponse>(
+      {url: `/api/v1/posts/${postId}/drafts/${draftId}`, method: 'GET'
     },
       );
     }
-  export const updatePost = (
+  export const safeDraft = (
     postId: string,
-    postRequest: PostRequest,
+    draftId: string,
+    postDraftRequest: PostDraftRequest,
  ) => {
-      return serverFetch<PostResponse>(
-      {url: `/api/v1/posts/${postId}`, method: 'PUT',
+      return serverFetch<PostDraftResult>(
+      {url: `/api/v1/posts/${postId}/drafts/${draftId}`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
-      data: postRequest
+      data: postDraftRequest
     },
       );
     }
-  export const deletePost = (
+  export const deleteDraft = (
     postId: string,
+    draftId: string,
  ) => {
       return serverFetch<void>(
-      {url: `/api/v1/posts/${postId}`, method: 'DELETE'
-    },
-      );
-    }
-  export const toggleLike = (
-    postId: string,
- ) => {
-      return serverFetch<PostResponse>(
-      {url: `/api/v1/posts/${postId}/like`, method: 'PUT'
+      {url: `/api/v1/posts/${postId}/drafts/${draftId}`, method: 'DELETE'
     },
       );
     }
@@ -62,48 +58,83 @@ import { serverFetch } from '../../../../lib/api-client';
     },
       );
     }
-  export const createPost = (
-    postRequest: PostRequest,
+  export const createFirstDraft = (
+    postDraftRequest: PostDraftRequest,
  ) => {
-      return serverFetch<PostResponse>(
+      return serverFetch<PostDraftResult>(
       {url: `/api/v1/posts`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
-      data: postRequest
+      data: postDraftRequest
     },
       );
     }
-  export const createRevision = (
+  export const likePost = (
     postId: string,
  ) => {
-      return serverFetch<PostResponse>(
-      {url: `/api/v1/posts/${postId}/revision`, method: 'POST'
+      return serverFetch<void>(
+      {url: `/api/v1/posts/${postId}/like`, method: 'POST'
     },
       );
     }
-  export const getMyPublishedPosts = (
-    params?: GetMyPublishedPostsParams,
+  export const unlikePost = (
+    postId: string,
  ) => {
-      return serverFetch<PagedResponsePostCardResponse>(
-      {url: `/api/v1/posts/published`, method: 'GET',
-        params
+      return serverFetch<void>(
+      {url: `/api/v1/posts/${postId}/like`, method: 'DELETE'
     },
       );
     }
-  export const getDrafts = (
-    params?: GetDraftsParams,
+  export const addNewDraft = (
+    postId: string,
  ) => {
-      return serverFetch<PagedResponsePostCardResponse>(
+      return serverFetch<PostDraftResult>(
+      {url: `/api/v1/posts/${postId}/drafts`, method: 'POST'
+    },
+      );
+    }
+  export const publishPost = (
+    postId: string,
+    draftId: string,
+ ) => {
+      return serverFetch<string>(
+      {url: `/api/v1/posts/${postId}/drafts/${draftId}/publish`, method: 'PATCH'
+    },
+      );
+    }
+  export const getPostById = (
+    postId: string,
+ ) => {
+      return serverFetch<PostDetailResponse>(
+      {url: `/api/v1/posts/${postId}`, method: 'GET'
+    },
+      );
+    }
+  export const deletePost = (
+    postId: string,
+ ) => {
+      return serverFetch<void>(
+      {url: `/api/v1/posts/${postId}`, method: 'DELETE'
+    },
+      );
+    }
+  export const getMyDrafts = (
+    params?: GetMyDraftsParams,
+ ) => {
+      return serverFetch<PagedResponseDraftCardResponse>(
       {url: `/api/v1/posts/drafts`, method: 'GET',
         params
     },
       );
     }
-  export type GetPostByIdResult = NonNullable<Awaited<ReturnType<typeof getPostById>>>
-export type UpdatePostResult = NonNullable<Awaited<ReturnType<typeof updatePost>>>
-export type DeletePostResult = NonNullable<Awaited<ReturnType<typeof deletePost>>>
-export type ToggleLikeResult = NonNullable<Awaited<ReturnType<typeof toggleLike>>>
+  export type GetDraftByIdResult = NonNullable<Awaited<ReturnType<typeof getDraftById>>>
+export type SafeDraftResult = NonNullable<Awaited<ReturnType<typeof safeDraft>>>
+export type DeleteDraftResult = NonNullable<Awaited<ReturnType<typeof deleteDraft>>>
 export type GetAllPostCardsResult = NonNullable<Awaited<ReturnType<typeof getAllPostCards>>>
-export type CreatePostResult = NonNullable<Awaited<ReturnType<typeof createPost>>>
-export type CreateRevisionResult = NonNullable<Awaited<ReturnType<typeof createRevision>>>
-export type GetMyPublishedPostsResult = NonNullable<Awaited<ReturnType<typeof getMyPublishedPosts>>>
-export type GetDraftsResult = NonNullable<Awaited<ReturnType<typeof getDrafts>>>
+export type CreateFirstDraftResult = NonNullable<Awaited<ReturnType<typeof createFirstDraft>>>
+export type LikePostResult = NonNullable<Awaited<ReturnType<typeof likePost>>>
+export type UnlikePostResult = NonNullable<Awaited<ReturnType<typeof unlikePost>>>
+export type AddNewDraftResult = NonNullable<Awaited<ReturnType<typeof addNewDraft>>>
+export type PublishPostResult = NonNullable<Awaited<ReturnType<typeof publishPost>>>
+export type GetPostByIdResult = NonNullable<Awaited<ReturnType<typeof getPostById>>>
+export type DeletePostResult = NonNullable<Awaited<ReturnType<typeof deletePost>>>
+export type GetMyDraftsResult = NonNullable<Awaited<ReturnType<typeof getMyDrafts>>>
