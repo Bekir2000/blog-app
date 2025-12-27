@@ -9,6 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, Loader2, SendHorizonal } from "lucide-react";
+// 👇 CHANGE THIS IMPORT
+import { useRouter } from "next/navigation";
 
 // 1. Zod Schema
 const commentSchema = z.object({
@@ -44,6 +46,8 @@ export function CommentForm({
     mode: "onChange",
   });
 
+  const router = useRouter();
+
   const fullName = currentUser
     ? `${currentUser.firstName} ${currentUser.lastName}`.trim()
     : "";
@@ -53,7 +57,6 @@ export function CommentForm({
 
   const currentContent = watch("content") || "";
 
-  // 👇 FIXED SUBMIT HANDLER
   const onFormSubmit = async (data: CommentFormValues) => {
     try {
       await onSubmit(data.content);
@@ -61,30 +64,24 @@ export function CommentForm({
     } catch (error: any) {
       console.log("🔥 Comment Submission Error:", error);
 
-      // 1. Extract the data object from your custom ApiError
       const backendError = error.response?.data;
-
-      // 2. Check for Validation Errors (Problem Details 'errors' OR Legacy 'fieldErrors')
       const validationErrors =
         backendError?.errors || backendError?.fieldErrors;
 
       if (Array.isArray(validationErrors)) {
-        // Find the specific error for the "content" field
         const contentError = validationErrors.find(
           (err: any) => err.field === "content"
         );
 
         if (contentError) {
-          // 3. Set the error manually on the input field
           setError("content", {
             type: "server",
-            message: contentError.message, // "Content must be between 10..."
+            message: contentError.message,
           });
-          return; // Stop here so we don't set a generic error
+          return;
         }
       }
 
-      // 4. Fallback for generic 400/500 errors
       setError("content", {
         type: "server",
         message:
@@ -107,7 +104,13 @@ export function CommentForm({
         <p className="text-sm text-muted-foreground">
           Log in to join the conversation
         </p>
-        <Button variant="outline" size="sm">
+        <Button
+          // You can also pass a return URL here if you want:
+          // onClick={() => router.push(`/login?next=${window.location.pathname}`)}
+          onClick={() => router.push("/login")}
+          variant="outline"
+          size="sm"
+        >
           Log In
         </Button>
       </div>
@@ -129,7 +132,6 @@ export function CommentForm({
           placeholder="What are your thoughts?"
           disabled={isSubmitting}
           onKeyDown={handleKeyDown}
-          // Highlight border red if error exists
           className={`min-h-[100px] resize-none bg-background focus-visible:ring-1 text-sm ${
             errors.content
               ? "border-destructive focus-visible:ring-destructive"
@@ -138,7 +140,6 @@ export function CommentForm({
         />
 
         <div className="flex items-center justify-between">
-          {/* Validation Message Area */}
           <div className="text-xs min-h-[20px]">
             {errors.content ? (
               <span className="flex items-center text-destructive font-medium animate-in fade-in slide-in-from-left-1">

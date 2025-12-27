@@ -13,7 +13,6 @@ import {
 import { getUser } from "@/lib/auth";
 import { Bookmark, FileText, Home } from "lucide-react";
 import Link from "next/link";
-// Import the new Client Component
 import { FollowingList } from "./following-list";
 
 // Menu items configuration
@@ -28,29 +27,21 @@ const menuItems = [
     url: "/bookmarks",
     icon: Bookmark,
   },
-  // {
-  //   title: "Profile",
-  //   url: "#",
-  //   icon: User,
-  // },
   {
     title: "Stories",
     url: "/me/stories",
     icon: FileText,
   },
-  // {
-  //   title: "Stats",
-  //   url: "#",
-  //   icon: BarChart,
-  // },
 ];
 
 export async function MenuSidebar() {
   let followingItems: UserResponse[] = [];
+
+  // 1. Check if user is logged in
   const user = await getUser();
 
   if (user) {
-    // 1. Fetch initial data on the server
+    // 2. Fetch data only if logged in
     followingItems = await getMyFollowing();
   }
 
@@ -81,9 +72,8 @@ export async function MenuSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Bottom Section: Dynamic Following List 
-            We pass the server data to the client component here */}
-        <FollowingList initialItems={followingItems} />
+        {/* Bottom Section: Only render if user exists */}
+        {user && <FollowingList initialItems={followingItems} />}
       </SidebarContent>
     </Sidebar>
   );
