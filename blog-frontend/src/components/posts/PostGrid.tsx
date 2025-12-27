@@ -15,7 +15,7 @@ interface PageData {
 
 interface PostsGridProps {
   initialPosts: PostCardResponse[] | null;
-  currentUser: UserResponse | null;
+  currentUser: UserResponse | undefined;
   queryResult: UseInfiniteQueryResult<
     { pages: Array<{ data: PageData }> },
     unknown

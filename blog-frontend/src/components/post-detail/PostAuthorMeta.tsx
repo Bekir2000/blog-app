@@ -2,9 +2,7 @@
 
 import { PostDetailResponse } from "@/api/generated/model";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { MoreHorizontal, PlayCircle } from "lucide-react";
 
 // Import your new component
 import { PostShareMenu } from "./PostShareMenu";
@@ -37,9 +35,9 @@ export function PostAuthorMeta({
       {/* LEFT: Author Profile & Meta */}
       <div className="flex items-center gap-3">
         <Avatar className="h-10 w-10 cursor-pointer border border-border/50">
-          <AvatarImage src={author?.profileImageUrl} alt={author?.username} />
+          <AvatarImage src={author?.imageUrl} alt={author?.firstName} />
           <AvatarFallback className="text-xs bg-muted text-muted-foreground font-medium">
-            {author?.username?.[0]?.toUpperCase() || "?"}
+            {author?.firstName?.[0]?.toUpperCase() || "?"}
           </AvatarFallback>
         </Avatar>
 
@@ -78,28 +76,27 @@ export function PostAuthorMeta({
                 ? format(new Date(createdAt), "MMM d, yyyy")
                 : "Just now"}
             </span>
-            <span
+            {/* <span
               className="ml-2 cursor-pointer hover:text-foreground transition-colors"
               title="Listen to post"
             >
               <PlayCircle className="w-4 h-4" />
-            </span>
+            </span> */}
           </div>
         </div>
       </div>
 
       {/* RIGHT: Actions */}
       <div className="flex gap-1">
-        {/* 👇 Used here */}
         <PostShareMenu postTitle={postTitle} postsId={postId} />
 
-        <Button
+        {/* <Button
           variant="ghost"
           size="icon"
           className="text-muted-foreground hover:text-foreground hover:bg-muted"
         >
           <MoreHorizontal className="w-5 h-5" />
-        </Button>
+        </Button> */}
       </div>
     </div>
   );

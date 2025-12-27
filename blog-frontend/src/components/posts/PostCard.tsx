@@ -17,14 +17,23 @@ export function PostCard({
   currentUser,
 }: {
   postCard: PostCardResponse;
-  currentUser: UserResponse | null;
+  currentUser: UserResponse | undefined;
 }) {
   if (!postCard) {
     return null;
   }
 
-  const isBookmarked = postCard.isBookmarked;
-  const postUrl = `/posts/${postCard.id}`;
+  const isBookmarked = postCard.meta?.isBookmarked ?? false;
+  const postUrl = `/post-feed/${postCard.id}`;
+
+  // Helper for cleaner date formatting
+  const formattedDate = postCard.createdAt
+    ? new Date(postCard.createdAt).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "";
 
   return (
     <Card className="w-full shadow-md transition-shadow hover:shadow-lg">
@@ -33,11 +42,11 @@ export function PostCard({
         <div className="mb-3 flex flex-row items-center gap-2 text-sm">
           <Avatar className="h-6 w-6">
             <AvatarImage
-              src={postCard.author?.profileImageUrl ?? undefined}
+              src={postCard.author?.imageUrl ?? undefined}
               alt={postCard.author?.firstName}
             />
             <AvatarFallback className="text-[10px]">
-              {postCard.author?.username?.[0] ?? "?"}
+              {postCard.author?.firstName?.[0] ?? "?"}
             </AvatarFallback>
           </Avatar>
           <div className="text-xs font-medium text-gray-700">
@@ -59,7 +68,6 @@ export function PostCard({
             </CardDescription>
           </div>
 
-          {/* Updated: Responsive Image Size (Smaller on mobile) */}
           <div className="h-[75px] w-[100px] shrink-0 sm:h-[120px] sm:w-[160px]">
             {postCard.imageUrl && (
               <Image
@@ -74,18 +82,20 @@ export function PostCard({
         </Link>
       </CardHeader>
 
+      {/* Footer / Metadata */}
       <CardFooter className="mt-2 flex items-center justify-between text-sm text-gray-600">
         <div className="flex items-center gap-4 sm:gap-6">
-          <span className="flex items-center gap-1 text-xs">
-            <Calendar className="h-3.5 w-3.5" />{" "}
-            {postCard.createdAt ? postCard.createdAt.split("T")[0] : ""}
+          {/* Date View Improved */}
+          <span className="flex items-center gap-1 text-xs text-gray-500">
+            <Calendar className="h-3.5 w-3.5" />
+            {formattedDate}
           </span>
-          <span className="flex items-center gap-1 text-xs">
-            <ThumbsUp className="h-3.5 w-3.5" /> {postCard.likes || 0}
+          <span className="flex items-center gap-1 text-xs text-gray-500">
+            <ThumbsUp className="h-3.5 w-3.5" /> {postCard.meta?.likeCount || 0}
           </span>
-          <span className="flex items-center gap-1 text-xs">
+          <span className="flex items-center gap-1 text-xs text-gray-500">
             <MessageCircle className="h-3.5 w-3.5" />{" "}
-            {postCard.commentsCount || 0}
+            {postCard.meta?.commentCount || 0}
           </span>
         </div>
 

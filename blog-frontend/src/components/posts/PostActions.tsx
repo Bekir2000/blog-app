@@ -1,87 +1,41 @@
 "use client";
 
-import {
-  useBookmarkPost,
-  useUnbookmarkPost,
-} from "@/api/generated/client/me-controller/me-controller";
 import { UserResponse } from "@/api/generated/model";
-import { InfiniteData, useQueryClient } from "@tanstack/react-query";
-import { Bookmark, BookmarkPlus, CircleMinus, Ellipsis } from "lucide-react";
+import { usePostBookmark } from "@/hooks/usePostBookmark";
+import { Bookmark, BookmarkPlus } from "lucide-react";
+import { MouseEvent } from "react";
 
 interface PostActionsProps {
   postId: string;
-  currentUser: UserResponse | null;
+  currentUser: UserResponse | undefined;
   isBookmarked?: boolean;
 }
 
 export function PostActions({
   postId,
   currentUser,
-  isBookmarked,
+  isBookmarked: initialIsBookmarked = false,
 }: PostActionsProps) {
-  const queryClient = useQueryClient();
+  // The hook now handles global cache updates automatically!
+  const { isBookmarked, toggleBookmark } = usePostBookmark({
+    postId,
+    initialIsBookmarked,
+  });
 
-  // Orval generated hooks
-  const { mutate: bookmark } = useBookmarkPost();
-  const { mutate: unbookmark } = useUnbookmarkPost();
-
-  const handleToggle = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleToggle = (e: MouseEvent) => {
+    e.stopPropagation(); // Stop click from opening the post
     e.preventDefault();
+
     if (!currentUser) return;
-
-    const nextState = !isBookmarked;
-
-    await queryClient.cancelQueries({ queryKey: ["posts"] });
-    await queryClient.cancelQueries({ queryKey: ["me", "bookmarks"] });
-
-    updateAllCaches(nextState);
-
-    if (isBookmarked) {
-      unbookmark({ postId }, { onError: () => updateAllCaches(!nextState) });
-    } else {
-      bookmark(
-        { data: { postId } },
-        { onError: () => updateAllCaches(!nextState) }
-      );
-    }
-  };
-
-  const updateAllCaches = (newState: boolean) => {
-    const queryKeys = [["posts"], ["me", "bookmarks"]];
-
-    queryKeys.forEach((key) => {
-      queryClient.setQueriesData<InfiniteData<any>>(
-        { queryKey: key },
-        (oldData) => {
-          if (!oldData) return oldData;
-          return {
-            ...oldData,
-            pages: oldData.pages.map((page) => ({
-              ...page,
-              data: {
-                ...page.data,
-                content: page.data.content?.map((post: any) =>
-                  post.id === postId
-                    ? { ...post, isBookmarked: newState }
-                    : post
-                ),
-              },
-            })),
-          };
-        }
-      );
-    });
+    toggleBookmark();
   };
 
   return (
-    // FIX 1: Removed 'mr-50'. Added 'items-center' and responsive gap.
-    // The parent PostCard already handles the spacing between left/right elements.
     <div className="flex items-center gap-3 sm:gap-4 text-gray-500">
-      <CircleMinus className="h-5 w-5 cursor-pointer hover:text-gray-700 transition-colors" />
+      {/* <CircleMinus className="h-5 w-5 cursor-pointer hover:text-gray-700 transition-colors" /> */}
 
       {currentUser ? (
-        <div onClick={handleToggle} className="cursor-pointer">
+        <div onClick={handleToggle} className="cursor-pointer p-1 -m-1">
           {isBookmarked ? (
             <Bookmark className="h-5 w-5 text-red-600 fill-red-600 transition-colors" />
           ) : (
@@ -92,7 +46,7 @@ export function PostActions({
         <BookmarkPlus className="h-5 w-5 cursor-pointer text-gray-300 opacity-50" />
       )}
 
-      <Ellipsis className="h-5 w-5 cursor-pointer hover:text-gray-700 transition-colors" />
+      {/* <Ellipsis className="h-5 w-5 cursor-pointer hover:text-gray-700 transition-colors" /> */}
     </div>
   );
 }
