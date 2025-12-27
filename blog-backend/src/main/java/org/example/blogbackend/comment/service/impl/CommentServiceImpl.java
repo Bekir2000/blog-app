@@ -13,6 +13,7 @@ import org.example.blogbackend.comment.service.CommentService;
 import org.example.blogbackend.post.repository.PostRepository;
 import org.example.blogbackend.shared.dto.PagedResponse;
 import org.example.blogbackend.shared.mapper.PageMapper;
+import org.example.blogbackend.shared.security.InputSanitizer;
 import org.example.blogbackend.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,7 +22,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-
 
 @Service
 @RequiredArgsConstructor
@@ -35,24 +35,36 @@ public class CommentServiceImpl implements CommentService {
     private final UserRepository userRepository;
     private final PostRepository postRepository;
 
+    private final InputSanitizer inputSanitizer;
+
     private final PageMapper pageMapper;
     private final CommentMapper commentMapper;
 
+    @Override
     public UUID createRoot(UUID postId, UUID userId, String content) {
         boolean isUserExists = userRepository.existsById(userId);
         if (!isUserExists) {
             throw new AccessDeniedException("User does not exist");
         }
 
-        if (content.isBlank()) {
+        if (content == null || content.isBlank()) {
             throw new IllegalArgumentException("Content cannot be blank");
         }
-        Comment root = Comment.createRoot(postId, userId, content);
-        commentRepo.incrementReplyCount(root.getId());
+
+        // 1. Sanitize content first
+        String cleanContent = inputSanitizer.sanitizeText(content);
+
+        // 2. Create entity with cleaned content
+        Comment root = Comment.createRoot(postId, userId, cleanContent);
+
+        // Note: We do not increment reply count for the root itself here,
+        // as a new comment has 0 replies.
+
         postRepository.incrementCommentCount(postId);
         return commentRepo.save(root).getId();
     }
 
+    @Override
     @Transactional(readOnly = true)
     public PagedResponse<CommentResponse> getComments(
             UUID postId,
@@ -97,25 +109,30 @@ public class CommentServiceImpl implements CommentService {
         return pageMapper.toPagedResponse(page);
     }
 
-
+    @Override
     public UUID reply(UUID postId, UUID parentId, UUID userId, String content) {
         boolean isUserExists = userRepository.existsById(userId);
         if (!isUserExists) {
             throw new AccessDeniedException("User does not exist");
         }
 
-        if (content.isBlank()) {
+        if (content == null || content.isBlank()) {
             throw new IllegalArgumentException("Content cannot be blank");
         }
 
         Comment root = commentRepo.findByIdAndPostId(parentId, postId)
-                .orElseThrow();
+                .orElseThrow(() -> new EntityNotFoundException("Parent comment not found"));
 
+        // Logic check: Ensure we aren't nesting too deep
         if (root.getReplyCount() >= MAX_DEPTH) {
             throw new IllegalStateException("Max depth reached");
         }
 
-        Comment reply = Comment.createReply(postId, userId, root, content);
+        // 1. Sanitize content first
+        String cleanContent = inputSanitizer.sanitizeText(content);
+
+        // 2. Create reply with cleaned content
+        Comment reply = Comment.createReply(postId, userId, root, cleanContent);
 
         if (!reply.belongsToPost(postId)){
             throw new IllegalStateException("Comment does not belong to post");
@@ -129,6 +146,7 @@ public class CommentServiceImpl implements CommentService {
         return reply.getId();
     }
 
+    @Override
     public void delete(UUID postId, UUID commentId, UUID userId) {
         Comment c = commentRepo.findById(commentId).orElseThrow(
                 () -> new EntityNotFoundException("Comment not found")
@@ -142,12 +160,18 @@ public class CommentServiceImpl implements CommentService {
             throw new IllegalStateException("Comment does not belong to post");
         }
 
-        Comment root = c.getParent();
-        commentRepo.decrementReplyCount(root.getId());
+        Comment parent = c.getParent();
+
+        // Null check: If deleting a root comment, parent is null
+        if (parent != null) {
+            commentRepo.decrementReplyCount(parent.getId());
+        }
+
         postRepository.decrementCommentCount(postId);
         commentRepo.delete(c);
     }
 
+    @Override
     public void like(UUID commentId, UUID userId) {
         boolean isUserExists = userRepository.existsById(userId);
         if (!isUserExists) {
@@ -165,6 +189,7 @@ public class CommentServiceImpl implements CommentService {
         commentRepo.incrementLike(commentId);
     }
 
+    @Override
     public void unlike(UUID commentId, UUID userId) {
         boolean isUserExists = userRepository.existsById(userId);
         if (!isUserExists) {

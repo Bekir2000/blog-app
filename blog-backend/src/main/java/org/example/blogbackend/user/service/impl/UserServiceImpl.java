@@ -8,6 +8,7 @@ import org.example.blogbackend.post.model.Category;
 import org.example.blogbackend.post.repository.PostRepository;
 import org.example.blogbackend.shared.dto.PagedResponse;
 import org.example.blogbackend.shared.mapper.PageMapper;
+import org.example.blogbackend.shared.security.InputSanitizer;
 import org.example.blogbackend.user.mapper.UserMapper;
 import org.example.blogbackend.user.model.dto.response.UserResponse;
 import org.example.blogbackend.user.model.entity.Bookmark;
@@ -24,6 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -44,22 +46,27 @@ public class UserServiceImpl implements UserService {
 
     private final PasswordEncoder passwordEncoder;
 
+    // Security Dependencies
+    private final InputSanitizer sanitizer;
+
     @Override
     @Transactional
-    public UUID register(String firstName,
-                         String lastName,
-                         String email,
-                         String password,
-                         String profileImageUrl) {
-
+    public UUID register(String firstName, String lastName, String email, String password, String profileImageUrl) {
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Email already exists");
         }
+
+        // Cleaner calls
+        String cleanFirstName = sanitizer.sanitizeText(firstName);
+        String cleanLastName = sanitizer.sanitizeText(lastName);
+        String cleanEmail = sanitizer.sanitizeText(email);
+        String cleanProfileImage = sanitizer.sanitizeUrl(profileImageUrl);
+
         User user = User.builder()
-                .email(email)
-                .firstName(firstName)
-                .lastName(lastName)
-                .profileImageUrl(profileImageUrl)
+                .email(cleanEmail)
+                .firstName(cleanFirstName)
+                .lastName(cleanLastName)
+                .profileImageUrl(cleanProfileImage)
                 .password(passwordEncoder.encode(password))
                 .build();
 
@@ -68,7 +75,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse getById(UUID id) {
-
         return userMapper.toUserResponse(
                 userRepository.findById(id)
                         .orElseThrow(() -> new BadCredentialsException("User not found"))

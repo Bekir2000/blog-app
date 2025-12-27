@@ -131,3 +131,38 @@ Authorization: Bearer {{authToken}}
 DELETE {{baseUrl}}/{{postId}}/like
 Authorization: Bearer {{authToken}}
 
+# ==========================================
+# GROUP 6: SECURITY & VALIDATION TESTS
+# ==========================================
+
+### 18. Security Test: XSS Sanitization Check
+# Goal: Verify that <script> tags are stripped from title, content, and tags.
+# Expected Result: 200 OK / 201 Created.
+# INSPECT RESPONSE: "content" should NOT contain <script>. "title" should be plain text.
+POST {{baseUrl}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "title": "<font color=red>Hacked Title</font>",
+  "content": "This is content with a malicious script: <script>alert('XSS')</script>. It should be removed.",
+  "category": "TECHNOLOGY",
+  "tags": ["<script>badTag</script>", "Java"],
+  "imageUrl": "https://images.unsplash.com/photo-1579353977828-2a4eab54c85a"
+}
+
+### 19. Security Test: Blocked Image Domain
+# Goal: Verify that the service rejects URLs not in the allow-list (SecurityConfig).
+# Expected Result: 400 Bad Request or 500 Internal Server Error (IllegalArgumentException).
+POST {{baseUrl}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "title": "Valid Title for Invalid Image",
+  "content": "This content is long enough to pass validation rules but the image is from a bad domain.",
+  "category": "TECHNOLOGY",
+  "tags": ["Security"],
+  "imageUrl": "https://evil-site.com/malware.jpg"
+}
+

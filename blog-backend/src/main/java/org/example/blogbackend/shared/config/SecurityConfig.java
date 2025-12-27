@@ -5,6 +5,8 @@ import org.example.blogbackend.user.repository.UserRepository;
 import org.example.blogbackend.shared.security.BlogUserDetailsService;
 import org.example.blogbackend.shared.security.JwtAuthenticationFilter;
 import org.example.blogbackend.shared.security.jwt.JwtUtil;
+import org.owasp.html.HtmlPolicyBuilder;
+import org.owasp.html.PolicyFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,6 +30,26 @@ import java.util.List;
 @Configuration
 @EnableConfigurationProperties({RefreshCookieProperties.class, JwtProperties.class})
 public class SecurityConfig {
+
+    /**
+     * Defines the allowed domains for external images.
+     * This list is injected into PostServiceImpl for validation.
+     */
+    @Bean("allowedImageHosts")
+    public List<String> allowedImageHosts() {
+        return List.of(
+                "randomuser.me",
+                "images.unsplash.com",
+                "source.unsplash.com",
+                "picsum.photos",
+                "via.placeholder.com"
+        );
+    }
+
+    @Bean("plainTextPolicy")
+    public PolicyFactory plainTextPolicy() {
+        return new HtmlPolicyBuilder().toFactory(); // Allows nothing = strips all tags
+    }
 
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter(
